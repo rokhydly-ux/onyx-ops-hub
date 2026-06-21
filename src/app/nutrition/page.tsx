@@ -3655,23 +3655,68 @@ export default function NutritionDashboard() {
 
         {/* MODALE LECTURE ARTICLE */}
         {selectedArticle && (
-           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+           <div id="article-overlay" onClick={(e: any) => {
+               if (e.target.id === 'article-overlay') {
+                   setSelectedArticle(null);
+               }
+           }} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
              <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
-               <div className="absolute top-6 right-20 z-10">
-                 <button onClick={() => { const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
+               <div className="absolute top-6 right-20 z-10 flex gap-2">
+                 <button onClick={() => {
+                     const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`;
+                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                 }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
+                 <button onClick={() => {
+                     const url = window.location.href;
+                     const text = `Découvrez cet article : ${selectedArticle.title}\n${url}`;
+                     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                 }} className="p-3 bg-black text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur X (Twitter)">
+                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 24.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.004 3.82H5.078z"></path>
+                     </svg>
+                 </button>
                </div>
                <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
                
-               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+               <div className="flex items-center gap-3 mb-6">
+                   <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+                   {selectedArticle.views_count !== undefined && (
+                       <span className="text-zinc-500 dark:text-zinc-400 text-[10px] font-black uppercase flex items-center gap-1">
+                           <Eye size={12}/> {selectedArticle.views_count} vues
+                       </span>
+                   )}
+               </div>
                
-               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-4 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+
+               <div className="flex items-center gap-4 mb-8">
+                   <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-[#39FF14]">
+                       {selectedArticle.author_name?.includes('Thierno') ? (
+                           <div className="text-xs font-black">Dr.T</div>
+                       ) : (
+                           <div className="text-xs font-black">C.R</div>
+                       )}
+                   </div>
+                   <div>
+                       <p className="text-sm font-black text-black dark:text-white uppercase">{selectedArticle.author_name || 'Coach Rokhy'}</p>
+                       <p className="text-xs text-zinc-500 font-bold">{selectedArticle.estimated_read_time || 'Lecture rapide'}</p>
+                   </div>
+               </div>
                
                {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
                
                <div className="prose prose-zinc dark:prose-invert max-w-none">
                   <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-8 font-bold leading-relaxed">{selectedArticle.desc}</p>
                   
-                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">{selectedArticle.content}</div>
+                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">
+                      {/* Regex to find potential shop links and make them clickable */}
+                      {selectedArticle.content?.split(/(\bhttps?:\/\/[^\s]+)/g).map((part: string, i: number) => {
+                          if (part.match(/^https?:\/\//)) {
+                              return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#39FF14] underline font-bold hover:text-green-400 transition-colors">{part}</a>;
+                          }
+                          return part;
+                      })}
+                  </div>
 
                   {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
                      <div className="mb-10">
@@ -3683,6 +3728,16 @@ export default function NutritionDashboard() {
                         </div>
                      </div>
                   )}
+               </div>
+
+               <div className="mt-12 bg-zinc-50 dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-4">
+                   <div>
+                       <h4 className="font-black uppercase text-sm mb-1">Prêt(e) à passer à l'action ?</h4>
+                       <p className="text-xs text-zinc-500 font-bold">Découvrez nos produits recommandés dans la boutique.</p>
+                   </div>
+                   <button onClick={() => { setSelectedArticle(null); setActiveTab('shop'); }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
+                       Visiter la boutique <ArrowRight size={14} />
+                   </button>
                </div>
              </div>
            </div>

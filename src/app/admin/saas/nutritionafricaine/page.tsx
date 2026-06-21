@@ -2729,86 +2729,57 @@ export default function AdminNutritionAfricaine() {
                 placeholder="Description courte..."
               />
               <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] overflow-hidden focus-within:border-[#39FF14] transition-colors">
-                <div className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-800 p-3 border-b border-zinc-200 dark:border-zinc-700">
+                <div className="flex flex-wrap gap-2 justify-between items-center bg-zinc-100 dark:bg-zinc-800 p-3 border-b border-zinc-200 dark:border-zinc-700">
                    <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest pl-2">Contenu Complet</span>
-                   <button type="button" onClick={async () => {
-                       if (!editingArticle.title) return alert("Saisir un titre d'abord.");
-                       setIsGeneratingArticle(true);
-                       
-                       // Simulation d'une IA avancée avec des réponses dynamiques selon les concepts du titre
-                       await new Promise(r => setTimeout(r, 1500));
-                       
-                       const generateArticleContent = (title: string) => {
-                           const titleLower = title.toLowerCase();
+                   <div className="flex items-center gap-2">
+                       <select
+                           value={editingArticle.voice || 'rokhy_educatrice'}
+                           onChange={e => setEditingArticle({...editingArticle, voice: e.target.value})}
+                           className="bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-xl px-2 py-1.5 text-xs font-semibold outline-none focus:border-[#39FF14]"
+                       >
+                           <option value="rokhy_educatrice">Coach Rokhy (Éducatrice)</option>
+                           <option value="rokhy_grande_soeur">Coach Rokhy (Grande Sœur)</option>
+                           <option value="dr_thierno_consultation">Dr. Thierno (Consultation)</option>
+                           <option value="dr_thierno_publique">Dr. Thierno (Santé Publique)</option>
+                       </select>
+                       <button type="button" onClick={async () => {
+                           if (!editingArticle.title) return alert("Saisir un titre d'abord.");
+                           setIsGeneratingArticle(true);
                            
-                           const concepts: Record<string, string> = {
-                               "diabète": "la régulation de la glycémie avec des aliments à index glycémique bas",
-                               "sucre": "la réduction des pics d'insuline et la maîtrise des envies sucrées",
-                               "sport": "la récupération musculaire et l'apport en protéines",
-                               "muscle": "la construction musculaire avec des protéines locales comme le Niébé",
-                               "peau": "l'éclat de la peau grâce aux antioxydants et à l'hydratation",
-                               "cheveux": "la fortification capillaire avec les nutriments locaux",
-                               "fatigue": "le regain d'énergie durable avec la vitamine C et le fer",
-                               "énergie": "le maintien de la vitalité tout au long de la journée",
-                               "digestion": "le confort intestinal et l'apport en fibres douces",
-                               "ventre": "le dégonflement abdominal et la lutte contre la rétention d'eau",
-                               "tension": "la santé cardiovasculaire et la réduction du sel industriel",
-                               "stress": "l'apaisement du système nerveux avec le magnésium (ex: Noix de cajou)",
-                               "grossesse": "les besoins accrus en fer, calcium et acide folique pour la maman",
-                               "allaitement": "l'énergie nécessaire pour nourrir bébé sans s'épuiser",
-                               "poids": "le déficit calorique intelligent sans sacrifier nos plats traditionnels",
-                               "maigrir": "la perte de masse grasse grâce à un rééquilibrage de fond",
-                               "jeûne": "l'optimisation de la fenêtre alimentaire et la rupture saine du jeûne",
-                               "ménopause": "l'équilibre hormonal et la protection du capital osseux",
-                               "enfant": "la croissance saine avec des alternatives naturelles aux goûters industriels",
-                               "sommeil": "la préparation au repos avec des dîners légers et des infusions apaisantes"
-                           };
-
-                           const foundConcepts = Object.keys(concepts).filter(key => titleLower.includes(key));
-                           
-                           let intro = "";
-                           let body = "";
-                           let outro = "";
-
-                           if (foundConcepts.length > 0) {
-                               const mainConceptText = concepts[foundConcepts[0]];
-                               intro = `La thématique "${title}" est au cœur de nombreuses préoccupations aujourd'hui. En effet, lorsqu'il s'agit de nutrition à l'africaine, il est primordial de comprendre l'impact sur ${mainConceptText}.`;
+                           try {
+                               const voice = editingArticle.voice || 'rokhy_educatrice';
+                               const authorName = voice.startsWith('dr_thierno') ? 'Dr. Thierno' : 'Coach Rokhy';
                                
-                               body = `Voici comment adapter vos habitudes pour tirer le meilleur parti de cette approche :\n\n`;
-                               body += `1. **Ciblez vos besoins :** En lien avec "${title}", privilégiez les aliments qui soutiennent directement ${mainConceptText}.\n`;
+                               const res = await fetch('/api/admin/generate-article', {
+                                   method: 'POST',
+                                   headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({
+                                       title: editingArticle.title,
+                                       voice: voice
+                                   })
+                               });
                                
-                               if (foundConcepts.length > 1) {
-                                   body += `2. **Synergie d'action :** N'oubliez pas également l'importance de ${concepts[foundConcepts[1]]}, qui vient souvent en complément.\n`;
-                               } else {
-                                   body += `2. **Nos super-aliments locaux :** Intégrez des produits bruts comme le Fonio, le Moringa ou le Bouye qui sont de formidables alliés pour cette démarche.\n`;
+                               if (!res.ok) {
+                                   throw new Error('Erreur de génération');
                                }
                                
-                               body += `3. **Hydratation et Constance :** Consommez des infusions naturelles (Bissap sans sucre, Kinkeliba) et maintenez vos nouvelles habitudes sur le long terme.`;
-                           } else {
-                               const stopWords = ['le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'ou', 'pour', 'avec', 'dans', 'sur', 'comment', 'pourquoi', 'quel', 'quelle'];
-                               const words = title.split(/[\s,']+/).filter((w: string) => w.length > 2 && !stopWords.includes(w.toLowerCase()));
-                               const keywords = words.length > 0 ? words.join(', ') : "votre alimentation";
-
-                               intro = `Il est essentiel de s'informer sur des sujets pointus comme : "${title}".\n\nÀ travers cet article, nous allons explorer en profondeur les enjeux autour de ces notions (${keywords}), et comment cela s'intègre parfaitement dans le cadre d'un rééquilibrage sain et local.`;
+                               const data = await res.json();
                                
-                               body = `Voici 3 piliers essentiels à retenir :\n\n1. **Prenez conscience de l'impact :** Comprenez bien les principes liés à "${title}" avant de modifier drastiquement vos habitudes.\n2. **La puissance du local :** L'intégration de nos super-aliments naturels (comme le Moringa, le Fonio ou le Nététou) peut grandement soutenir vos efforts dans ce domaine.\n3. **La régularité prime sur la perfection :** Appliquez vos nouvelles connaissances pas à pas, sans frustration.`;
+                               setEditingArticle({...editingArticle,
+                                   content: data.content,
+                                   author_name: authorName,
+                                   suggested_products: products.slice(0, 2).map(p => p.nom)
+                               });
+                           } catch (error) {
+                               console.error(error);
+                               alert("Erreur lors de la génération de l'article.");
+                           } finally {
+                               setIsGeneratingArticle(false);
                            }
-
-                           outro = `En maîtrisant les concepts liés à "${title}", vous franchirez une nouvelle étape majeure vers votre bien-être global.`;
-
-                           return `${intro}\n\n${body}\n\n${outro}`;
-                       };
-                       
-                       const generatedContent = generateArticleContent(editingArticle.title);
-                       
-                       setEditingArticle({...editingArticle, 
-                           content: generatedContent,
-                           suggested_products: products.slice(0, 2).map(p => p.nom)
-                       });
-                       setIsGeneratingArticle(false);
-                   }} disabled={isGeneratingArticle} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50">
-                      <Sparkles size={12}/> {isGeneratingArticle ? 'Génération...' : 'Générer avec IA'}
-                   </button>
+                       }} disabled={isGeneratingArticle} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50">
+                          <Sparkles size={12}/> {isGeneratingArticle ? 'Génération...' : 'Générer avec IA'}
+                       </button>
+                   </div>
                 </div>
                 <textarea 
                   value={editingArticle.content || ''} 
