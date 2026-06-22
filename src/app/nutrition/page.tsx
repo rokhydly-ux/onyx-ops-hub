@@ -3621,7 +3621,10 @@ export default function NutritionDashboard() {
         {activeTab === 'blog' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
              <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}>
+                   <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg" alt="Blog & Conseils" className="w-10 h-10 rounded-xl object-cover shadow-sm border border-zinc-200 dark:border-zinc-800" />
+                   Blog & Conseils
+                </h2>
                 <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
              </div>
 
