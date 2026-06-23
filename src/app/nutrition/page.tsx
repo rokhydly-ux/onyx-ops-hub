@@ -8,13 +8,14 @@ useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
-, PartyPopper, TrendingDown, Dumbbell, TrendingUp, Send
+, PartyPopper, TrendingDown, Dumbbell, TrendingUp, Send, Headphones
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import jsPDF from "jspdf";
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -451,6 +452,8 @@ export default function NutritionDashboard() {
     const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [communityPosts, setCommunityPosts] = useState<any[]>([]);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [communityPage, setCommunityPage] = useState(0);
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -941,7 +944,8 @@ export default function NutritionDashboard() {
   };
 
 
-  const fetchCommunityPosts = async () => {
+  const fetchCommunityPosts = async (page = 0, append = false) => {
+      const pageSize = 10;
       const { data: cPosts } = await supabase
         .from('nutrition_community_posts')
         .select(`
@@ -949,9 +953,13 @@ export default function NutritionDashboard() {
           reactions:nutrition_community_reactions(reaction_type),
           comments:nutrition_community_comments(count)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
       if (cPosts) {
-          setCommunityPosts(cPosts.map((p: any) => {
+          if (cPosts.length < pageSize) setHasMorePosts(false);
+
+          const formattedPosts = cPosts.map((p: any) => {
              const reactions = { top: 0, sain: 0, courage: 0 };
              if (Array.isArray(p.reactions)) {
                  p.reactions.forEach((r: any) => {
@@ -966,7 +974,18 @@ export default function NutritionDashboard() {
                reactions,
                commentCount: p.comments?.[0]?.count || 0
              };
-          }));
+          });
+
+          if (append) {
+              setCommunityPosts(prev => {
+                  const newIds = new Set(formattedPosts.map((fp: any) => fp.id));
+                  return [...prev.filter(p => !newIds.has(p.id)), ...formattedPosts].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+              });
+          } else {
+              setCommunityPosts(formattedPosts);
+          }
+      } else {
+          setHasMorePosts(false);
       }
   };
 
@@ -1681,7 +1700,7 @@ export default function NutritionDashboard() {
       carbs_consumed: carbs,
       fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-    });
+    }, { onConflict: 'client_id, log_date' });
     
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
@@ -1824,7 +1843,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-          });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -1856,7 +1875,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -2231,7 +2250,7 @@ export default function NutritionDashboard() {
     }
 
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload);
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
 
        if (error) throw error;
 
@@ -2565,7 +2584,7 @@ export default function NutritionDashboard() {
            proteins_consumed: proteins,
            carbs_consumed: carbs,
            fats_consumed: fats
-         });
+    }, { onConflict: 'client_id, log_date' });
          alert("Notes et humeurs du jour sauvegardées !");
      } catch(e) {
          alert("Erreur de sauvegarde.");
@@ -3601,11 +3620,32 @@ export default function NutritionDashboard() {
                   { id: "5", title: "Jeûne intermittent & plats africains", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "18:10" }
                 ].map((podcast, idx) => (
                    <div key={idx} className="bg-zinc-950 p-4 rounded-[2rem] border border-zinc-800 shadow-xl flex flex-col group hover:border-[#39FF14] transition-colors">
-                      <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-900 border border-zinc-800">
-                         <iframe src={`${podcast.videoUrl}?controls=1&rel=0`} className="w-full h-full border-0" allowFullScreen></iframe>
+                      <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-900 border border-zinc-800 group-hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-shadow">
+                         {/* We use a native video here to allow PiP and onEnded tracking easily for the MVP, rather than YouTube iframes */}
+                         <video
+                             controls
+                             src="https://www.w3schools.com/html/mov_bbb.mp4"
+                             className="w-full h-full object-cover"
+                             onEnded={() => {
+                                 updateXP(50, `Vidéo Visionnée: ${podcast.title}`);
+                                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                             }}
+                         ></video>
+                         {/* PiP Button */}
+                         <button onClick={(e) => {
+                             const videoEl = e.currentTarget.previousElementSibling as HTMLVideoElement;
+                             if (document.pictureInPictureElement) {
+                                 document.exitPictureInPicture();
+                             } else if (videoEl && videoEl.requestPictureInPicture) {
+                                 videoEl.requestPictureInPicture();
+                             }
+                         }} className="absolute top-2 right-2 bg-black/70 text-white p-2 rounded-lg hover:text-[#39FF14] transition-colors backdrop-blur-sm z-10" title="Mode Fenêtre (PiP)">
+                             <Box size={14} />
+                         </button>
                       </div>
                       <div className="flex-1 flex flex-col justify-between">
                          <h3 className="text-white font-black uppercase leading-tight mb-2 group-hover:text-[#39FF14] transition-colors">{podcast.title}</h3>
+                         <p className="text-[10px] text-zinc-400 font-bold mb-3">Regarde jusqu'à la fin pour gagner <span className="text-[#39FF14]">50 XP</span> !</p>
                          <div className="flex justify-between items-center mt-2">
                              <span className="bg-white/10 text-zinc-300 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><Clock size={12}/> {podcast.duration}</span>
                              <button onClick={() => window.open(podcast.videoUrl, '_blank')} className="text-zinc-500 hover:text-white p-2 transition-colors"><ExternalLink size={16}/></button>
@@ -3709,6 +3749,7 @@ export default function NutritionDashboard() {
            <div id="article-overlay" onClick={(e: any) => {
                if (e.target.id === 'article-overlay') {
                    setSelectedArticle(null);
+                   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
                }
            }} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
              <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
@@ -3727,7 +3768,10 @@ export default function NutritionDashboard() {
                      </svg>
                  </button>
                </div>
-               <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
+               <button onClick={() => {
+                   setSelectedArticle(null);
+                   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+               }} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
                
                <div className="flex items-center gap-3 mb-6">
                    <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
@@ -3740,18 +3784,34 @@ export default function NutritionDashboard() {
 
                <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-4 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
 
-               <div className="flex items-center gap-4 mb-8">
-                   <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-[#39FF14]">
-                       {selectedArticle.author_name?.includes('Thierno') ? (
-                           <div className="text-xs font-black">Dr.T</div>
-                       ) : (
-                           <div className="text-xs font-black">C.R</div>
-                       )}
+               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                   <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-[#39FF14]">
+                           {selectedArticle.author_name?.includes('Thierno') ? (
+                               <div className="text-xs font-black">Dr.T</div>
+                           ) : (
+                               <div className="text-xs font-black">C.R</div>
+                           )}
+                       </div>
+                       <div>
+                           <p className="text-sm font-black text-black dark:text-white uppercase">{selectedArticle.author_name || 'Coach Rokhy'}</p>
+                           <p className="text-xs text-zinc-500 font-bold">{selectedArticle.estimated_read_time || 'Lecture rapide'}</p>
+                       </div>
                    </div>
-                   <div>
-                       <p className="text-sm font-black text-black dark:text-white uppercase">{selectedArticle.author_name || 'Coach Rokhy'}</p>
-                       <p className="text-xs text-zinc-500 font-bold">{selectedArticle.estimated_read_time || 'Lecture rapide'}</p>
-                   </div>
+                   {/* Gamification/UX: Text to Speech */}
+                   <button onClick={() => {
+                       if ('speechSynthesis' in window) {
+                           window.speechSynthesis.cancel(); // Stop any current speaking
+                           const utterance = new SpeechSynthesisUtterance(`${selectedArticle.title}. ${selectedArticle.desc}. ${selectedArticle.content}`);
+                           utterance.lang = 'fr-FR';
+                           utterance.rate = 1.1; // Slightly faster reading
+                           window.speechSynthesis.speak(utterance);
+                       } else {
+                           alert("La lecture audio n'est pas supportée par votre navigateur.");
+                       }
+                   }} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase hover:bg-[#39FF14] hover:text-black transition-colors w-full sm:w-auto shrink-0 shadow-sm border border-zinc-200 dark:border-zinc-800">
+                       <Headphones size={16} /> Écouter l'article
+                   </button>
                </div>
                
                {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
@@ -4828,7 +4888,17 @@ export default function NutritionDashboard() {
                                    <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
                                  </div>
-                                 <div className="flex gap-2">
+                                 {/* Gamification/Conversion: 1-Click Buy */}
+                                 <button onClick={() => {
+                                     const phone = "221770000000"; // Remplace with actual Onyx Nutrition WhatsApp
+                                     const text = `Bonjour, je souhaite commander immédiatement ce produit en 1-Click (Wave/Orange Money) :\n\n📦 ${selectedProduct.nom}\n💰 Prix: ${selectedProduct.prix_premium.toLocaleString()} F\n\nMerci de me donner les instructions de paiement.`;
+                                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+                                 }} className="w-full bg-[#1e4a9e] text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 relative overflow-hidden group">
+                                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                                     ⚡ Acheter en 1 clic (Wave / OM)
+                                 </button>
+
+                                 <div className="flex gap-2 mt-1">
                                     <button onClick={() => { setShowCartModal(true); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
                                     <button onClick={() => setSelectedProduct(null)} className="flex-1 bg-zinc-100 text-black px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-zinc-200 transition-colors flex items-center justify-center">Continuer</button>
                                  </div>
@@ -5107,7 +5177,19 @@ export default function NutritionDashboard() {
                 </div>
 
                 {/* FEED */}
-                <div className="space-y-8 mt-4">
+                <div className="mt-4">
+                   <InfiniteScroll
+                      dataLength={communityPosts.length}
+                      next={() => {
+                          const nextPage = communityPage + 1;
+                          setCommunityPage(nextPage);
+                          fetchCommunityPosts(nextPage, true);
+                      }}
+                      hasMore={hasMorePosts}
+                      loader={<div className="flex justify-center p-4"><Activity className="animate-spin text-[#39FF14]" size={24}/></div>}
+                      className="space-y-8"
+                      endMessage={<p className="text-center text-zinc-400 font-bold text-xs uppercase tracking-widest mt-8">Vous avez tout vu !</p>}
+                   >
                    {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => {
                        const isCoach = post.client === 'Coach Rokhy' || post.client?.toLowerCase().includes('coach');
                        return (
@@ -5121,7 +5203,15 @@ export default function NutritionDashboard() {
                              {!isCoach && post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-widest border border-yellow-200">Premium</span>}
                           </div>
 
-                          <p className="text-zinc-700 font-medium text-sm mb-5 leading-relaxed">{post.content}</p>
+                          <p className="text-zinc-700 font-medium text-sm mb-5 leading-relaxed whitespace-pre-wrap">
+                              {/* Parse Mentions */}
+                              {post.content?.split(/(@\w+)/g).map((part: string, i: number) => {
+                                  if (part.startsWith('@')) {
+                                      return <span key={i} className="text-[#39FF14] font-black cursor-pointer hover:underline">{part}</span>;
+                                  }
+                                  return part;
+                              })}
+                          </p>
 
                           {post.image_url && (
                              <div className="w-full mb-5 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
@@ -5130,13 +5220,14 @@ export default function NutritionDashboard() {
                           )}
 
                           <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200/60">
-                             <button onClick={() => handleReaction(post.id, 'top')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-100 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🔥 Top {post.reactions?.top > 0 && <span className="ml-1 opacity-70">({post.reactions.top})</span>}</button>
-                             <button onClick={() => handleReaction(post.id, 'sain')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-green-50 hover:border-green-100 hover:text-green-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🥗 Sain {post.reactions?.sain > 0 && <span className="ml-1 opacity-70">({post.reactions.sain})</span>}</button>
-                             <button onClick={() => handleReaction(post.id, 'courage')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">💪 Courage {post.reactions?.courage > 0 && <span className="ml-1 opacity-70">({post.reactions.courage})</span>}</button>
+                             <button onClick={() => handleReaction(post.id, 'top')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🇸🇳 Namm Na {post.reactions?.top > 0 && <span className="ml-1 opacity-70">({post.reactions.top})</span>}</button>
+                             <button onClick={() => handleReaction(post.id, 'sain')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-green-50 hover:border-green-200 hover:text-green-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🍲 Dof Na Ci {post.reactions?.sain > 0 && <span className="ml-1 opacity-70">({post.reactions.sain})</span>}</button>
+                             <button onClick={() => handleReaction(post.id, 'courage')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-200 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🔥 Jajef {post.reactions?.courage > 0 && <span className="ml-1 opacity-70">({post.reactions.courage})</span>}</button>
                              <button onClick={() => alert('Les commentaires arrivent bientôt !')} className="flex items-center gap-1.5 ml-auto text-zinc-400 hover:text-black transition-colors p-2"><MessageCircle size={18}/> {post.commentCount > 0 && <span className="text-xs font-bold">{post.commentCount}</span>}</button>
                           </div>
                        </div>
                     )})}
+                   </InfiniteScroll>
                 </div>
              </div>
           </div>
@@ -5326,20 +5417,32 @@ export default function NutritionDashboard() {
                   {diagStep === 2 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
                       <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quelles sont vos mensurations actuelles ?</h2>
-                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille (cm)</label>
-                          <input type="number" required placeholder="Ex: 170" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-8">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                              <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille</label>
+                              <span className="text-xl font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg">{diagData.height || 160} <span className="text-xs text-white">cm</span></span>
+                          </div>
+                          <input type="range" min="140" max="220" required value={diagData.height || 160} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
-                          <input type="number" required placeholder="Ex: 75" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                              <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel</label>
+                              <span className="text-xl font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg">{diagData.currentWeight || 70} <span className="text-xs text-white">kg</span></span>
+                          </div>
+                          <input type="range" min="40" max="180" step="0.5" required value={diagData.currentWeight || 70} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
-                          <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                              <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible</label>
+                              <span className="text-xl font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg">{diagData.targetWeight || 65} <span className="text-xs text-white">kg</span></span>
+                          </div>
+                          <input type="range" min="40" max="180" step="0.5" required value={diagData.targetWeight || 65} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
                         </div>
-                        <div className="space-y-2 pt-2 border-t border-zinc-100">
+
+                        <div className="space-y-2 pt-4 border-t border-zinc-100">
                           <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date souhaitée pour l'objectif</label>
                           <input type="date" required value={diagData.targetDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setDiagData({...diagData, targetDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-lg outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
