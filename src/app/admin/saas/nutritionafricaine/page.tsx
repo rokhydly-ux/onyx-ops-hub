@@ -82,7 +82,7 @@ export default function AdminNutritionAfricaine() {
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterInactive, setFilterInactive] = useState(false);
-  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'|'blog'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'|'blog'|'fitness'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -1570,6 +1570,7 @@ export default function AdminNutritionAfricaine() {
                    <button onClick={() => setActiveTab('recipes')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'recipes' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Utensils size={14}/> Recettes</button>
                    <button onClick={() => setActiveTab('foods')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'foods' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Database size={14}/> Aliments (BDD)</button>
                    <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'blog' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><FileText size={14}/> Blog</button>
+                   <button onClick={() => setActiveTab('fitness')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'fitness' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Activity size={14}/> Fitness</button>
                    
                    <div className="relative group">
                        <button className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
@@ -2477,6 +2478,47 @@ export default function AdminNutritionAfricaine() {
               </table>
            </div>
         </div>
+        )}
+
+        {/* --- VUE FITNESS (ADMIN) --- */}
+        {activeTab === 'fitness' && (
+           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm text-center">
+                 <div className="w-20 h-20 bg-zinc-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-zinc-100 shadow-inner">
+                    <Activity className="text-[#39FF14]" size={40}/>
+                 </div>
+                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black mb-2`}>Gestion Fitness</h2>
+                 <p className="text-zinc-500 font-medium max-w-lg mx-auto">
+                    Gérez les cours vidéos (Youtube) et assignez des programmes d'entraînement générés par l'IA à vos clients.
+                 </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                 {/* Gestion des cours */}
+                 <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:border-[#39FF14] transition-colors cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                       <div className="w-12 h-12 bg-black text-[#39FF14] rounded-xl flex items-center justify-center"><Video size={24}/></div>
+                       <div>
+                          <h3 className="font-black text-lg">Catalogue de Cours</h3>
+                          <p className="text-xs text-zinc-500 font-medium">Ajouter et gérer les vidéos d'exercices.</p>
+                       </div>
+                    </div>
+                    <p className="text-xs text-zinc-400">Utilisez la base de données `nutrition_fitness_courses` pour stocker les liens Youtube, durée, équipement et bénéfices.</p>
+                 </div>
+
+                 {/* Gestion des programmes */}
+                 <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:border-[#39FF14] transition-colors cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                       <div className="w-12 h-12 bg-black text-[#39FF14] rounded-xl flex items-center justify-center"><Calendar size={24}/></div>
+                       <div>
+                          <h3 className="font-black text-lg">Programmes Hebdomadaires</h3>
+                          <p className="text-xs text-zinc-500 font-medium">Créer des routines pour les clients.</p>
+                       </div>
+                    </div>
+                    <p className="text-xs text-zinc-400">Utilisez la base de données `nutrition_fitness_programs` pour assigner les exercices selon les jours.</p>
+                 </div>
+              </div>
+           </div>
         )}
 
         {activeTab === 'blog' && (

@@ -1,21 +1,16 @@
 "use client";
-import imageCompression from 'browser-image-compression';
-import confetti from 'canvas-confetti';
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
-, PartyPopper, TrendingDown, Dumbbell, TrendingUp, Send, Headphones
-} from "lucide-react";
+, PartyPopper } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import jsPDF from "jspdf";
-import InfiniteScroll from 'react-infinite-scroll-component';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -413,7 +408,6 @@ export default function NutritionDashboard() {
     height: "",
     currentWeight: "",
     targetWeight: "",
-    targetDate: "",
     goalType: "Perte de poids",
     dailySteps: "",
     weightLossPace: "Normalement",
@@ -449,11 +443,8 @@ export default function NutritionDashboard() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
-    const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [communityPosts, setCommunityPosts] = useState<any[]>([]);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
-  const [communityPage, setCommunityPage] = useState(0);
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -688,43 +679,20 @@ export default function NutritionDashboard() {
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
-             // Fixation des valeurs négatives éventuelles stockées en base de données avant la correction du bug
-             let dbCalories = nutritionData.daily_calorie_goal;
-
-             // Si le quota n'est pas défini, on redirige obligatoirement vers le diagnostic au lieu de hardcoder 1500
-             if (!dbCalories) {
-                 window.location.href = '/solutions/onyx-nutritionafricaine';
-                 return;
-             }
-             if (dbCalories < 1200) dbCalories = 1200;
-
-             let dbProteins = nutritionData.protein_goal || 80;
-             let dbCarbs = nutritionData.carbs_goal || 150;
-             let dbFats = nutritionData.fats_goal || 50;
-
-             // Si les macros sont négatives ou à 0, on les recalcule proportionnellement
-             if (dbProteins <= 0 || dbCarbs <= 0 || dbFats <= 0) {
-                 const age = parseFloat(nutritionData.diagnostic_data?.age || "30");
-                 const proteinRatio = age >= 50 ? 0.35 : 0.30;
-                 dbCarbs = Math.round((dbCalories * (0.70 - proteinRatio)) / 4);
-                 dbProteins = Math.round((dbCalories * proteinRatio) / 4);
-                 dbFats = Math.round((dbCalories * 0.30) / 9);
-             }
-
-             setCalorieGoal(dbCalories);
-             setProteinGoal(dbProteins);
-             setCarbsGoal(dbCarbs);
-             setFatsGoal(dbFats);
+             setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
+             setProteinGoal(nutritionData.protein_goal || 80);
+             setCarbsGoal(nutritionData.carbs_goal || 150);
+             setFatsGoal(nutritionData.fats_goal || 50);
+             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
+             setProteinGoal(nutritionData.protein_goal || 0);
+             setCarbsGoal(nutritionData.carbs_goal || 0);
+             setFatsGoal(nutritionData.fats_goal || 0);
              setIsExpertMode(nutritionData.expert_mode || false);
              setJongomaXP(nutritionData.jongoma_xp || 0);
              setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
              if (nutritionData.weekly_menu && Array.isArray(nutritionData.weekly_menu) && nutritionData.weekly_menu.length > 0) {
                  setWeeklyGeneratedMenu(nutritionData.weekly_menu);
              }
-          } else {
-             // Redirection forcée si le profil nutritionnel complet est introuvable
-             window.location.href = '/solutions/onyx-nutritionafricaine';
-             return;
           }
           
           // Récupérer le poids
@@ -765,7 +733,7 @@ export default function NutritionDashboard() {
           } // Fin if (activeProfile.id)
 
           // Fetch DB Products
-          const prodQuery = supabase.from('nutrition_products').select('*');
+          let prodQuery = supabase.from('nutrition_products').select('*');
           const { data: dbProds } = await prodQuery;
           if (dbProds && dbProds.length > 0) {
              const grouped = dbProds.reduce((acc: any, p: any) => {
@@ -784,19 +752,25 @@ export default function NutritionDashboard() {
           }
 
           // Fetch Promo Codes
-          const promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+          let promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
           const { data: dbPromos } = await promoQuery;
           if (dbPromos) setShopPromoCodesDB(dbPromos);
           
           // Fetch Community Posts
-          await fetchCommunityPosts();
+          const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+          if (cPosts) {
+              setCommunityPosts(cPosts.map((p: any) => ({
+                 ...p,
+                 client: p.clients?.full_name || 'Membre'
+              })));
+          }
 
           // Fetch Foods
           const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
           if (dbFoods) setFoodDatabaseDB(dbFoods);
 
           // Fetch All Recipes for Gallery
-          const recipeQuery = supabase.from('nutrition_recipes').select('*');
+          let recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data: dbRecipes } = await recipeQuery;
           if (dbRecipes && dbRecipes.length > 0) setAllRecipesDB(dbRecipes);
           else setAllRecipesDB(DEFAULT_RECIPES);
@@ -943,52 +917,6 @@ export default function NutritionDashboard() {
       return { name: "Novice", badge: "🌱", desc: "En apprentissage" };
   };
 
-
-  const fetchCommunityPosts = async (page = 0, append = false) => {
-      const pageSize = 10;
-      const { data: cPosts } = await supabase
-        .from('nutrition_community_posts')
-        .select(`
-          *,
-          reactions:nutrition_community_reactions(reaction_type),
-          comments:nutrition_community_comments(count)
-        `)
-        .order('created_at', { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (cPosts) {
-          if (cPosts.length < pageSize) setHasMorePosts(false);
-
-          const formattedPosts = cPosts.map((p: any) => {
-             const reactions = { top: 0, sain: 0, courage: 0 };
-             if (Array.isArray(p.reactions)) {
-                 p.reactions.forEach((r: any) => {
-                    if (r.reaction_type === 'top') reactions.top++;
-                    else if (r.reaction_type === 'sain') reactions.sain++;
-                    else if (r.reaction_type === 'courage') reactions.courage++;
-                 });
-             }
-             return {
-               ...p,
-               client: p.client || 'Membre',
-               reactions,
-               commentCount: p.comments?.[0]?.count || 0
-             };
-          });
-
-          if (append) {
-              setCommunityPosts(prev => {
-                  const newIds = new Set(formattedPosts.map((fp: any) => fp.id));
-                  return [...prev.filter(p => !newIds.has(p.id)), ...formattedPosts].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-              });
-          } else {
-              setCommunityPosts(formattedPosts);
-          }
-      } else {
-          setHasMorePosts(false);
-      }
-  };
-
   const fetchLeaderboard = async () => {
     const { data } = await supabase
       .from('nutrition_profiles')
@@ -1102,7 +1030,7 @@ export default function NutritionDashboard() {
       const activeFastingMode = fastingOverride !== undefined ? fastingOverride : isFastingMode;
       let currentRecipes: any[] = [];
       try {
-          const recipeQuery = supabase.from('nutrition_recipes').select('*');
+          let recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
@@ -1128,7 +1056,7 @@ export default function NutritionDashboard() {
           return true;
       });
 
-      const newMenu: any[] = [];
+      let newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
       
@@ -1153,7 +1081,7 @@ export default function NutritionDashboard() {
       safeRecipes = safeRecipes.filter(r => !r.budget_tier || allowedTiers.includes(r.budget_tier));
 
       // RATIOS CALORIQUES MODE GUIDÉ (RULE 4)
-      const targetDailyCals = Math.max(1200, calorieGoal || clientProfile?.daily_calorie_goal || 1500);
+      const targetDailyCals = calorieGoal || 1500;
       const mealTargets: Record<string, number> = activeFastingMode ? {
          'Déjeuner': targetDailyCals * 0.45,
          'Collation': targetDailyCals * 0.20,
@@ -1210,18 +1138,17 @@ export default function NutritionDashboard() {
               return available;
           };
 
-          const breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
-          const lunches = getAvailable('Déjeuner');
-          const dinners = getAvailable('Dîner');
-          const snacks = getAvailable('Collation');
+          let breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
+          let lunches = getAvailable('Déjeuner');
+          let dinners = getAvailable('Dîner');
+          let snacks = getAvailable('Collation');
 
           let bestCombination: any = null;
           let minDiff = Infinity;
           const bcLunches = lunches.filter(r => r.is_bol_commun);
           const normalLunches = lunches.filter(r => !r.is_bol_commun);
 
-          // RÈGLE 5 : Toujours respecter le quota dynamique (scaleRecipe forcé en mode Flexible & Guided pour garantir le bon nombre de calories)
-          // Le diagnostic DOIT s'appliquer aux repas suggérés, même si l'utilisateur est en "Flexible".
+          // Recherche intelligente d'une combinaison approchant le quota dynamique (+/- 50 kcal)
           for (let i = 0; i < 30; i++) {
               let lunchCandidate;
               if (bolCommunCount < 3 && Math.random() > 0.4 && bcLunches.length > 0) {
@@ -1248,16 +1175,14 @@ export default function NutritionDashboard() {
           if (bestCombination?.isBc) bolCommunCount++;
           const { rawBf, rawL, rawSn, rawD } = bestCombination || {};
 
-          // On applique TOUJOURS scaleRecipe (qui redimensionne le repas pour correspondre aux calories du diagnostic)
-          // au lieu de le limiter uniquement au trackingMode 'guided', car Sama Menu doit TOUJOURS être 100% sur mesure.
           const dayMeals: any = {
-              'Déjeuner': scaleRecipe(rawL, mealTargets['Déjeuner']),
-              'Collation': scaleRecipe(rawSn, mealTargets['Collation']),
-              'Dîner': scaleRecipe(rawD, mealTargets['Dîner'])
+              'Déjeuner': trackingMode === 'guided' ? scaleRecipe(rawL, mealTargets['Déjeuner']) : rawL,
+              'Collation': trackingMode === 'guided' ? scaleRecipe(rawSn, mealTargets['Collation']) : rawSn,
+              'Dîner': trackingMode === 'guided' ? scaleRecipe(rawD, mealTargets['Dîner']) : rawD
           };
 
           if (!activeFastingMode) {
-              dayMeals['Petit-déjeuner'] = scaleRecipe(rawBf, mealTargets['Petit-déjeuner']);
+              dayMeals['Petit-déjeuner'] = trackingMode === 'guided' ? scaleRecipe(rawBf, mealTargets['Petit-déjeuner']) : rawBf;
           }
 
           if (dayMeals['Petit-déjeuner']) recentMeals['Petit-déjeuner'].push(dayMeals['Petit-déjeuner'].id);
@@ -1277,7 +1202,7 @@ export default function NutritionDashboard() {
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
       let currentRecipes: any[] = [];
       try {
-          const recipeQuery = supabase.from('nutrition_recipes').select('*');
+          let recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
@@ -1325,9 +1250,8 @@ export default function NutritionDashboard() {
       if (alternatives.length > 0) {
           let newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
           
-          // We apply the strict dynamic calorie quota requirement from Rule 2 for alternative recipe replacement
-          if (trackingMode === 'guided' || trackingMode === 'flexible') {
-              const targetDailyCals = Math.max(1200, calorieGoal || clientProfile?.daily_calorie_goal || 1500);
+          if (trackingMode === 'guided') {
+              const targetDailyCals = calorieGoal || 1500;
               const mealTargets: Record<string, number> = isFastingMode ? {
                  'Déjeuner': targetDailyCals * 0.45,
                  'Collation': targetDailyCals * 0.20,
@@ -1360,107 +1284,46 @@ export default function NutritionDashboard() {
       }
   };
 
-
-      const calculatePreviewGoals = (data: any, forceSafeMode: boolean = false) => {
-      // Extraction des données du profil
-      const heightCm = parseFloat(data.height) || 0;
-      const currentWeight = parseFloat(data.currentWeight) || 0;
-      const targetWInput = parseFloat(data.targetWeight) || 0;
-      const age = parseFloat(data.age) || 0;
-      const isMale = data.gender === "Homme";
-
-      // ÉTAPE A : Calcul dynamique du BMR (Mifflin-St Jeor) et TDEE
-      const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
-
-      let nap = 1.2; // Niveau d'Activité Physique
-      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
-
-      const tdee = bmr * nap;
-
-      // Détermination du poids cible
-      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
-      const weightToLose = currentWeight - finalTargetWeight;
-
-      // ÉTAPE B : Analyse du rythme choisi par l'utilisateur
-      let requiredDailyDeficit = 0;
-      let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-      const now = new Date();
-      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
-
-      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
-          // 1kg de graisse = ~7700 kcal
-          requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
-      }
-
-      // ÉTAPE C : Suppression du plancher médical hardcodé
-
-      // Seuil de sécurité physiologique (Max 1% du poids corporel par semaine)
-      const maxSafeWeeklyLossKg = currentWeight * 0.01;
-      const maxSafeDailyDeficit = (maxSafeWeeklyLossKg * 7700) / 7;
-
-      let isAggressive = false;
-
-      // ÉTAPE D : Gestion du Mode Forcé "Sain"
-      if (forceSafeMode) {
-          // L'utilisateur a cliqué sur le bouton de suggestion : on applique un déficit sûr
-          requiredDailyDeficit = Math.min(500, maxSafeDailyDeficit);
-          const safeDaysNeeded = (weightToLose * 7700) / requiredDailyDeficit;
-          userTargetDate = new Date();
-          userTargetDate.setDate(userTargetDate.getDate() + safeDaysNeeded);
-      } else {
-          // Mode classique : on vérifie UNIQUEMENT si le rythme (déficit demandé) est dangereux (> 1% poids)
-          if (data.goalType === 'Perte de poids' && weightToLose > 0 && requiredDailyDeficit > maxSafeDailyDeficit + 10) {
-              isAggressive = true;
-          }
-      }
-
-      // Calcul des calories brutes requises par l'utilisateur
-      let rawCalories = tdee;
-      if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
-      else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
-      else if (data.goalType === 'Maintien') rawCalories = tdee;
-      if (data.healthProfile === "Allaitement") rawCalories += 500;
-
-      // Application finale des calories : Plancher absolu de 1200 kcal pour éviter les valeurs négatives
-      // Si l'utilisateur choisit une date trop proche, les calories brutes chutent en dessous de zéro.
-      // On autorise un déficit agressif mais on ne descend JAMAIS en dessous de 1200 pour que l'app fonctionne.
-      let finalCalories = rawCalories;
-      let isFloorLimited = false;
-      const floorCalories = 1200;
-
-      if (finalCalories < floorCalories) {
-          finalCalories = floorCalories;
-          isFloorLimited = true;
-      }
-
-      const dailyCalories = Math.round(finalCalories);
-      const etaStr = userTargetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-
-      // ÉTAPE E : Génération des suggestions pour le bouton UI "💡 Notre conseil santé"
-      const suggestedDailyDeficit = Math.min(500, maxSafeDailyDeficit);
-      const suggestedWeeklyLossKg = (suggestedDailyDeficit * 7) / 7700;
-      const suggestedCalories = Math.round(tdee - suggestedDailyDeficit);
-
-      const suggestedWeeksLeft = weightToLose > 0 ? Math.abs(weightToLose) / suggestedWeeklyLossKg : 0;
-      const suggestedEtaDate = new Date();
-      suggestedEtaDate.setDate(suggestedEtaDate.getDate() + (suggestedWeeksLeft * 7));
-      const suggestedETA = suggestedEtaDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-
-      return { dailyCalories, weightToLose, finalTargetWeight, etaStr, isAggressive, isFloorLimited, suggestedETA, suggestedCalories, suggestedEtaDate, bmr, tdee, floorCalories };
-  };
   const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+
+      const heightCm = parseFloat(diagData.height) || 0;
+      const currentWeight = parseFloat(diagData.currentWeight) || 0;
+      const targetWInput = parseFloat(diagData.targetWeight) || 0;
+      const age = parseFloat(diagData.age) || 0;
+      const isMale = diagData.gender === "Homme";
+
+      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+
+      // Removed blocking validation to prevent user friction. The UI warning is sufficient.
+
       setIsSubmittingDiag(true);
       try {
-          // Utiliser la même logique dynamique que la preview pour assurer la consistance
-          const preview = calculatePreviewGoals(diagData);
-          const dailyCalories = preview.dailyCalories;
+          let deficit = 500;
+          if (diagData.weightLossPace === 'Progressivement') deficit = 300;
+          else if (diagData.weightLossPace === 'Rapidement') deficit = 700;
+
+          const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
+          const weightToLose = currentWeight - finalTargetWeight;
+
+          const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+          let nap = 1.2;
+          if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+          else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+          else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+          const tdee = bmr * nap;
+          let rawCalories = tdee;
+          if (diagData.goalType === 'Perte de poids') {
+             rawCalories = tdee - deficit;
+          } else if (diagData.goalType === 'Prise de masse') {
+             rawCalories = tdee + 300;
+          } else if (diagData.goalType === 'Maintien') {
+             rawCalories = tdee;
+          }
+          if (diagData.healthProfile === "Allaitement") rawCalories += 500;
           
-          const age = parseFloat(diagData.age) || 0;
-          const proteinRatio = age >= 50 ? 0.35 : 0.30;
+          const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+          let proteinRatio = age >= 50 ? 0.35 : 0.30;
           const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
           const protein = (dailyCalories * proteinRatio) / 4;
           const fats = (dailyCalories * 0.30) / 9;
@@ -1480,8 +1343,8 @@ export default function NutritionDashboard() {
                   fats_goal: Math.round(fats),
                   diagnostic_data: { 
                       ...diagData,
-                      bmr: Math.round(preview.bmr),
-                      tdee: Math.round(preview.tdee)
+                      bmr: Math.round(bmr),
+                      tdee: Math.round(tdee)
                   }
               };
               console.log("Payload du diagnostic (Espace Client):", payload);
@@ -1700,7 +1563,7 @@ export default function NutritionDashboard() {
       carbs_consumed: carbs,
       fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-    }, { onConflict: 'client_id, log_date' });
+    });
     
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
@@ -1843,7 +1706,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-          }, { onConflict: 'client_id, log_date' });
+          });
       }
   };
 
@@ -1875,7 +1738,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          }, { onConflict: 'client_id, log_date' });
+          });
       }
   };
 
@@ -2007,30 +1870,18 @@ export default function NutritionDashboard() {
       const wantsToLose = targetW < startWeight;
 
       let isGoalReached = false;
-      let hasLostWeight = false;
-
       if (targetW > 0 && startWeight > 0) {
          if (wantsToLose && newWeight <= targetW) isGoalReached = true;
          if (!wantsToLose && newWeight >= targetW) isGoalReached = true;
       }
       
-      // Check if user lost weight compared to the previous entry
-      if (wantsToLose && newWeight < prevWeight) {
-          hasLostWeight = true;
-      }
-
       if (isGoalReached) {
           setShowConfetti('weight');
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#39FF14', '#ffffff', '#000000'] });
           setTimeout(() => setShowConfetti(false), 8000);
           setWeightCoachMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
-      } else if (hasLostWeight) {
-          // Gamification: Small confetti burst for any weight loss step!
-          confetti({ particleCount: 50, spread: 40, origin: { y: 0.8 }, colors: ['#39FF14', '#A0E8AF'] });
-          setWeightCoachMessage({ title: "Bravo ! 🎉", text: `Tu as perdu du poids par rapport à ta dernière pesée (${(prevWeight - newWeight).toFixed(1)} kg) ! Chaque pas compte, continue !`, type: 'success' });
       }
 
       const newLog = { log_date: todayStr, weight: newWeight };
@@ -2096,68 +1947,15 @@ export default function NutritionDashboard() {
     }
   };
 
-  const handleReaction = async (postId: string, type: 'top' | 'sain' | 'courage') => {
-      if (!user) return alert("Vous devez être connecté pour réagir.");
-
-      // Optimistic update
-      setCommunityPosts(prev => prev.map(post => {
-          if (post.id === postId) {
-              const currentReactions = post.reactions || { top: 0, sain: 0, courage: 0 };
-              return {
-                  ...post,
-                  reactions: {
-                      ...currentReactions,
-                      [type]: (currentReactions[type] || 0) + 1
-                  }
-              };
-          }
-          return post;
-      }));
-
-      try {
-          const { error } = await supabase.from('nutrition_community_reactions').insert({
-              post_id: postId,
-              user_id: user.id,
-              reaction_type: type
-          });
-
-          if (error) {
-             // Handle unique constraint or other errors silently or by reverting
-             if (error.code !== '23505') { // 23505 is unique violation
-                 console.error("Error reacting:", error);
-             }
-          }
-      } catch (err) {
-          console.error(err);
-      }
-  };
-
   const handlePostCommunity = async () => {
       if (clientProfile?.plan_type !== 'premium' && daysLeft <= 0) return alert("La publication est réservée aux membres Premium pour garantir l'absence de spams.");
       if (!newPostText && !newPostImage) return;
-
-      const newPostData = {
-          client_id: clientProfile?.id || user?.id,
-          client: user?.full_name || 'Membre',
-          content: newPostText,
-          image_url: newPostImage,
-          tenant_id: clientProfile?.tenant_id || null
-      };
-
-      const optimisticPost = { ...newPostData, id: Date.now().toString(), reactions: { top: 0, sain: 0, courage: 0 }, created_at: new Date().toISOString() };
-      setCommunityPosts([optimisticPost, ...communityPosts]);
+      const newPost = { id: Date.now().toString(), client: user?.full_name || 'Membre', content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 }, created_at: new Date().toISOString() };
+      setCommunityPosts([newPost, ...communityPosts]);
       setNewPostText("");
       setNewPostImage(null);
-      setImageInputMode('upload');
       updateXP(15, "Photo/Plat publié dans le Feed");
-
-      try {
-          const { error } = await supabase.from('nutrition_community_posts').insert(newPostData);
-          if (error) throw error;
-          await fetchCommunityPosts();
-      } catch (err: any) {
-          alert("Erreur lors de la publication : " + err.message);
-      }
+      if (clientProfile) await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
   };
 
   const handleUploadMealPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2179,28 +1977,19 @@ export default function NutritionDashboard() {
       }
   };
 
-  const handleCommunityImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
         setUploadingImage(true);
-
-        // Compression
-        const options = {
-          maxSizeMB: 0.5,
-          maxWidthOrHeight: 1000,
-          useWebWorker: true
-        };
-        const compressedFile = await imageCompression(file, options);
-
         const ext = file.name.split('.').pop();
         const fileName = `posts/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error, data: uploadData } = await supabase.storage.from('community_images').upload(fileName, compressedFile);
+        const { error, data: uploadData } = await supabase.storage.from('avatars').upload(fileName, file);
         if (error) throw error;
-        const { data } = supabase.storage.from('community_images').getPublicUrl(fileName);
+        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
         setNewPostImage(data.publicUrl);
     } catch (err: any) {
-        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'community_images' est public et accepte les uploads.");
+        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'avatars' est public et accepte les uploads.");
     } finally {
         setUploadingImage(false);
     }
@@ -2250,7 +2039,7 @@ export default function NutritionDashboard() {
     }
 
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload);
 
        if (error) throw error;
 
@@ -2548,7 +2337,7 @@ export default function NutritionDashboard() {
   };
 
   const handleReorder = (order: any) => {
-     const updatedCart = [...shopCart];
+     let updatedCart = [...shopCart];
      const itemsToAdd = order.items || [];
      
      itemsToAdd.forEach((item: any) => {
@@ -2584,7 +2373,7 @@ export default function NutritionDashboard() {
            proteins_consumed: proteins,
            carbs_consumed: carbs,
            fats_consumed: fats
-    }, { onConflict: 'client_id, log_date' });
+         });
          alert("Notes et humeurs du jour sauvegardées !");
      } catch(e) {
          alert("Erreur de sauvegarde.");
@@ -3066,56 +2855,21 @@ export default function NutritionDashboard() {
 
             {/* SUIVI DE L'EAU & HUMEUR */}
             <div className="grid md:grid-cols-2 gap-6 mt-6">
-               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} relative overflow-hidden`}>
-                  {/* Gamification: Water wave background that rises */}
-                  <div
-                      className="absolute bottom-0 left-0 right-0 bg-blue-100/50 dark:bg-blue-900/20 transition-all duration-1000 ease-in-out -z-10"
-                      style={{ height: `${(waterGlasses / 8) * 100}%` }}
-                  />
-
-                  <div className="relative group cursor-pointer" onClick={() => handleUpdateWater(1)}>
-                      <img
-                          src={WATER_ICON}
-                          className={`w-16 h-16 rounded-full mb-4 shadow-sm object-cover transition-transform duration-300 ${waterGlasses > 0 ? 'group-hover:scale-110' : 'grayscale opacity-50'}`}
-                          alt="Eau"
-                      />
-                      {/* Gamification: A small plant that "grows" */}
-                      <div className="absolute -bottom-2 -right-2 text-2xl transition-all duration-500 transform" style={{ scale: Math.max(0.5, waterGlasses / 4) }}>
-                          {waterGlasses === 0 ? '🌱' : waterGlasses < 4 ? '🌿' : waterGlasses < 8 ? '🪴' : '🌳'}
-                      </div>
-                  </div>
-
+               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
+                  <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-4 shadow-sm object-cover" alt="Eau" />
                   <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
                   <p className="text-xs font-bold text-zinc-500 mb-1">{waterGlasses} / 8 verres (Env. 2 Litres)</p>
-                  <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">
-                      {waterGlasses === 0 ? "Bois un verre pour planter ta graine ! 💧" :
-                       waterGlasses < 4 ? "Continue, ta plante grandit ! 💧" :
-                       waterGlasses < 8 ? "Presque à l'objectif, ne lâche rien ! 💧" :
-                       "Parfait ! Ton corps (et ta plante) te remercient ! 🌳"}
-                  </p>
-
-                  <div className="flex gap-1 mb-4">
-                      {[...Array(8)].map((_, i) => (
-                          <div
-                              key={i}
-                              className={`w-3 h-8 rounded-full transition-all duration-500 ${i < waterGlasses ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-200 dark:bg-zinc-800'}`}
-                          />
-                      ))}
-                  </div>
-
-                  <div className="flex items-center bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full p-1.5 shadow-inner mb-2 z-10">
-                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center font-black text-xl text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors shadow-sm">-</button>
+                  <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">L'eau draine les toxines et accélère ton métabolisme ! 💧</p>
+                  <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full p-1.5 shadow-inner mb-2">
+                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-black text-xl text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors shadow-sm">-</button>
                      <div className="w-20 text-center flex flex-col">
-                        <span className="font-black text-blue-600 dark:text-blue-400 text-xl leading-none">{waterGlasses}</span>
+                        <span className="font-black text-blue-600 text-xl leading-none">{waterGlasses}</span>
                         <span className="text-[8px] font-black uppercase text-blue-400 tracking-widest">Verres</span>
                      </div>
-                     <button onClick={() => {
-                         handleUpdateWater(1);
-                         confetti({ particleCount: 30, spread: 30, origin: { y: 0.7 }, colors: ['#3B82F6', '#93C5FD', '#FFFFFF'] });
-                     }} className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-black text-xl text-white hover:bg-blue-600 hover:scale-105 transition-all shadow-sm">+</button>
+                     <button onClick={() => handleUpdateWater(1)} className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-black text-xl text-white hover:bg-blue-600 transition-colors shadow-sm">+</button>
                   </div>
                   {waterGlasses >= 8 && (
-                     <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30 animate-pulse">
+                     <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30">
                         <Award size={14}/> +5 XP (Hydratation Max)
                      </div>
                   )}
@@ -3197,8 +2951,8 @@ export default function NutritionDashboard() {
                                                <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
                                                   {isExpertMode ? (
                                                     <>
-                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {Math.abs(item.cals || 0)} kcal</span>
-                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {Math.abs(item.prots || 0)}g prot</span>
+                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.cals} kcal</span>
+                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.prots}g prot</span>
                                                     </>
                                                   ) : (
                                                     <span className="flex items-center gap-1 text-zinc-600">{item.ux_unit || "1 portion"}</span>
@@ -3223,10 +2977,10 @@ export default function NutritionDashboard() {
                                   <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] sm:text-xs font-bold text-zinc-500">
                                      {isExpertMode ? (
                                         <>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.cals || 0)} kcal</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.proteins || 0)}g</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.carbs || 0)}g</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.fats || 0)}g</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.cals} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
                                         </>
                                      ) : (
                                         <span className="flex items-center gap-1 text-zinc-600">{plannedMeal.ux_unit || "1 portion"}</span>
@@ -3374,10 +3128,10 @@ export default function NutritionDashboard() {
                              </div>
                              {isExpertMode && (
                                 <div className="grid grid-cols-4 gap-2 mb-8 text-center">
-                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{Math.abs(selectedMealModal.meal.cals || 0)}</p></div>
-                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{Math.abs(selectedMealModal.meal.carbs || 0)}g</p></div>
-                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{Math.abs(selectedMealModal.meal.proteins || 0)}g</p></div>
-                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{Math.abs(selectedMealModal.meal.fats || 0)}g</p></div>
+                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
+                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
+                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
+                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
                                 </div>
                              )}
                              {selectedMealModal.meal.bienfaits && (
@@ -3450,7 +3204,7 @@ export default function NutritionDashboard() {
                                             <p className="font-bold text-sm">{item.nom}</p>
                                             <p className="text-[10px] text-zinc-500 uppercase font-black">{item.isRecipe ? item.type : item.categorie}</p>
                                          </div>
-                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{Math.abs(item.isRecipe ? (item.calories || 0) : (item.valeurs_pour_100g?.calories || 0))} kcal</span>
+                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{item.isRecipe ? item.calories : item.valeurs_pour_100g?.calories} kcal</span>
                                       </div>
                                       ));
                                    })()}
@@ -3620,32 +3374,11 @@ export default function NutritionDashboard() {
                   { id: "5", title: "Jeûne intermittent & plats africains", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "18:10" }
                 ].map((podcast, idx) => (
                    <div key={idx} className="bg-zinc-950 p-4 rounded-[2rem] border border-zinc-800 shadow-xl flex flex-col group hover:border-[#39FF14] transition-colors">
-                      <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-900 border border-zinc-800 group-hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-shadow">
-                         {/* We use a native video here to allow PiP and onEnded tracking easily for the MVP, rather than YouTube iframes */}
-                         <video
-                             controls
-                             src="https://www.w3schools.com/html/mov_bbb.mp4"
-                             className="w-full h-full object-cover"
-                             onEnded={() => {
-                                 updateXP(50, `Vidéo Visionnée: ${podcast.title}`);
-                                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                             }}
-                         ></video>
-                         {/* PiP Button */}
-                         <button onClick={(e) => {
-                             const videoEl = e.currentTarget.previousElementSibling as HTMLVideoElement;
-                             if (document.pictureInPictureElement) {
-                                 document.exitPictureInPicture();
-                             } else if (videoEl && videoEl.requestPictureInPicture) {
-                                 videoEl.requestPictureInPicture();
-                             }
-                         }} className="absolute top-2 right-2 bg-black/70 text-white p-2 rounded-lg hover:text-[#39FF14] transition-colors backdrop-blur-sm z-10" title="Mode Fenêtre (PiP)">
-                             <Box size={14} />
-                         </button>
+                      <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-900 border border-zinc-800">
+                         <iframe src={`${podcast.videoUrl}?controls=1&rel=0`} className="w-full h-full border-0" allowFullScreen></iframe>
                       </div>
                       <div className="flex-1 flex flex-col justify-between">
                          <h3 className="text-white font-black uppercase leading-tight mb-2 group-hover:text-[#39FF14] transition-colors">{podcast.title}</h3>
-                         <p className="text-[10px] text-zinc-400 font-bold mb-3">Regarde jusqu'à la fin pour gagner <span className="text-[#39FF14]">50 XP</span> !</p>
                          <div className="flex justify-between items-center mt-2">
                              <span className="bg-white/10 text-zinc-300 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><Clock size={12}/> {podcast.duration}</span>
                              <button onClick={() => window.open(podcast.videoUrl, '_blank')} className="text-zinc-500 hover:text-white p-2 transition-colors"><ExternalLink size={16}/></button>
@@ -3709,10 +3442,7 @@ export default function NutritionDashboard() {
         {activeTab === 'blog' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
              <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}>
-                   <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg" alt="Blog & Conseils" className="w-10 h-10 rounded-xl object-cover shadow-sm border border-zinc-200 dark:border-zinc-800" />
-                   Blog & Conseils
-                </h2>
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
                 <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
              </div>
 
@@ -3746,88 +3476,23 @@ export default function NutritionDashboard() {
 
         {/* MODALE LECTURE ARTICLE */}
         {selectedArticle && (
-           <div id="article-overlay" onClick={(e: any) => {
-               if (e.target.id === 'article-overlay') {
-                   setSelectedArticle(null);
-                   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-               }
-           }} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
              <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
-               <div className="absolute top-6 right-20 z-10 flex gap-2">
-                 <button onClick={() => {
-                     const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`;
-                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                 }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
-                 <button onClick={() => {
-                     const url = window.location.href;
-                     const text = `Découvrez cet article : ${selectedArticle.title}\n${url}`;
-                     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-                 }} className="p-3 bg-black text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur X (Twitter)">
-                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 24.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.004 3.82H5.078z"></path>
-                     </svg>
-                 </button>
+               <div className="absolute top-6 right-20 z-10">
+                 <button onClick={() => { const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
                </div>
-               <button onClick={() => {
-                   setSelectedArticle(null);
-                   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-               }} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
+               <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
                
-               <div className="flex items-center gap-3 mb-6">
-                   <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
-                   {selectedArticle.views_count !== undefined && (
-                       <span className="text-zinc-500 dark:text-zinc-400 text-[10px] font-black uppercase flex items-center gap-1">
-                           <Eye size={12}/> {selectedArticle.views_count} vues
-                       </span>
-                   )}
-               </div>
+               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
 
-               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-4 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
-
-               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                   <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-[#39FF14]">
-                           {selectedArticle.author_name?.includes('Thierno') ? (
-                               <div className="text-xs font-black">Dr.T</div>
-                           ) : (
-                               <div className="text-xs font-black">C.R</div>
-                           )}
-                       </div>
-                       <div>
-                           <p className="text-sm font-black text-black dark:text-white uppercase">{selectedArticle.author_name || 'Coach Rokhy'}</p>
-                           <p className="text-xs text-zinc-500 font-bold">{selectedArticle.estimated_read_time || 'Lecture rapide'}</p>
-                       </div>
-                   </div>
-                   {/* Gamification/UX: Text to Speech */}
-                   <button onClick={() => {
-                       if ('speechSynthesis' in window) {
-                           window.speechSynthesis.cancel(); // Stop any current speaking
-                           const utterance = new SpeechSynthesisUtterance(`${selectedArticle.title}. ${selectedArticle.desc}. ${selectedArticle.content}`);
-                           utterance.lang = 'fr-FR';
-                           utterance.rate = 1.1; // Slightly faster reading
-                           window.speechSynthesis.speak(utterance);
-                       } else {
-                           alert("La lecture audio n'est pas supportée par votre navigateur.");
-                       }
-                   }} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase hover:bg-[#39FF14] hover:text-black transition-colors w-full sm:w-auto shrink-0 shadow-sm border border-zinc-200 dark:border-zinc-800">
-                       <Headphones size={16} /> Écouter l'article
-                   </button>
-               </div>
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
                
                {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
                
                <div className="prose prose-zinc dark:prose-invert max-w-none">
                   <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-8 font-bold leading-relaxed">{selectedArticle.desc}</p>
                   
-                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">
-                      {/* Regex to find potential shop links and make them clickable */}
-                      {selectedArticle.content?.split(/(\bhttps?:\/\/[^\s]+)/g).map((part: string, i: number) => {
-                          if (part.match(/^https?:\/\//)) {
-                              return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#39FF14] underline font-bold hover:text-green-400 transition-colors">{part}</a>;
-                          }
-                          return part;
-                      })}
-                  </div>
+                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">{selectedArticle.content}</div>
 
                   {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
                      <div className="mb-10">
@@ -3839,16 +3504,6 @@ export default function NutritionDashboard() {
                         </div>
                      </div>
                   )}
-               </div>
-
-               <div className="mt-12 bg-zinc-50 dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-4">
-                   <div>
-                       <h4 className="font-black uppercase text-sm mb-1">Prêt(e) à passer à l'action ?</h4>
-                       <p className="text-xs text-zinc-500 font-bold">Découvrez nos produits recommandés dans la boutique.</p>
-                   </div>
-                   <button onClick={() => { setSelectedArticle(null); setActiveTab('shop'); }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
-                       Visiter la boutique <ArrowRight size={14} />
-                   </button>
                </div>
              </div>
            </div>
@@ -3881,7 +3536,7 @@ export default function NutritionDashboard() {
                                    <div className="flex items-center gap-2 mt-2">
                                        <span className="text-[10px] bg-black text-white px-2 py-1 rounded-md font-bold">Unité : {product.ux_unit || 'portion'}</span>
                                        {isExpertMode && product.calories && (
-                                           <span className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-md font-bold">{Math.abs(product.calories)} kcal</span>
+                                           <span className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-md font-bold">{product.calories} kcal</span>
                                        )}
                                    </div>
                                </div>
@@ -3986,7 +3641,7 @@ export default function NutritionDashboard() {
                               <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
                                  <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                       {Math.abs(count || 0)} kcal
+                                       {count} kcal
                                     </div>
                                  </div>
                                  <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
@@ -4018,7 +3673,7 @@ export default function NutritionDashboard() {
                            </div>
                         </div>
                         <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {Math.abs(log.calories_consumed || 0)} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
                                            <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
                         </div>
                      </div>
@@ -4109,7 +3764,7 @@ export default function NutritionDashboard() {
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
-                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${Math.abs(recipe.calories || 0)} kcal` : (recipe.ux_unit || "1 portion")}</span>
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
@@ -4339,49 +3994,20 @@ export default function NutritionDashboard() {
                 </form>
              </div>
 
-             {/* Gamification: Niveau de Discipline */}
-             <div className="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[24px] border border-zinc-800 shadow-2xl mb-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none">
-                    <Trophy size={120} className="text-[#39FF14] rotate-12" />
-                </div>
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
-                        <span className="bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Niveau de Discipline</span>
-                        <h3 className="text-3xl md:text-4xl font-black uppercase text-white mb-2">
-                            {jongomaXP < 500 ? 'Débutante Fonio 🌱' : jongomaXP < 2000 ? 'Guerrière Moringa 🌿' : 'Reine du Baobab 🌳'}
-                        </h3>
-                        <p className="text-sm font-medium text-zinc-400">
-                            Connecte-toi chaque jour et valide tes repas pour gagner de l'XP et monter en niveau.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-6 bg-zinc-800/50 p-6 rounded-[2rem] border border-zinc-700/50 backdrop-blur-sm">
-                        <div className="text-center">
-                            <span className="block text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Score Total</span>
-                            <span className="text-4xl font-black text-[#39FF14]">{jongomaXP} <span className="text-sm text-zinc-400">XP</span></span>
-                        </div>
-                        <div className="w-px h-12 bg-zinc-700"></div>
-                        <div className="text-center">
-                            <span className="block text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Jours (Streak) 🔥</span>
-                            <span className="text-4xl font-black text-orange-500">{Math.max(1, Math.floor((new Date().getTime() - new Date(clientProfile?.created_at || new Date()).getTime()) / (1000 * 3600 * 24)))}</span>
-                        </div>
-                    </div>
-                </div>
-             </div>
-
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
-                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Objectif Calorique Quotidien</span>
-                  <div className="text-4xl font-black text-black">{calorieGoal || clientProfile?.daily_calorie_goal || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
-                  {clientProfile?.diagnostic_data?.bmr && (
-                      <div className="text-xs text-zinc-400 font-medium mt-1 flex items-center gap-1">
-                          <Activity size={10} /> BMR réel : {clientProfile.diagnostic_data.bmr} kcal
-                      </div>
-                  )}
+                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
+                  <div className="text-4xl font-black text-black">{clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
                 </div>
 
-                <div className="col-span-2 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
+                <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
                   <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest mb-1">Mon IMC</span>
                   <div className="text-3xl font-black text-green-700">{imcValue}</div>
+                </div>
+
+                <div className="col-span-1 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center items-center text-center">
+                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Score XP</span>
+                  <div className="text-3xl font-black text-yellow-500">{jongomaXP}</div>
                 </div>
              </div>
 
@@ -4604,10 +4230,10 @@ export default function NutritionDashboard() {
                                    )}
                                </div>
                                <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(cals || 0)} kcal</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(prots || 0)}g prot</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(fav.carbs || 0)}g</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(fav.fats || 0)}g</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {prots}g prot</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.carbs || 0}g</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.fats || 0}g</span>
                                </div>
                            </div>
                            <button onClick={() => {
@@ -4888,17 +4514,7 @@ export default function NutritionDashboard() {
                                    <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
                                  </div>
-                                 {/* Gamification/Conversion: 1-Click Buy */}
-                                 <button onClick={() => {
-                                     const phone = "221770000000"; // Remplace with actual Onyx Nutrition WhatsApp
-                                     const text = `Bonjour, je souhaite commander immédiatement ce produit en 1-Click (Wave/Orange Money) :\n\n📦 ${selectedProduct.nom}\n💰 Prix: ${selectedProduct.prix_premium.toLocaleString()} F\n\nMerci de me donner les instructions de paiement.`;
-                                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
-                                 }} className="w-full bg-[#1e4a9e] text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 relative overflow-hidden group">
-                                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
-                                     ⚡ Acheter en 1 clic (Wave / OM)
-                                 </button>
-
-                                 <div className="flex gap-2 mt-1">
+                                 <div className="flex gap-2">
                                     <button onClick={() => { setShowCartModal(true); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
                                     <button onClick={() => setSelectedProduct(null)} className="flex-1 bg-zinc-100 text-black px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-zinc-200 transition-colors flex items-center justify-center">Continuer</button>
                                  </div>
@@ -5127,108 +4743,57 @@ export default function NutritionDashboard() {
 
         {/* VUE COMMUNAUTÉ (FEED) */}
         {activeTab === 'community' && (
-          <div className="min-h-screen bg-gray-50 p-0 md:p-6 lg:p-8 animate-in fade-in slide-in-from-right-4">
-             <div className="w-full max-w-3xl mx-auto bg-white flex flex-col gap-6 px-4 py-6 md:rounded-3xl md:shadow-sm md:border md:border-gray-100 md:px-8 lg:rounded-[2rem] lg:p-10">
-                <div className="flex justify-between items-start mb-2">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-3xl mx-auto">
+             <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-4">
+                <div className="flex justify-between items-start">
                   <div>
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14] w-8 h-8" /> Le Mur</h2>
-                     <p className="text-zinc-500 text-sm font-medium mt-1">Partagez vos repas sains avec la communauté.</p>
+                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14]" /> Le Mur des Assiettes</h2>
+                     <p className="text-zinc-500 text-sm font-bold">Partagez vos repas sains avec la communauté Premium Onyx.</p>
                   </div>
-                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-2 shadow-sm border border-yellow-200 shrink-0">
-                     <Trophy size={16}/> Classement
+                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-1 shadow-sm border border-yellow-200 shrink-0">
+                     <Trophy size={14}/> Classement
                   </button>
                 </div>
                 
-                {/* ZONE CRÉER UNE PUBLICATION */}
-                <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl focus-within:border-black transition-colors focus-within:shadow-sm">
+                <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl focus-within:border-black transition-colors">
                    {newPostImage && (
-                       <div className="relative w-32 h-32 mb-4 rounded-xl overflow-hidden border border-zinc-200">
-                          <img src={newPostImage} className="w-full h-full object-cover" alt="Preview" />
-                          <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm"><X size={14}/></button>
+                       <div className="relative w-24 h-24 mb-3 rounded-xl overflow-hidden border border-zinc-200">
+                          <img src={newPostImage} className="w-full h-full object-cover" />
+                          <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
                        </div>
                    )}
-
-                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px] text-black placeholder:text-zinc-400" />
-
-                   {imageInputMode === 'url' && (
-                       <div className="mb-4 flex gap-2 items-center">
-                           <input type="text" placeholder="Collez l'URL de l'image ici..." className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black text-black" onBlur={(e) => { if(e.target.value) setNewPostImage(e.target.value); }} />
-                           <button onClick={() => setImageInputMode('upload')} className="text-xs text-zinc-500 underline">Importer plutôt</button>
-                       </div>
-                   )}
-
-                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-2 pt-4 border-t border-gray-200 gap-4 sm:gap-0">
-                      <div className="flex items-center gap-4">
-                          {imageInputMode === 'upload' ? (
-                            <>
-                              <label className="flex items-center gap-2 text-zinc-500 hover:text-black transition-colors cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs font-bold">
-                                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCommunityImageUpload} disabled={uploadingImage} />
-                                 {uploadingImage ? <Activity size={16} className="animate-spin text-[#39FF14]" /> : <ImageIcon size={16}/>}
-                                 Importer
-                              </label>
-                              <button onClick={() => setImageInputMode('url')} className="text-xs text-zinc-500 underline font-medium">Lien web</button>
-                            </>
-                          ) : null}
-                      </div>
-                      <button onClick={handlePostCommunity} className="w-full sm:w-auto bg-black text-[#39FF14] px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2">
-                          Publier <span className="text-[10px] text-[#39FF14]/70">+15 XP</span>
-                      </button>
+                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px]" />
+                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
+                      <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer">
+                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                         {uploadingImage ? <Activity size={20} className="animate-spin" /> : <ImageIcon size={20}/>}
+                      </label>
+                      <button onClick={handlePostCommunity} className="bg-black text-[#39FF14] px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Publier (+15 XP)</button>
                    </div>
                 </div>
+             </div>
 
-                {/* FEED */}
-                <div className="mt-4">
-                   <InfiniteScroll
-                      dataLength={communityPosts.length}
-                      next={() => {
-                          const nextPage = communityPage + 1;
-                          setCommunityPage(nextPage);
-                          fetchCommunityPosts(nextPage, true);
-                      }}
-                      hasMore={hasMorePosts}
-                      loader={<div className="flex justify-center p-4"><Activity className="animate-spin text-[#39FF14]" size={24}/></div>}
-                      className="space-y-8"
-                      endMessage={<p className="text-center text-zinc-400 font-bold text-xs uppercase tracking-widest mt-8">Vous avez tout vu !</p>}
-                   >
-                   {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => {
-                       const isCoach = post.client === 'Coach Rokhy' || post.client?.toLowerCase().includes('coach');
-                       return (
-                       <div key={post.id || idx} className={`bg-gray-50 p-6 rounded-3xl shadow-sm border ${isCoach ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-gray-100'}`}>
-                          <div className="flex items-center gap-3 mb-4">
-                             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg ${isCoach ? 'bg-[#39FF14] text-black border-2 border-black' : 'bg-black text-[#39FF14]'}`}>{post.client?.charAt(0) || 'M'}</div>
-                             <div>
-                                <p className={`font-bold text-base ${isCoach ? 'text-black' : 'text-zinc-900'}`}>{post.client} {isCoach && <CheckCircle size={14} className="inline text-[#39FF14] ml-1 fill-black" />}</p>
-                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
-                             </div>
-                             {!isCoach && post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-widest border border-yellow-200">Premium</span>}
-                          </div>
+             <div className="space-y-6">
+                {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => (
+                   <div key={post.id || idx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+                      <div className="flex items-center gap-3 mb-4">
+                         <div className="w-10 h-10 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black">{post.client?.charAt(0) || 'M'}</div>
+                         <div>
+                            <p className="font-bold text-sm text-black">{post.client}</p>
+                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
+                         </div>
+                         {post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Premium</span>}
+                      </div>
+                      <p className="text-zinc-700 font-medium text-sm mb-4 leading-relaxed">{post.content}</p>
+                      {post.image_url && <img src={post.image_url} alt="Plat" className="w-full h-64 object-cover rounded-2xl mb-4 border border-zinc-100" />}
 
-                          <p className="text-zinc-700 font-medium text-sm mb-5 leading-relaxed whitespace-pre-wrap">
-                              {/* Parse Mentions */}
-                              {post.content?.split(/(@\w+)/g).map((part: string, i: number) => {
-                                  if (part.startsWith('@')) {
-                                      return <span key={i} className="text-[#39FF14] font-black cursor-pointer hover:underline">{part}</span>;
-                                  }
-                                  return part;
-                              })}
-                          </p>
-
-                          {post.image_url && (
-                             <div className="w-full mb-5 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
-                                <img src={post.image_url} alt="Plat" className="w-full h-auto max-h-96 object-cover" />
-                             </div>
-                          )}
-
-                          <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200/60">
-                             <button onClick={() => handleReaction(post.id, 'top')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🇸🇳 Namm Na {post.reactions?.top > 0 && <span className="ml-1 opacity-70">({post.reactions.top})</span>}</button>
-                             <button onClick={() => handleReaction(post.id, 'sain')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-green-50 hover:border-green-200 hover:text-green-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🍲 Dof Na Ci {post.reactions?.sain > 0 && <span className="ml-1 opacity-70">({post.reactions.sain})</span>}</button>
-                             <button onClick={() => handleReaction(post.id, 'courage')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-200 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🔥 Jajef {post.reactions?.courage > 0 && <span className="ml-1 opacity-70">({post.reactions.courage})</span>}</button>
-                             <button onClick={() => alert('Les commentaires arrivent bientôt !')} className="flex items-center gap-1.5 ml-auto text-zinc-400 hover:text-black transition-colors p-2"><MessageCircle size={18}/> {post.commentCount > 0 && <span className="text-xs font-bold">{post.commentCount}</span>}</button>
-                          </div>
-                       </div>
-                    )})}
-                   </InfiniteScroll>
-                </div>
+                      <div className="flex items-center gap-2 pt-4 border-t border-zinc-100">
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🔥 Top {post.reactions?.top > 0 && `(${post.reactions.top})`}</button>
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-green-50 hover:text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🥗 Sain {post.reactions?.sain > 0 && `(${post.reactions.sain})`}</button>
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-blue-50 hover:text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">💪 Courage {post.reactions?.courage > 0 && `(${post.reactions.courage})`}</button>
+                      </div>
+                   </div>
+                ))}
              </div>
           </div>
         )}
@@ -5417,34 +4982,18 @@ export default function NutritionDashboard() {
                   {diagStep === 2 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
                       <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quelles sont vos mensurations actuelles ?</h2>
-                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-8">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                              <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille</label>
-                              <span className="text-xl font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg">{diagData.height || 160} <span className="text-xs text-white">cm</span></span>
-                          </div>
-                          <input type="range" min="140" max="220" required value={diagData.height || 160} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
+                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille (cm)</label>
+                          <input type="number" required placeholder="Ex: 170" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                              <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel</label>
-                              <span className="text-xl font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg">{diagData.currentWeight || 70} <span className="text-xs text-white">kg</span></span>
-                          </div>
-                          <input type="range" min="40" max="180" step="0.5" required value={diagData.currentWeight || 70} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
+                          <input type="number" required placeholder="Ex: 75" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                              <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible</label>
-                              <span className="text-xl font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg">{diagData.targetWeight || 65} <span className="text-xs text-white">kg</span></span>
-                          </div>
-                          <input type="range" min="40" max="180" step="0.5" required value={diagData.targetWeight || 65} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
-                        </div>
-
-                        <div className="space-y-2 pt-4 border-t border-zinc-100">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date souhaitée pour l'objectif</label>
-                          <input type="date" required value={diagData.targetDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setDiagData({...diagData, targetDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-lg outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
+                          <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
                       </div>
                     </div>
@@ -5528,60 +5077,16 @@ export default function NutritionDashboard() {
                     </div>
                   )}
 
-                  {diagStep === 7 && (() => {
-                    const preview = calculatePreviewGoals(diagData);
-                    return (
-                    <div className="text-center py-6 animate-in zoom-in max-w-2xl mx-auto">
+                  {diagStep === 7 && (
+                    <div className="text-center py-6 animate-in zoom-in">
                       <CheckCircle className="text-[#39FF14] w-16 h-16 mx-auto mb-4" />
-                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-4 text-black">Vos Nouveaux Objectifs</h3>
-                      <p className="text-zinc-600 font-medium mb-8">Voici le plan calculé sur mesure selon vos nouvelles réponses. Ces valeurs remplaceront vos anciens réglages.</p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                         <div className="relative bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
-                            {preview.isFloorLimited && <div title="Seuil de sécurité actif" className="absolute top-4 right-4"><AlertTriangle className="text-yellow-500 w-5 h-5" /></div>}
-                            <Flame className={`${preview.isAggressive ? 'text-red-500' : 'text-[#39FF14]'} w-8 h-8 mb-3`} />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Calories Cibles</p>
-                            <p className="text-3xl font-black text-black">{preview.dailyCalories}</p>
-                            <p className="text-xs font-bold text-zinc-500 mt-1">kcal / jour</p>
-                            {preview.isFloorLimited && <span className="mt-2 bg-yellow-100 text-yellow-800 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Limite atteinte ({preview.floorCalories} kcal)</span>}
-                         </div>
-                         <div className="bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
-                            <Target className="text-[#39FF14] w-8 h-8 mb-3"/>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Cible</p>
-                            <p className="text-3xl font-black text-black">{preview.finalTargetWeight}<span className="text-xl">kg</span></p>
-                            <p className="text-xs font-bold text-zinc-500 mt-1">{preview.weightToLose > 0 ? `-${preview.weightToLose.toFixed(1)} kg à perdre` : 'Maintien'}</p>
-                         </div>
-                         <div className="relative bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
-                            <Clock className={`${preview.isAggressive ? 'text-red-500' : 'text-[#39FF14]'} w-8 h-8 mb-3`} />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Objectif prévu</p>
-                            <p className="text-xl font-black text-black mt-2 capitalize">{preview.etaStr}</p>
-                            {preview.isAggressive && <span className="mt-2 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Rythme Trop Rapide ⚠️</span>}
-                         </div>
-                      </div>
-
-                      {preview.isAggressive && (
-                         <div className="bg-blue-50 border border-blue-200 p-6 rounded-3xl shadow-sm flex flex-col items-center gap-4 mb-8 text-left animate-in slide-in-from-bottom-4">
-                            <div className="flex items-start gap-4">
-                               <Info className="text-blue-500 w-8 h-8 shrink-0" />
-                               <p className="text-sm font-medium text-blue-900 leading-relaxed">
-                                  <strong>💡 Notre conseil santé :</strong> Atteindre votre objectif en <strong className="font-black">{preview.suggestedETA}</strong> avec <strong className="font-black">{preview.suggestedCalories} kcal/jour</strong> serait plus durable et préserverait votre masse musculaire sans effet yoyo.
-                               </p>
-                            </div>
-                            <button type="button" onClick={() => {
-                                 // Mettre à jour la date cible avec la date suggérée saine et forcer le type de rythme
-                                 const isoDate = preview.suggestedEtaDate.toISOString().split('T')[0];
-                                 setDiagData({...diagData, targetDate: isoDate});
-                               }} className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition shadow-sm">
-                               Appliquer ce rythme sain
-                            </button>
-                         </div>
-                      )}
-
+                      <h3 className="text-xl font-black uppercase mb-2 text-black">Analyse en cours...</h3>
+                      <p className="text-zinc-600 font-medium mb-6">Validez pour générer vos nouveaux objectifs caloriques et votre menu adapté.</p>
                       <button type="submit" disabled={isSubmittingDiag} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase hover:scale-105 transition-transform flex justify-center items-center gap-2">
-                        {isSubmittingDiag ? "Recalcul en cours..." : "Appliquer ce plan"} <ArrowRight size={18}/>
+                        {isSubmittingDiag ? "Recalcul en cours..." : "Mettre à jour mon plan"} <ArrowRight size={18}/>
                       </button>
                     </div>
-                  );})()}
+                  )}
 
                   {diagStep < 7 && (
                     <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
@@ -5594,7 +5099,7 @@ export default function NutritionDashboard() {
                             type="button" 
                             onClick={() => setDiagStep(s => s + 1)} 
                             disabled={
-                                (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
+                                (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight)) ||
                                 (diagStep === 3 && !diagData.healthProfile)
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
