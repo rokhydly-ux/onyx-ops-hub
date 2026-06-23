@@ -1,5 +1,6 @@
 "use client";
 import imageCompression from 'browser-image-compression';
+import confetti from 'canvas-confetti';
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -1987,18 +1988,30 @@ export default function NutritionDashboard() {
       const wantsToLose = targetW < startWeight;
 
       let isGoalReached = false;
+      let hasLostWeight = false;
+
       if (targetW > 0 && startWeight > 0) {
          if (wantsToLose && newWeight <= targetW) isGoalReached = true;
          if (!wantsToLose && newWeight >= targetW) isGoalReached = true;
       }
       
+      // Check if user lost weight compared to the previous entry
+      if (wantsToLose && newWeight < prevWeight) {
+          hasLostWeight = true;
+      }
+
       if (isGoalReached) {
           setShowConfetti('weight');
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#39FF14', '#ffffff', '#000000'] });
           setTimeout(() => setShowConfetti(false), 8000);
           setWeightCoachMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
+      } else if (hasLostWeight) {
+          // Gamification: Small confetti burst for any weight loss step!
+          confetti({ particleCount: 50, spread: 40, origin: { y: 0.8 }, colors: ['#39FF14', '#A0E8AF'] });
+          setWeightCoachMessage({ title: "Bravo ! 🎉", text: `Tu as perdu du poids par rapport à ta dernière pesée (${(prevWeight - newWeight).toFixed(1)} kg) ! Chaque pas compte, continue !`, type: 'success' });
       }
 
       const newLog = { log_date: todayStr, weight: newWeight };
@@ -3034,21 +3047,56 @@ export default function NutritionDashboard() {
 
             {/* SUIVI DE L'EAU & HUMEUR */}
             <div className="grid md:grid-cols-2 gap-6 mt-6">
-               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
-                  <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-4 shadow-sm object-cover" alt="Eau" />
+               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} relative overflow-hidden`}>
+                  {/* Gamification: Water wave background that rises */}
+                  <div
+                      className="absolute bottom-0 left-0 right-0 bg-blue-100/50 dark:bg-blue-900/20 transition-all duration-1000 ease-in-out -z-10"
+                      style={{ height: `${(waterGlasses / 8) * 100}%` }}
+                  />
+
+                  <div className="relative group cursor-pointer" onClick={() => handleUpdateWater(1)}>
+                      <img
+                          src={WATER_ICON}
+                          className={`w-16 h-16 rounded-full mb-4 shadow-sm object-cover transition-transform duration-300 ${waterGlasses > 0 ? 'group-hover:scale-110' : 'grayscale opacity-50'}`}
+                          alt="Eau"
+                      />
+                      {/* Gamification: A small plant that "grows" */}
+                      <div className="absolute -bottom-2 -right-2 text-2xl transition-all duration-500 transform" style={{ scale: Math.max(0.5, waterGlasses / 4) }}>
+                          {waterGlasses === 0 ? '🌱' : waterGlasses < 4 ? '🌿' : waterGlasses < 8 ? '🪴' : '🌳'}
+                      </div>
+                  </div>
+
                   <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
                   <p className="text-xs font-bold text-zinc-500 mb-1">{waterGlasses} / 8 verres (Env. 2 Litres)</p>
-                  <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">L'eau draine les toxines et accélère ton métabolisme ! 💧</p>
-                  <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full p-1.5 shadow-inner mb-2">
-                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-black text-xl text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors shadow-sm">-</button>
+                  <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">
+                      {waterGlasses === 0 ? "Bois un verre pour planter ta graine ! 💧" :
+                       waterGlasses < 4 ? "Continue, ta plante grandit ! 💧" :
+                       waterGlasses < 8 ? "Presque à l'objectif, ne lâche rien ! 💧" :
+                       "Parfait ! Ton corps (et ta plante) te remercient ! 🌳"}
+                  </p>
+
+                  <div className="flex gap-1 mb-4">
+                      {[...Array(8)].map((_, i) => (
+                          <div
+                              key={i}
+                              className={`w-3 h-8 rounded-full transition-all duration-500 ${i < waterGlasses ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-200 dark:bg-zinc-800'}`}
+                          />
+                      ))}
+                  </div>
+
+                  <div className="flex items-center bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full p-1.5 shadow-inner mb-2 z-10">
+                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center font-black text-xl text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors shadow-sm">-</button>
                      <div className="w-20 text-center flex flex-col">
-                        <span className="font-black text-blue-600 text-xl leading-none">{waterGlasses}</span>
+                        <span className="font-black text-blue-600 dark:text-blue-400 text-xl leading-none">{waterGlasses}</span>
                         <span className="text-[8px] font-black uppercase text-blue-400 tracking-widest">Verres</span>
                      </div>
-                     <button onClick={() => handleUpdateWater(1)} className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-black text-xl text-white hover:bg-blue-600 transition-colors shadow-sm">+</button>
+                     <button onClick={() => {
+                         handleUpdateWater(1);
+                         confetti({ particleCount: 30, spread: 30, origin: { y: 0.7 }, colors: ['#3B82F6', '#93C5FD', '#FFFFFF'] });
+                     }} className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-black text-xl text-white hover:bg-blue-600 hover:scale-105 transition-all shadow-sm">+</button>
                   </div>
                   {waterGlasses >= 8 && (
-                     <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30">
+                     <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30 animate-pulse">
                         <Award size={14}/> +5 XP (Hydratation Max)
                      </div>
                   )}
@@ -3689,7 +3737,7 @@ export default function NutritionDashboard() {
                        </span>
                    )}
                </div>
-               
+
                <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-4 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
 
                <div className="flex items-center gap-4 mb-8">
@@ -4231,6 +4279,35 @@ export default function NutritionDashboard() {
                 </form>
              </div>
 
+             {/* Gamification: Niveau de Discipline */}
+             <div className="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[24px] border border-zinc-800 shadow-2xl mb-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none">
+                    <Trophy size={120} className="text-[#39FF14] rotate-12" />
+                </div>
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                        <span className="bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Niveau de Discipline</span>
+                        <h3 className="text-3xl md:text-4xl font-black uppercase text-white mb-2">
+                            {jongomaXP < 500 ? 'Débutante Fonio 🌱' : jongomaXP < 2000 ? 'Guerrière Moringa 🌿' : 'Reine du Baobab 🌳'}
+                        </h3>
+                        <p className="text-sm font-medium text-zinc-400">
+                            Connecte-toi chaque jour et valide tes repas pour gagner de l'XP et monter en niveau.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-6 bg-zinc-800/50 p-6 rounded-[2rem] border border-zinc-700/50 backdrop-blur-sm">
+                        <div className="text-center">
+                            <span className="block text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Score Total</span>
+                            <span className="text-4xl font-black text-[#39FF14]">{jongomaXP} <span className="text-sm text-zinc-400">XP</span></span>
+                        </div>
+                        <div className="w-px h-12 bg-zinc-700"></div>
+                        <div className="text-center">
+                            <span className="block text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Jours (Streak) 🔥</span>
+                            <span className="text-4xl font-black text-orange-500">{Math.max(1, Math.floor((new Date().getTime() - new Date(clientProfile?.created_at || new Date()).getTime()) / (1000 * 3600 * 24)))}</span>
+                        </div>
+                    </div>
+                </div>
+             </div>
+
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
                   <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Objectif Calorique Quotidien</span>
@@ -4242,14 +4319,9 @@ export default function NutritionDashboard() {
                   )}
                 </div>
 
-                <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
+                <div className="col-span-2 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
                   <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest mb-1">Mon IMC</span>
                   <div className="text-3xl font-black text-green-700">{imcValue}</div>
-                </div>
-                
-                <div className="col-span-1 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center items-center text-center">
-                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Score XP</span>
-                  <div className="text-3xl font-black text-yellow-500">{jongomaXP}</div>
                 </div>
              </div>
 
