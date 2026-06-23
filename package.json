@@ -34,6 +34,7 @@
     "pg": "^8.20.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-infinite-scroll-component": "^7.2.1",
     "react-qr-code": "^2.0.18",
     "recharts": "^3.8.1",
     "sharp": "^0.34.5",
