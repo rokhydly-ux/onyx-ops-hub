@@ -1,181 +1,234 @@
 import React, { useState, useEffect } from 'react';
-import { Play, CheckCircle, ChevronRight, Settings, Dumbbell, Clock, Filter, Share2, ShoppingCart } from 'lucide-react';
+import { Play, Share2, Award, Calendar, CheckCircle, ChevronLeft, ChevronRight, Loader2, Dumbbell } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
-export default function ClientFitnessView({ clientProfile }: { clientProfile: any }) {
+export default function ClientFitnessView({ clientId, tenantId }: { clientId: string, tenantId: string }) {
     const [courses, setCourses] = useState<any[]>([]);
-    const [dailyWorkout, setDailyWorkout] = useState<any>(null); // Course for "Today"
-    const [activeVideo, setActiveVideo] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [generatingWeek, setGeneratingWeek] = useState(false);
+    const [weeklyProgram, setWeeklyProgram] = useState<any[]>([]);
+
+    // Pour la navigation du carrousel de la semaine
+    const [currentDayIndex, setCurrentDayIndex] = useState(0);
+
+    const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
     useEffect(() => {
-        const fetchFitnessData = async () => {
-            const { data } = await supabase.from('nutrition_fitness_courses').select('*');
-            if (data) {
-                setCourses(data);
-                // Simulation: Le programme du jour est aléatoire parmi les cours dispo
-                if (data.length > 0) {
-                    setDailyWorkout(data[Math.floor(Math.random() * data.length)]);
-                }
-            }
-        };
-        fetchFitnessData();
+        fetchActiveCourses();
+        fetchWeeklyProgram();
     }, []);
 
-    const extractYoutubeId = (url: string) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url?.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
+    const fetchActiveCourses = async () => {
+        setLoading(true);
+        // Seulement les cours ayant une vidéo (actifs)
+        const { data } = await supabase.from('nutrition_fitness_courses').select('*').not('video_url', 'is', null);
+        if (data) setCourses(data);
+        setLoading(false);
     };
 
-    const handleShare = async (course: any) => {
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: `Séance Fitness : ${course.title}`,
-                    text: `Rejoins-moi pour cette séance de fitness : ${course.title}`,
-                    url: window.location.href, // Ou un lien direct vers la vidéo
-                });
-            } catch (err) {
-                console.log('Erreur de partage', err);
-            }
+    const fetchWeeklyProgram = async () => {
+        const { data } = await supabase.from('nutrition_fitness_programs')
+            .select('*, course:course_id(*)')
+            .eq('client_id', clientId)
+            .order('day_of_week', { ascending: true });
+
+        if (data && data.length > 0) {
+            setWeeklyProgram(data);
+            // Trouver le jour actuel (0 = Lundi, 6 = Dimanche)
+            const today = (new Date().getDay() + 6) % 7;
+            setCurrentDayIndex(today);
+        } else {
+            setWeeklyProgram([]);
         }
     };
 
-    return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-left-4 max-w-5xl mx-auto">
+    const generateMyWeek = async () => {
+        setGeneratingWeek(true);
+        try {
+            // 1. Vider le programme actuel
+            await supabase.from('nutrition_fitness_programs').delete().eq('client_id', clientId);
 
-            {/* EN-TÊTE PERSONNALISÉ */}
-            <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
-                <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white mb-2">
-                    Prête à transpirer, {clientProfile?.full_name?.split(' ')[0] || 'Championne'} ? 🔥
-                </h1>
-                <p className="text-zinc-500 font-medium max-w-xl mx-auto">
-                    Ton programme de la semaine pour atteindre tes objectifs. Reste constante, les résultats suivront.
-                </p>
+            // 2. Sélectionner 5 exercices actifs au hasard
+            if (courses.length < 5) {
+                alert("Pas assez d'exercices actifs dans le catalogue (minimum 5 requis).");
+                setGeneratingWeek(false);
+                return;
+            }
+
+            const shuffled = [...courses].sort(() => 0.5 - Math.random());
+            const selectedCourses = shuffled.slice(0, 5);
+
+            // 3. Assigner aux jours (Lundi à Vendredi, 0 à 4). Samedi(5) et Dimanche(6) = Repos
+            const newProgram = [];
+            for (let i = 0; i < 5; i++) {
+                newProgram.push({
+                    client_id: clientId,
+                    tenant_id: tenantId,
+                    course_id: selectedCourses[i].id,
+                    day_of_week: i, // 0 = Lundi, ..., 4 = Vendredi
+                    is_completed: false
+                });
+            }
+
+            const { error } = await supabase.from('nutrition_fitness_programs').insert(newProgram);
+            if (error) throw error;
+
+            await fetchWeeklyProgram();
+
+            // Re-fetch points pour mettre à jour l'UI si nécessaire (ex: bonus de création)
+        } catch (error: any) {
+            console.error(error);
+            alert("Erreur lors de la génération de la semaine.");
+        } finally {
+            setGeneratingWeek(false);
+        }
+    };
+
+    const markAsCompleted = async (programId: string) => {
+        const { error } = await supabase.from('nutrition_fitness_programs')
+            .update({ is_completed: true, completed_at: new Date().toISOString() })
+            .eq('id', programId);
+
+        if (!error) {
+            // Dans une vraie app, on ajouterait des points ici
+            fetchWeeklyProgram();
+        }
+    };
+
+    const getYoutubeEmbedUrl = (url: string) => {
+        if (!url) return '';
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        const ytId = (match && match[2].length === 11) ? match[2] : null;
+        return ytId ? `https://www.youtube.com/embed/${ytId}` : url;
+    };
+
+    // --- Rendu conditionnel si pas de programme ---
+    if (weeklyProgram.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+                <div className="w-24 h-24 bg-zinc-100 rounded-full flex items-center justify-center mb-6 border-4 border-zinc-200">
+                    <Dumbbell size={40} className="text-zinc-400" />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black">Prêt(e) à transpirer ?</h2>
+                <p className="text-zinc-500 max-w-md mb-8">Génère ton programme sportif hebdomadaire sur-mesure. 5 jours d'entraînement, 2 jours de repos.</p>
+                <button
+                    onClick={generateMyWeek}
+                    disabled={generatingWeek || courses.length < 5}
+                    className="bg-black text-[#39FF14] px-8 py-4 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-3 shadow-2xl disabled:opacity-50 disabled:hover:scale-100"
+                >
+                    {generatingWeek ? <Loader2 size={24} className="animate-spin" /> : <Calendar size={24} />}
+                    {generatingWeek ? "Création du programme..." : "Générer Ma Semaine"}
+                </button>
+                {courses.length < 5 && (
+                    <p className="text-red-500 text-xs font-bold mt-4">Le catalogue manque d'exercices actifs pour générer un programme.</p>
+                )}
+            </div>
+        );
+    }
+
+    // --- Rendu du programme de la semaine ---
+    // Construire le tableau complet de 7 jours (incluant repos)
+    const fullWeek = DAYS.map((dayName, index) => {
+        const prog = weeklyProgram.find(p => p.day_of_week === index);
+        return {
+            dayIndex: index,
+            dayName: dayName,
+            isRest: !prog,
+            program: prog
+        };
+    });
+
+    const currentDayData = fullWeek[currentDayIndex];
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Header / Bouton Regénérer */}
+            <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-3xl border border-zinc-200">
+                <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+                        <Calendar size={20} className="text-black"/> Mon Programme
+                    </h2>
+                </div>
+                <button
+                    onClick={generateMyWeek}
+                    disabled={generatingWeek}
+                    className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-black transition-colors flex items-center gap-1 bg-white px-3 py-2 rounded-xl border border-zinc-200 shadow-sm"
+                >
+                    {generatingWeek ? <Loader2 size={12} className="animate-spin"/> : "Regénérer"}
+                </button>
             </div>
 
-            {/* SECTION 1: L'ENTRAÎNEMENT DU JOUR */}
-            {dailyWorkout && (
-                <div className="space-y-6">
-                    <h2 className="text-xl font-black uppercase tracking-widest text-black dark:text-white flex items-center gap-2">
-                        <Play className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={28}/> Entraînement du Jour
-                    </h2>
+            {/* Sélecteur de jour (Slider) */}
+            <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar snap-x">
+                {fullWeek.map((day) => (
+                    <button
+                        key={day.dayIndex}
+                        onClick={() => setCurrentDayIndex(day.dayIndex)}
+                        className={`flex-shrink-0 snap-center px-6 py-3 rounded-2xl flex flex-col items-center gap-1 transition-all ${currentDayIndex === day.dayIndex ? 'bg-black text-[#39FF14] shadow-lg scale-105' : 'bg-white border border-zinc-200 text-zinc-400 hover:bg-zinc-50'}`}
+                    >
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{day.dayName}</span>
+                        {day.program?.is_completed && <CheckCircle size={14} className={currentDayIndex === day.dayIndex ? 'text-[#39FF14]' : 'text-green-500'}/>}
+                    </button>
+                ))}
+            </div>
 
-                    <div className="bg-black rounded-[2.5rem] p-4 md:p-6 shadow-2xl relative overflow-hidden group">
-                        {/* Dégradé de fond */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10 pointer-events-none"></div>
-
-                        {activeVideo === dailyWorkout.id ? (
-                            <div className="relative z-20 w-full aspect-video rounded-3xl overflow-hidden border border-zinc-800 shadow-[0_0_50px_rgba(57,255,20,0.1)]">
+            {/* Contenu du jour sélectionné */}
+            <div className="bg-white rounded-[2.5rem] border border-zinc-200 shadow-xl overflow-hidden relative">
+                {currentDayData.isRest ? (
+                    <div className="aspect-[4/3] md:aspect-[21/9] flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-zinc-50 to-zinc-100">
+                        <Award size={64} className="text-zinc-300 mb-4" />
+                        <h3 className="text-3xl font-black uppercase tracking-tighter text-black mb-2">Jour de repos</h3>
+                        <p className="text-zinc-500 max-w-md">La récupération fait partie intégrante de l'entraînement. Profite de cette journée pour te détendre et bien t'hydrater.</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col">
+                        <div className="aspect-[16/9] w-full bg-black relative">
+                            {currentDayData.program?.course?.video_url ? (
                                 <iframe
-                                    src={`https://www.youtube.com/embed/${extractYoutubeId(dailyWorkout.video_url)}?autoplay=1`}
-                                    title={dailyWorkout.title}
-                                    frameBorder="0"
+                                    src={getYoutubeEmbedUrl(currentDayData.program.course.video_url)}
+                                    className="w-full h-full border-0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
-                                    className="w-full h-full"
                                 ></iframe>
-                            </div>
-                        ) : (
-                            <div className="relative w-full aspect-video rounded-3xl overflow-hidden cursor-pointer" onClick={() => setActiveVideo(dailyWorkout.id)}>
-                                <img src={dailyWorkout.thumbnail_url || 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80'} alt="Thumbnail" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                <div className="absolute inset-0 flex items-center justify-center z-20">
-                                    <div className="w-20 h-20 bg-[#39FF14] text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(57,255,20,0.5)] group-hover:scale-110 transition-transform">
-                                        <Play size={40} className="ml-2" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="relative z-20 mt-6 md:px-4 flex flex-col md:flex-row justify-between md:items-end gap-4">
-                            <div>
-                                <div className="flex gap-2 mb-3">
-                                    <span className="bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{dailyWorkout.difficulty}</span>
-                                    <span className="bg-zinc-800 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1"><Clock size={12}/> {dailyWorkout.duration_minutes} MIN</span>
-                                </div>
-                                <h3 className="text-2xl md:text-3xl font-black text-white uppercase">{dailyWorkout.title}</h3>
-                                <p className="text-zinc-400 text-sm mt-2">{dailyWorkout.benefits || 'Améliore le cardio et brûle des graisses.'}</p>
-                            </div>
-
-                            {!activeVideo && (
-                                <button onClick={() => setActiveVideo(dailyWorkout.id)} className="w-full md:w-auto bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:scale-105 transition-transform flex items-center justify-center gap-2">
-                                    <Play size={18}/> Lancer la séance
-                                </button>
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-white">Vidéo non disponible</div>
                             )}
                         </div>
-                    </div>
 
-                    {/* SECTION 2: CROSS-SELLING (Produit lié) */}
-                    {dailyWorkout.linked_product_id && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-bottom-4">
-                            <div className="flex items-center gap-6 w-full md:w-auto">
-                                <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-zinc-100 p-2 shrink-0">
-                                    <img src="https://m.media-amazon.com/images/I/61k2YfB3bQL._AC_SX679_.jpg" alt="Product" className="w-full h-full object-contain" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1">Boost ta séance</p>
-                                    <h4 className="font-bold text-lg text-black dark:text-white">Gourde Infuseur Onyx</h4>
-                                    <p className="text-sm text-zinc-500">Reste hydratée pendant l'effort.</p>
-                                </div>
+                        <div className="p-8">
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <span className="bg-zinc-100 text-zinc-800 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{currentDayData.program?.course?.category}</span>
+                                <span className="bg-zinc-100 text-zinc-800 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{currentDayData.program?.course?.difficulty}</span>
+                                <span className="bg-zinc-100 text-zinc-800 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{currentDayData.program?.course?.duration_minutes} min</span>
                             </div>
-                            <button className="w-full md:w-auto bg-black text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg">
-                                <ShoppingCart size={16}/> 15.000 FCFA
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
 
-            {/* SECTION 3: EXPLORER PAR CATÉGORIE (Grille de Vidéos) */}
-            <div className="space-y-6 pt-8 border-t border-zinc-200 dark:border-zinc-800">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-black uppercase tracking-widest text-black dark:text-white flex items-center gap-2">
-                        <Dumbbell className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={28}/> Explorer
-                    </h2>
-                    <button className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                        <Filter size={14}/> Filtres
-                    </button>
-                </div>
+                            <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black">{currentDayData.program?.course?.title}</h3>
+                            <p className="text-zinc-500 font-medium mb-8 leading-relaxed">{currentDayData.program?.course?.benefits}</p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {courses.map(course => (
-                        <div key={course.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-4 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all group flex flex-col">
-
-                            <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-100">
-                                <img src={course.thumbnail_url || 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80'} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-
-                                {/* Badges Superposés */}
-                                <div className="absolute top-2 left-2 flex gap-1">
-                                    <span className="bg-black/80 backdrop-blur-sm text-white px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><Clock size={10}/> {course.duration_minutes}m</span>
-                                </div>
-                                <div className="absolute top-2 right-2 flex gap-1">
-                                    <button onClick={(e) => { e.stopPropagation(); handleShare(course); }} className="w-8 h-8 bg-black/80 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors"><Share2 size={12}/></button>
-                                </div>
-
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[2px]">
-                                    <button onClick={() => { setDailyWorkout(course); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="w-14 h-14 bg-[#39FF14] text-black rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-all">
-                                        <Play size={24} className="ml-1" />
+                            <div className="flex flex-col sm:flex-row gap-4 border-t border-zinc-100 pt-8">
+                                {currentDayData.program?.is_completed ? (
+                                    <div className="flex-1 bg-green-50 text-green-600 px-6 py-4 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-green-200">
+                                        <CheckCircle size={20}/> Terminé
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => markAsCompleted(currentDayData.program?.id)}
+                                        className="flex-1 bg-black text-[#39FF14] px-6 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 shadow-xl"
+                                    >
+                                        <CheckCircle size={20}/> Marquer comme terminé
                                     </button>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 flex flex-col">
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest">{course.difficulty}</span>
-                                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest">{course.equipment_needed === 'Aucun' ? '🧘🏽‍♀️ Sans matériel' : `🏋️ ${course.equipment_needed}`}</span>
-                                </div>
-                                <h3 className="font-black text-lg uppercase leading-tight mb-2 text-black dark:text-white line-clamp-2">{course.title}</h3>
-                                <p className="text-zinc-500 text-xs font-medium line-clamp-2 mt-auto">{course.benefits}</p>
+                                )}
+                                <button className="bg-zinc-100 text-black px-6 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
+                                    <Share2 size={20}/> Partager
+                                </button>
                             </div>
                         </div>
-                    ))}
-                    {courses.length === 0 && (
-                        <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
-                            Les vidéos sont en cours de chargement...
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
+
+            {/* TODO: Add Cross-Selling Card logic here if needed */}
         </div>
     );
 }
