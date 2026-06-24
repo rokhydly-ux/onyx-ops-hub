@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Pour éviter les erreurs au build si OPENAI_API_KEY n'est pas définie
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_build',
 });
 
 export async function POST(req: Request) {
     try {
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy_key_for_build') {
+             throw new Error("Clé API OpenAI manquante sur le serveur.");
+        }
+
         const { count = 15 } = await req.json();
 
         const prompt = `
