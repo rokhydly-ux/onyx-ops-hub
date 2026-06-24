@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import AdminFitnessView from "@/components/admin/AdminFitnessView";
 import { supabase } from "@/lib/supabaseClient";
 import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper, User, LogOut, Settings } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -2482,44 +2483,9 @@ export default function AdminNutritionAfricaine() {
 
         {/* --- VUE FITNESS (ADMIN) --- */}
         {activeTab === 'fitness' && (
-           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm text-center">
-                 <div className="w-20 h-20 bg-zinc-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-zinc-100 shadow-inner">
-                    <Activity className="text-[#39FF14]" size={40}/>
-                 </div>
-                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black mb-2`}>Gestion Fitness</h2>
-                 <p className="text-zinc-500 font-medium max-w-lg mx-auto">
-                    Gérez les cours vidéos (Youtube) et assignez des programmes d'entraînement générés par l'IA à vos clients.
-                 </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                 {/* Gestion des cours */}
-                 <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:border-[#39FF14] transition-colors cursor-pointer">
-                    <div className="flex items-center gap-4 mb-4">
-                       <div className="w-12 h-12 bg-black text-[#39FF14] rounded-xl flex items-center justify-center"><Video size={24}/></div>
-                       <div>
-                          <h3 className="font-black text-lg">Catalogue de Cours</h3>
-                          <p className="text-xs text-zinc-500 font-medium">Ajouter et gérer les vidéos d'exercices.</p>
-                       </div>
-                    </div>
-                    <p className="text-xs text-zinc-400">Utilisez la base de données `nutrition_fitness_courses` pour stocker les liens Youtube, durée, équipement et bénéfices.</p>
-                 </div>
-
-                 {/* Gestion des programmes */}
-                 <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:border-[#39FF14] transition-colors cursor-pointer">
-                    <div className="flex items-center gap-4 mb-4">
-                       <div className="w-12 h-12 bg-black text-[#39FF14] rounded-xl flex items-center justify-center"><Calendar size={24}/></div>
-                       <div>
-                          <h3 className="font-black text-lg">Programmes Hebdomadaires</h3>
-                          <p className="text-xs text-zinc-500 font-medium">Créer des routines pour les clients.</p>
-                       </div>
-                    </div>
-                    <p className="text-xs text-zinc-400">Utilisez la base de données `nutrition_fitness_programs` pour assigner les exercices selon les jours.</p>
-                 </div>
-              </div>
-           </div>
+           <AdminFitnessView />
         )}
+
 
         {activeTab === 'blog' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
