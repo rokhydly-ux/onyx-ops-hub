@@ -390,26 +390,47 @@ export default function NutritionAfricaineLanding() {
     e.preventDefault();
     setIsSubmittingDiag(true);
     try {
-      const trialEnds = new Date();
-      trialEnds.setDate(trialEnds.getDate() + 14);
+      // 1. Generation du mot de passe standardisé
+      const cleanPhone = diagData.phone.replace(/\s+/g, '');
+      const generatedPassword = `OnyxNutri${cleanPhone}`; // Ex: OnyxNutri771234567
 
-      const { data: clientData, error: clientErr } = await supabase.from('clients').upsert({
-        full_name: diagData.name,
-        phone: diagData.phone,
-        password_temp: diagData.pin || "0000",
-        type: "Client",
-        saas: "Nutrition à l'Africaine",
-        status: "Essai",
-        trial_ends_at: trialEnds.toISOString(),
-      }, { onConflict: 'phone' }).select().single();
+      // 2. Création de l'utilisateur via l'API Admin
+      const res = await fetch('/api/create-user', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+             fullName: diagData.name,
+             phone: cleanPhone,
+             password: generatedPassword,
+             role: 'client',
+             saas: "Nutrition à l'Africaine"
+         })
+      });
+
+      const result = await res.json();
       
-      if (clientErr) {
-         console.warn("Erreur Création Client (RLS bloqué) :", clientErr);
+      if (!res.ok) {
+          throw new Error(result.error || "Erreur lors de la création du compte");
       }
 
-      const sessionData = clientData || { id: crypto.randomUUID(), full_name: diagData.name, phone: diagData.phone, plan_type: 'essai' };
+      const userId = result.user?.id || crypto.randomUUID();
 
+      // 3. Stockage de la session
+      const sessionData = {
+         id: userId,
+         full_name: diagData.name,
+         phone: cleanPhone,
+         plan_type: 'essai',
+         type: 'Client'
+      };
       localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
+
+      // Auto-Login dans le client Supabase
+      await supabase.auth.signInWithPassword({
+          email: `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`,
+          password: generatedPassword
+      });
+
       setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
 
           const heightCm = parseFloat(diagData.height) || 0;
@@ -456,7 +477,7 @@ export default function NutritionAfricaineLanding() {
 
           const payload = {
              phone: diagData.phone,
-             client_id: clientData?.id || null,
+             client_id: userId,
              bmr: Math.round(bmr),
              tdee: Math.round(tdee),
              daily_calorie_goal: Math.round(dailyCalories),
@@ -1669,9 +1690,9 @@ export default function NutritionAfricaineLanding() {
                       <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-4">
                         <input type="text" required placeholder="Votre Prénom et Nom" value={diagData.name} onChange={(e) => setDiagData({...diagData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" />
                         <input type="tel" required placeholder="Numéro WhatsApp" value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" />
-                        <input type="password" required placeholder="Mot de passe" value={diagData.password} onChange={(e) => setDiagData({...diagData, password: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" />
-                        <input type="password" required maxLength={4} placeholder="Code PIN rapide (4 chiffres)" value={diagData.pin} onChange={(e) => setDiagData({...diagData, pin: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black text-center" />
-                        <button type="submit" disabled={isSubmittingDiag || !diagData.name || !diagData.phone || !diagData.pin || !diagData.password} className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2">{isSubmittingDiag ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/></button>
+                        {/* Mot de passe retiré pour Zero Friction */}
+                        {/* PIN retiré pour Zero Friction */}
+                        <button type="submit" disabled={isSubmittingDiag || !diagData.name || !diagData.phone} className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2">{isSubmittingDiag ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/></button>
                       </div>
                     </div>
                   )}
