@@ -3397,7 +3397,7 @@ export default function NutritionDashboard() {
 
         {/* VUE FITNESS */}
         {activeTab === 'fitness' && (
-           <ClientFitnessView clientProfile={clientProfile} />
+           <ClientFitnessView clientId={clientProfile?.id || ""} tenantId={clientProfile?.tenant_id || ""} />
         )}
 
 
