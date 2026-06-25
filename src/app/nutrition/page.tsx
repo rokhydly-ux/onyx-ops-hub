@@ -608,7 +608,7 @@ export default function NutritionDashboard() {
 
       const { data: profileData, error } = await query.maybeSingle();
 
-      const activeProfile = profileData || finalUser;
+      let activeProfile = profileData || finalUser;
       if (activeProfile) {
         if (userPhone) {
           const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
@@ -617,11 +617,21 @@ export default function NutritionDashboard() {
 
           // === HYDRATATION ET FALLBACK (Friction Zéro) ===
           // On s'assure que toutes les données nécessaires sont présentes
-          if (!activeProfile.diagnostic_data) {
-              activeProfile.diagnostic_data = { goalType: 'Perte de poids', currentWeight: 0, targetWeight: 0 };
-          }
-          if (!activeProfile.daily_macros) {
-              activeProfile.daily_macros = { calorieGoal: 1500, proteinGoal: 100, fatsGoal: 50 };
+          if (activeProfile) {
+              if (!activeProfile.diagnostic_data) {
+                  activeProfile.diagnostic_data = { goalType: 'Perte de poids', currentWeight: 0, targetWeight: 0 };
+              }
+              if (!activeProfile.daily_macros) {
+                  activeProfile.daily_macros = { calorieGoal: 1500, proteinGoal: 100, fatsGoal: 50 };
+              }
+          } else {
+             // Profil manquant, création d'un profile factice en mémoire
+             activeProfile = {
+                 diagnostic_data: { goalType: 'Maintien', currentWeight: 0, targetWeight: 0 },
+                 daily_macros: { calorieGoal: 1500, proteinGoal: 100, fatsGoal: 50 },
+                 expert_mode: false,
+                 jongoma_xp: 0
+             };
           }
 
           setClientProfile(activeProfile);

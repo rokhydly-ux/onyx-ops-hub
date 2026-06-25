@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Plus, Edit3, Trash2, X, CheckCircle, Search, Filter, Loader2, Save, GripVertical, Bot, Download, Video } from 'lucide-react';
+import { Play, Plus, Edit3, Trash2, X, CheckCircle, Search, Filter, Loader2, Save, GripVertical, Upload, Download, Video } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function AdminFitnessView() {
@@ -8,7 +8,7 @@ export default function AdminFitnessView() {
     // Catalog State
     const [courses, setCourses] = useState<any[]>([]);
     const [loadingCourses, setLoadingCourses] = useState(true);
-    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
     const [isGeneratingStandard, setIsGeneratingStandard] = useState(false);
 
     // Modal & Form State
@@ -45,30 +45,71 @@ export default function AdminFitnessView() {
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
-    const handleGenerateCatalogAI = async () => {
-        setIsGeneratingAI(true);
-        try {
-            const res = await fetch('/api/fitness/generate-catalog', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ count: 100 }) // Now set to 100
-            });
-            const data = await res.json();
 
-            if (data.exercises && data.exercises.length > 0) {
-                const { error } = await supabase.from('nutrition_fitness_courses').insert(data.exercises);
-                if (error) throw error;
-                await fetchCourses();
-                alert(`${data.exercises.length} exercices générés avec succès via IA !`);
-            } else {
-                throw new Error(data.error || "Aucun exercice généré.");
+
+
+    const [isUploadingCSV, setIsUploadingCSV] = useState(false);
+
+    const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingCSV(true);
+        const reader = new FileReader();
+
+        reader.onload = async (event) => {
+            try {
+                const text = event.target?.result as string;
+                // Basic CSV parsing (assuming Title;Category;Difficulty;Duration;Benefits;VideoURL format)
+                const rows = text.split('\n');
+                const parsedExercises = [];
+
+                // Skip header (i=1)
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    const cols = rows[i].split(';');
+                    if (cols.length >= 5) {
+                        const videoUrl = cols[5] ? cols[5].trim() : null;
+                        const ytId = extractYoutubeId(videoUrl || "");
+                        const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+
+                        parsedExercises.push({
+                            title: cols[0].trim(),
+                            category: cols[1].trim() || 'Woyofal Cardio',
+                            difficulty: cols[2].trim() || 'Débutant',
+                            duration_minutes: parseInt(cols[3]) || 15,
+                            benefits: cols[4].trim(),
+                            video_url: videoUrl,
+                            thumbnail_url: thumb
+                        });
+                    }
+                }
+
+                if (parsedExercises.length > 0) {
+                    const res = await fetch('/api/fitness/manage-courses', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'insert', payload: parsedExercises })
+                    });
+
+                    if (!res.ok) throw new Error("Erreur serveur lors de l'insertion");
+
+                    alert(`${parsedExercises.length} exercices importés avec succès !`);
+                    fetchCourses();
+                } else {
+                    alert("Aucun exercice valide trouvé dans le CSV. Vérifiez le format (Titre;Catégorie;Difficulté;Durée;Bienfaits;URL).");
+                }
+            } catch (err: any) {
+                console.error(err);
+                alert("Erreur lors de l'import : " + err.message);
+            } finally {
+                setIsUploadingCSV(false);
+                // Reset file input
+                if (e.target) e.target.value = '';
             }
-        } catch (err: any) {
-            console.error(err);
-            alert("Erreur lors de la génération IA : " + err.message + "\nAssurez-vous que la clé API OpenAI est bien configurée.");
-        } finally {
-            setIsGeneratingAI(false);
-        }
+        };
+
+        reader.readAsText(file);
     };
 
     const handleGenerateCatalogStandard = async () => {
@@ -191,14 +232,13 @@ export default function AdminFitnessView() {
                                 {isGeneratingStandard ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}
                                 Standard (Gratuit)
                             </button>
-                            <button
-                                onClick={handleGenerateCatalogAI}
-                                disabled={isGeneratingAI}
-                                className="bg-black text-[#39FF14] px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl disabled:opacity-50 disabled:scale-100"
-                            >
-                                {isGeneratingAI ? <Loader2 size={16} className="animate-spin"/> : <Bot size={16}/>}
-                                IA (100)
-                            </button>
+
+                            <label className="bg-black text-[#39FF14] px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl cursor-pointer">
+                                {isUploadingCSV ? <Loader2 size={16} className="animate-spin"/> : <Upload size={16}/>}
+                                Importer CSV
+                                <input type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} disabled={isUploadingCSV} />
+                            </label>
+
                         </div>
                     </div>
 
