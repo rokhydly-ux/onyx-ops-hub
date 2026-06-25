@@ -88,7 +88,9 @@ export default function AdminFitnessView() {
                 { title: "Renforcement Bras", category: "Renforcement Doux", difficulty: "Débutant", duration_minutes: 12, benefits: "Raffermit l'arrière des bras avec le poids du corps.", video_url: null, thumbnail_url: null },
             ];
 
-            const { error } = await supabase.from('nutrition_fitness_courses').insert(freeCatalog);
+            const res = await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', payload: freeCatalog }) });
+            const result = await res.json();
+            const error = !res.ok ? result : null;
             if (error) throw error;
             await fetchCourses();
             alert("10 exercices standards ont été générés avec succès !");
@@ -105,9 +107,9 @@ export default function AdminFitnessView() {
         const ytId = extractYoutubeId(tempUrl);
         const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
-        const { error } = await supabase.from('nutrition_fitness_courses')
-            .update({ video_url: tempUrl, thumbnail_url: thumb })
-            .eq('id', id);
+        const res = await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id, payload: { video_url: tempUrl, thumbnail_url: thumb } }) });
+        const result = await res.json();
+        const error = !res.ok ? result : null;
 
         if (error) {
             alert("Erreur lors de la mise à jour");
@@ -120,7 +122,7 @@ export default function AdminFitnessView() {
 
     const handleDeleteCourse = async (id: string) => {
         if(!confirm("Supprimer cet exercice ?")) return;
-        await supabase.from('nutrition_fitness_courses').delete().eq('id', id);
+        await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) });
         fetchCourses();
     };
 
@@ -140,7 +142,9 @@ export default function AdminFitnessView() {
             thumbnail_url: thumb
         };
 
-        const { error } = await supabase.from('nutrition_fitness_courses').insert([payload]);
+        const res = await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', payload: [payload] }) });
+        const result = await res.json();
+        const error = !res.ok ? result : null;
 
         if (error) {
             console.error("Erreur Insert SQL :", error);
