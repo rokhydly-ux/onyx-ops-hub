@@ -1564,9 +1564,22 @@ export default function AdminDashboard() {
   const handleDeleteItem = async (table: string, id: string) => {
     if (!supabase) return; 
     if(!confirm("⚠️ Attention : Suppression irréversible. Confirmer ?")) return;
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if(error) alert("Erreur terminal : " + error.message);
-    else fetchSupabaseData();
+
+    try {
+        if (table === 'clients') {
+            await supabase.from('nutrition_orders').delete().eq('client_id', id);
+            await supabase.from('nutrition_fitness_programs').delete().eq('client_id', id);
+            await supabase.from('nutrition_daily_logs').delete().eq('client_id', id);
+            await supabase.from('nutrition_profiles').delete().eq('client_id', id);
+        }
+
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if(error) throw error;
+
+        fetchSupabaseData();
+    } catch (err: any) {
+        alert("Erreur terminal : " + err.message);
+    }
   };
 
   const handleSaveContact = async (e: React.FormEvent) => {

@@ -614,6 +614,16 @@ export default function NutritionDashboard() {
           const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
           if (welcome) setWelcomeMessage(welcome);
         }
+
+          // === HYDRATATION ET FALLBACK (Friction Zéro) ===
+          // On s'assure que toutes les données nécessaires sont présentes
+          if (!activeProfile.diagnostic_data) {
+              activeProfile.diagnostic_data = { goalType: 'Perte de poids', currentWeight: 0, targetWeight: 0 };
+          }
+          if (!activeProfile.daily_macros) {
+              activeProfile.daily_macros = { calorieGoal: 1500, proteinGoal: 100, fatsGoal: 50 };
+          }
+
           setClientProfile(activeProfile);
           const trialEnds = activeProfile.trial_ends_at ? new Date(activeProfile.trial_ends_at).getTime() : (new Date(activeProfile.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
           const now = new Date().getTime();
