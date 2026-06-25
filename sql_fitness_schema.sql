@@ -61,3 +61,8 @@ CREATE POLICY "Les utilisateurs peuvent voir leurs programmes" ON public.nutriti
 
 CREATE POLICY "Les utilisateurs peuvent voir les exercices de leurs programmes" ON public.nutrition_fitness_program_exercises
     FOR SELECT USING (true);
+
+-- Allow INSERT, UPDATE, DELETE for all authenticated users (or anonymous for testing/demo)
+CREATE POLICY "Allow ALL on courses" ON public.nutrition_fitness_courses FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow ALL on programs" ON public.nutrition_fitness_programs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow ALL on program_exercises" ON public.nutrition_fitness_program_exercises FOR ALL USING (true) WITH CHECK (true);

@@ -143,7 +143,8 @@ export default function AdminFitnessView() {
         const { error } = await supabase.from('nutrition_fitness_courses').insert([payload]);
 
         if (error) {
-            alert("Erreur lors de l'ajout.");
+            console.error("Erreur Insert SQL :", error);
+            alert("Erreur lors de l'ajout : " + error.message);
         } else {
             setShowAddModal(false);
             setFormData({
