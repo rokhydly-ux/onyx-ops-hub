@@ -392,7 +392,7 @@ export default function NutritionAfricaineLanding() {
     try {
       // 1. Generation du mot de passe standardisé
       const cleanPhone = diagData.phone.replace(/\s+/g, '');
-      const generatedPassword = cleanPhone.slice(-6).padStart(6, "0"); // Mot de passe simple à 5 caractères
+      const generatedPassword = cleanPhone.slice(-8).padStart(8, "0"); // Mot de passe simple à 5 caractères
 
       // 2. Création de l'utilisateur via l'API Admin
       const res = await fetch('/api/create-user', {
@@ -413,7 +413,7 @@ export default function NutritionAfricaineLanding() {
           if (result.error && result.error.includes("already registered")) {
               // Si existe déjà, on le connecte
               await supabase.auth.signInWithPassword({
-                  email: `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`,
+                  email: `${cleanPhone}@clients.onyxcrm.com`,
                   password: generatedPassword
               });
           } else {
@@ -422,7 +422,7 @@ export default function NutritionAfricaineLanding() {
       } else {
           // Nouveau compte, on le connecte
           await supabase.auth.signInWithPassword({
-              email: `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`,
+              email: `${cleanPhone}@clients.onyxcrm.com`,
               password: generatedPassword
           });
       }
