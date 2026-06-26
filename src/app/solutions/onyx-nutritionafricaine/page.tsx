@@ -392,7 +392,7 @@ export default function NutritionAfricaineLanding() {
     try {
       // 1. Generation du mot de passe standardisé
       const cleanPhone = diagData.phone.replace(/\s+/g, '');
-      const generatedPassword = cleanPhone.slice(-5) || "00000"; // Mot de passe simple à 5 caractères
+      const generatedPassword = cleanPhone.slice(-6).padStart(6, "0"); // Mot de passe simple à 5 caractères
 
       // 2. Création de l'utilisateur via l'API Admin
       const res = await fetch('/api/create-user', {
