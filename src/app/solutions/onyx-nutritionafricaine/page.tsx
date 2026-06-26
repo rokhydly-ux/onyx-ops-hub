@@ -410,7 +410,21 @@ export default function NutritionAfricaineLanding() {
       const result = await res.json();
       
       if (!res.ok) {
-          throw new Error(result.error || "Erreur lors de la création du compte");
+          if (result.error && result.error.includes("already registered")) {
+              // Si existe déjà, on le connecte
+              await supabase.auth.signInWithPassword({
+                  email: `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`,
+                  password: generatedPassword
+              });
+          } else {
+              throw new Error(result.error || "Erreur lors de la création du compte");
+          }
+      } else {
+          // Nouveau compte, on le connecte
+          await supabase.auth.signInWithPassword({
+              email: `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`,
+              password: generatedPassword
+          });
       }
 
       const userId = result.user?.id || crypto.randomUUID();
@@ -424,12 +438,6 @@ export default function NutritionAfricaineLanding() {
          type: 'Client'
       };
       localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
-
-      // Auto-Login dans le client Supabase
-      await supabase.auth.signInWithPassword({
-          email: `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`,
-          password: generatedPassword
-      });
 
       setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
 
