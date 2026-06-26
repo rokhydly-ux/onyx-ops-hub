@@ -527,8 +527,9 @@ export default function NutritionAfricaineLanding() {
       // Affiche proprement l'écran de succès final
       router.push('/nutrition?from=diagnostic');
 
-    } catch (err) {
-      alert("Une erreur est survenue.");
+    } catch (err: any) {
+      console.error("Erreur complète :", err);
+      alert(`Une erreur est survenue: ${err.message || 'Erreur inconnue'}`);
     } finally {
       setIsSubmittingDiag(false);
     }
