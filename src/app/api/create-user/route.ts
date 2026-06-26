@@ -82,8 +82,9 @@ export async function POST(request: Request) {
       await supabaseAdmin.from('ambassadors').upsert([{ id: userId, full_name: fullName, contact: cleanPhone, phone: cleanPhone, status: 'Actif', password_temp: finalPassword }]);
     } else if (role.toLowerCase() === 'client') {
       const trialEndDate = new Date();
-      trialEndDate.setMonth(trialEndDate.getMonth() + 1);
-      await supabaseAdmin.from('clients').upsert([{ 
+      trialEndDate.setDate(trialEndDate.getDate() + 15);
+
+      const { error: clientError } = await supabaseAdmin.from('clients').upsert([{
          id: userId, 
          full_name: fullName, 
          phone: cleanPhone, 
@@ -94,11 +95,16 @@ export async function POST(request: Request) {
          active_saas: saas ? [saas] : [],
          expiration_date: trialEndDate.toISOString().split('T')[0]
       }], { onConflict: 'phone' });
+
+      if (clientError) {
+         console.error('Erreur insertion client:', clientError);
+         throw new Error(`Erreur insertion client: ${clientError.message}`);
+      }
     }
 
     return NextResponse.json({ success: true, user: authData.user }, { status: 200 });
   } catch (error: any) {
-    console.error('Erreur API create-user:', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Erreur API create-user:', error.stack || error.message || error);
+    return NextResponse.json({ error: error.message || JSON.stringify(error) }, { status: 500 });
   }
 }
