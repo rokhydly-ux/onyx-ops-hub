@@ -65,13 +65,18 @@ export default function ClientFitnessView({ clientId, tenantId }: { clientId: st
                     client_id: clientId,
                     tenant_id: tenantId,
                     course_id: selectedCourses[i].id,
-                    day_of_week: i, // 0 = Lundi, ..., 4 = Vendredi
-                    is_completed: false
+                    program_name: `Programme Automatique - ${selectedCourses[i].title}`,
+                    day_of_week: i.toString(), // 0 = Lundi, ..., 4 = Vendredi
+                    is_completed: false,
+                    is_active: true
                 });
             }
 
             const { error } = await supabase.from('nutrition_fitness_programs').insert(newProgram);
-            if (error) throw error;
+            if (error) {
+                console.error("Make sure your Supabase table 'nutrition_fitness_programs' contains the columns: tenant_id, course_id, and is_completed. If not, please run ALTER TABLE.", error);
+                throw error;
+            }
 
             await fetchWeeklyProgram();
 
@@ -130,7 +135,7 @@ export default function ClientFitnessView({ clientId, tenantId }: { clientId: st
     // --- Rendu du programme de la semaine ---
     // Construire le tableau complet de 7 jours (incluant repos)
     const fullWeek = DAYS.map((dayName, index) => {
-        const prog = weeklyProgram.find(p => p.day_of_week === index);
+        const prog = weeklyProgram.find(p => p.day_of_week === index.toString());
         return {
             dayIndex: index,
             dayName: dayName,

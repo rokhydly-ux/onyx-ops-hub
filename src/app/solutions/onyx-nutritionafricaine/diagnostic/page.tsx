@@ -111,7 +111,7 @@ export default function NutritionDiagnostic() {
         type: "Client",
         saas: "Nutrition à l'Africaine",
         status: "Essai",
-        trial_ends_at: trialEnds.toISOString(),
+        expiration_date: trialEnds.toISOString().split('T')[0],
       }, { onConflict: 'phone' }).select().single();
 
       if (clientData) localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));

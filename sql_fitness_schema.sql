@@ -23,12 +23,22 @@ CREATE TABLE IF NOT EXISTS public.nutrition_fitness_courses (
 CREATE TABLE IF NOT EXISTS public.nutrition_fitness_programs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     client_id UUID NOT NULL, -- Référence à la table clients/utilisateurs
+    tenant_id VARCHAR(255),
+    course_id UUID REFERENCES public.nutrition_fitness_courses(id) ON DELETE CASCADE,
     program_name VARCHAR(255) NOT NULL, -- Ex: "Semaine 1 - Perte de poids"
     day_of_week VARCHAR(20) NOT NULL, -- 'Lundi', 'Mardi', etc.
     is_active BOOLEAN DEFAULT true,
+    is_completed BOOLEAN DEFAULT false,
+    completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Si la table existe déjà, veuillez exécuter ces requêtes ALTER pour ajouter les colonnes manquantes :
+-- ALTER TABLE public.nutrition_fitness_programs ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255);
+-- ALTER TABLE public.nutrition_fitness_programs ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.nutrition_fitness_courses(id) ON DELETE CASCADE;
+-- ALTER TABLE public.nutrition_fitness_programs ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT false;
+-- ALTER TABLE public.nutrition_fitness_programs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;
 
 -- 3. Table de liaison (Programme <-> Exercices) pour ordonner la séance
 CREATE TABLE IF NOT EXISTS public.nutrition_fitness_program_exercises (
