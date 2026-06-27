@@ -67,7 +67,6 @@ export async function POST(request: Request) {
         phone: cleanPhone,
         role: role,
         status: 'Actif',
-        password_temp: finalPassword,
       },
     ]);
 

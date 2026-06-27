@@ -635,7 +635,7 @@ export default function NutritionDashboard() {
           }
 
           setClientProfile(activeProfile);
-          const trialEnds = activeProfile.trial_ends_at ? new Date(activeProfile.trial_ends_at).getTime() : (new Date(activeProfile.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
+          const trialEnds = activeProfile.expiration_date ? new Date(activeProfile.expiration_date).getTime() : (new Date(activeProfile.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
           const now = new Date().getTime();
           
           if (window.innerWidth < 1024) setIsSidebarOpen(false);
@@ -1772,9 +1772,9 @@ export default function NutritionDashboard() {
      if (clientProfile) {
          const newDate = new Date();
          newDate.setDate(newDate.getDate() + 30);
-         await supabase.from('clients').update({ trial_ends_at: newDate.toISOString(), plan_type: 'premium' }).eq('id', clientProfile.id);
+         await supabase.from('clients').update({ expiration_date: newDate.toISOString().split('T')[0], plan_type: 'premium' }).eq('id', clientProfile.id);
          setDaysLeft(30);
-         setClientProfile({...clientProfile, plan_type: 'premium', trial_ends_at: newDate.toISOString()});
+         setClientProfile({...clientProfile, plan_type: 'premium', expiration_date: newDate.toISOString().split('T')[0]});
          alert("Paiement validé ! Votre abonnement Premium est prolongé de 30 jours.");
      } else {
          alert("Simulation: Paiement validé.");
@@ -1886,8 +1886,8 @@ export default function NutritionDashboard() {
       const todayStr = new Date().toISOString().split('T')[0];
       const lastLog = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1] : null;
 
-      const newWeight = currentWeightInput;
-      if (!newWeight || newWeight <= 0) return alert("Veuillez saisir un poids valide.");
+      const newWeightVal = parseFloat(newWeight);
+      if (isNaN(newWeightVal) || newWeightVal <= 0) return alert("Veuillez saisir un poids valide.");
 
       const startWeight = weightLogs.length > 0 ? weightLogs[0].weight : parseFloat(clientProfile?.diagnostic_data?.currentWeight || "0");
       const prevWeight = lastLog ? lastLog.weight : startWeight;
@@ -1896,8 +1896,8 @@ export default function NutritionDashboard() {
 
       let isGoalReached = false;
       if (targetW > 0 && startWeight > 0) {
-         if (wantsToLose && newWeight <= targetW) isGoalReached = true;
-         if (!wantsToLose && newWeight >= targetW) isGoalReached = true;
+         if (wantsToLose && newWeightVal <= targetW) isGoalReached = true;
+         if (!wantsToLose && newWeightVal >= targetW) isGoalReached = true;
       }
       
       if (isGoalReached) {
@@ -1909,7 +1909,7 @@ export default function NutritionDashboard() {
           audio.play().catch(()=>{});
       }
 
-      const newLog = { log_date: todayStr, weight: newWeight };
+      const newLog = { log_date: todayStr, weight: newWeightVal };
       setWeightLogs(prev => {
           const filtered = prev.filter(log => log.log_date !== todayStr);
           return [...filtered, newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
@@ -4520,7 +4520,7 @@ export default function NutritionDashboard() {
                                 <div className="bg-white p-5 rounded-3xl border border-zinc-200 shadow-sm flex flex-col justify-center">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Objectif</span>
                                     <div className="flex items-end gap-1">
-                                        <span className="text-2xl font-black text-black">{clientProfile?.target_weight || '--'}</span>
+                                        <span className="text-2xl font-black text-black">{clientProfile?.diagnostic_data?.targetWeight || '--'}</span>
                                         <span className="text-xs font-bold text-zinc-500 mb-1">KG</span>
                                     </div>
                                 </div>
@@ -4529,10 +4529,10 @@ export default function NutritionDashboard() {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-1 relative z-10">Progrès Total</span>
                                     <div className="flex items-end gap-1 relative z-10">
                                         <span className="text-2xl font-black text-white">
-                                            {weightLogs.length > 0 && clientProfile?.target_weight ?
+                                            {weightLogs.length > 0 && clientProfile?.diagnostic_data?.targetWeight ?
                                                 (() => {
-                                                    const firstWeight = parseFloat(weightLogs[weightLogs.length - 1].weight);
-                                                    const currentWeight = parseFloat(weightLogs[0].weight);
+                                                    const firstWeight = parseFloat(weightLogs[0].weight);
+                                                    const currentWeight = parseFloat(weightLogs[weightLogs.length - 1].weight);
                                                     const diff = firstWeight - currentWeight;
                                                     return diff > 0 ? `-${diff.toFixed(1)}` : `+${Math.abs(diff).toFixed(1)}`;
                                                 })() : '--'
@@ -4577,8 +4577,8 @@ export default function NutritionDashboard() {
                                                 labelFormatter={(label) => new Date(label).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                                                 formatter={(value) => [`${value} kg`, 'Poids']}
                                             />
-                                            {clientProfile?.target_weight && (
-                                               <ReferenceLine y={parseFloat(clientProfile.target_weight)} stroke="#39FF14" strokeDasharray="5 5" label={{ position: 'top', value: 'Objectif', fill: '#39FF14', fontSize: 10, fontWeight: 'bold' }} />
+                                            {clientProfile?.diagnostic_data?.targetWeight && (
+                                               <ReferenceLine y={parseFloat(clientProfile.diagnostic_data.targetWeight)} stroke="#39FF14" strokeDasharray="5 5" label={{ position: 'top', value: 'Objectif', fill: '#39FF14', fontSize: 10, fontWeight: 'bold' }} />
                                             )}
                                             <Line
                                                 type="monotone"
@@ -4609,9 +4609,9 @@ export default function NutritionDashboard() {
                     </h3>
                     {weightLogs.length > 0 ? (
                         <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                            {weightLogs.map((log, idx) => {
+                            {[...weightLogs].reverse().map((log, idx, arr) => {
                                 const currentWeight = parseFloat(log.weight);
-                                const prevLog = weightLogs[idx + 1];
+                                const prevLog = arr[idx + 1]; // Dans la liste inversée (du plus récent au plus ancien), l'élément suivant (idx+1) est chronologiquement "avant"
                                 const prevWeight = prevLog ? parseFloat(prevLog.weight) : null;
                                 let diff = null;
                                 if (prevWeight) {
@@ -4619,7 +4619,7 @@ export default function NutritionDashboard() {
                                 }
 
                                 return (
-                                    <div key={log.id} className="flex justify-between items-center p-4 rounded-2xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50 transition-colors group">
+                                    <div key={log.log_date} className="flex justify-between items-center p-4 rounded-2xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50 transition-colors group">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-black group-hover:text-white transition-colors">
                                                 <Calendar size={16}/>
@@ -4636,7 +4636,7 @@ export default function NutritionDashboard() {
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <span className="text-xl font-black text-black bg-zinc-100 px-4 py-2 rounded-xl group-hover:bg-[#39FF14] group-hover:text-black transition-colors">{log.weight} <span className="text-xs text-zinc-500 group-hover:text-black/60">kg</span></span>
-                                            <button onClick={() => handleDeleteWeight(log.id)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full">
+                                            <button onClick={() => handleDeleteWeight(log.log_date)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full">
                                                 <Trash2 size={16}/>
                                             </button>
                                         </div>

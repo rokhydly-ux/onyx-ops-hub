@@ -1,7 +1,24 @@
 import { NextResponse } from 'next/server';
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
 export async function POST(request: Request) {
   try {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+         return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
     const { title, voice } = await request.json();
 
     if (!title || !voice) {
