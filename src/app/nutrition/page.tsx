@@ -3460,6 +3460,110 @@ export default function NutritionDashboard() {
           </div>
         )}
 
+        {/* VUE COACHING */}
+        {activeTab === 'coaching' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Activity className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Coaching Personnel</h2>
+                <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-8">
+                   <h3 className="font-black text-lg text-blue-800 mb-2">Besoin d'un accompagnement sur-mesure ?</h3>
+                   <p className="text-sm font-medium text-blue-700">Prenez rendez-vous avec l'un de nos experts en nutrition pour adapter votre programme, surmonter un blocage ou poser vos questions.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between hover:border-black transition-colors">
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Clock size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Bilan 15 min (Gratuit)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Inclus dans votre abonnement Premium. Idéal pour un ajustement rapide de votre plan.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver mon bilan gratuit de 15min avec un coach.', '_blank')} className="w-full bg-black text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Réserver</button>
+                   </div>
+
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden hover:border-[#39FF14] transition-colors">
+                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">Recommandé</div>
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Target size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Consultation Complète (45 min)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Analyse approfondie, refonte du plan alimentaire et stratégies avancées.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver une consultation complète de 45min (10.000F).', '_blank')} className="w-full bg-[#39FF14] text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Réserver (10.000 F)</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {activeTab === 'blog' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
+                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {articles.map((article: any) => (
+                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
+                     {article.image_url && (
+                        <div className="overflow-hidden rounded-2xl mb-6">
+                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                     )}
+                     <div className="flex gap-2 mb-4">
+                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
+                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                     </div>
+                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
+                     <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
+                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
+                     </div>
+                  </div>
+               ))}
+               {articles.length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
+                     Aucun article publié pour le moment.
+                  </div>
+               )}
+             </div>
+          </div>
+        )}
+
+        {/* MODALE LECTURE ARTICLE */}
+        {selectedArticle && (
+           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+             <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
+               <div className="absolute top-6 right-20 z-10">
+                 <button onClick={() => { const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
+               </div>
+               <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
+
+               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+
+               {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
+
+               <div className="prose prose-zinc dark:prose-invert max-w-none">
+                  <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-8 font-bold leading-relaxed">{selectedArticle.desc}</p>
+
+                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">{selectedArticle.content}</div>
+
+                  {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
+                     <div className="mb-10">
+                        <h3 className="font-black text-lg mb-4 uppercase tracking-widest text-zinc-400">Galerie</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                           {selectedArticle.gallery.map((img: string, i: number) => (
+                              <img key={i} src={img} className="w-full h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform cursor-pointer" alt="Galerie" />
+                           ))}
+                        </div>
+                     </div>
+                  )}
+               </div>
+             </div>
+           </div>
+        )}
+
         {activeTab === 'history' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
             
