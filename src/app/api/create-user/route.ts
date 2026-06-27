@@ -64,9 +64,7 @@ export async function POST(request: Request) {
       {
         id: userId,
         full_name: fullName,
-        phone: cleanPhone,
         role: role,
-        status: 'Actif',
       },
     ]);
 
