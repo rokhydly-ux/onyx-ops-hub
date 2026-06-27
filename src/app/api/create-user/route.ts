@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const userId = authData.user.id;
 
     // 3. Création de l'entrée dans la table 'profiles' globale
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert([
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert([
       {
         id: userId,
         full_name: fullName,
