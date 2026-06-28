@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Activity, HeartPulse, Smartphone, Flame, CheckCircle, Wind, Droplet,
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
-  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag, Utensils
+  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, Lock, FileText, ShoppingBag, Utensils
 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -1818,7 +1818,7 @@ export default function NutritionAfricaineLanding() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         {/* Carte 1 : Calories */}
                         <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col items-center relative">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" className="w-12 h-12 mb-4" alt="Calories" />
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781443964/A_cute__highly_detailed_3D_202606141332_ggiubt.jpg" className="w-12 h-12 mb-4 rounded-full shadow-sm" alt="Calories" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Calories Cibles</p>
                             <p className="text-4xl font-black text-black mb-1">{calcResult.calories}</p>
                             <p className="text-xs font-bold text-zinc-500 mb-4">kcal / jour</p>
@@ -1827,7 +1827,7 @@ export default function NutritionAfricaineLanding() {
 
                         {/* Carte 2 : Cible */}
                         <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col items-center">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458359/A_cute__highly_detailed_3D_202606141731_wog3pz.jpg" className="w-12 h-12 mb-4" alt="Cible" />
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" className="w-12 h-12 mb-4 rounded-full shadow-sm" alt="Cible" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Cible</p>
                             <p className="text-4xl font-black text-black mb-1">{targetW}<span className="text-xl">kg</span></p>
                             <p className="text-xs font-bold text-zinc-500">-{weightToLose.toFixed(1)} kg à perdre</p>
@@ -1835,7 +1835,7 @@ export default function NutritionAfricaineLanding() {
 
                         {/* Carte 3 : Date */}
                         <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col items-center">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" className="w-12 h-12 mb-4" alt="Date" />
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" className="w-12 h-12 mb-4 rounded-full shadow-sm" alt="Date" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Objectif Prévu</p>
                             <p className="text-2xl font-black text-black leading-tight mb-2">
                                 {diagData.targetDate ? new Date(diagData.targetDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '-'}
@@ -1877,19 +1877,47 @@ export default function NutritionAfricaineLanding() {
               ) : null}
 
               {diagStep === 11 && (
-                  <div className="text-center animate-in zoom-in p-6 bg-white rounded-3xl shadow-2xl">
-                      <h3 className="text-2xl font-black text-black mb-4">🎉 Compte créé avec succès !</h3>
-                      <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-6 text-left">
-                          <p className="font-bold text-orange-800 mb-2">⚠️ Conservez vos accès temporaires :</p>
-                          <p className="text-sm font-medium">Identifiant : <strong>{diagData.phone}</strong></p>
-                          <p className="text-sm font-medium">Mot de passe : <strong>{diagData.phone.replace(/\s+/g, '').slice(-8).padStart(8, "0")}</strong></p>
-                      </div>
-                      <p className="text-xs text-zinc-500 mb-6 flex items-center justify-center">
-                          Vous pourrez le modifier dans vos paramètres <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" className="w-6 h-6 rounded-full ml-2"/>
-                      </p>
-                      <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase">Accéder à mon Sama Menu</button>
-                  </div>
-              )}
+    <div className="flex flex-col items-center text-center animate-in zoom-in w-full bg-white border-t-[8px] border-[#39FF14] p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
+        {/* Lueur en arrière-plan */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#39FF14] opacity-20 blur-[50px] pointer-events-none"></div>
+
+        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Nutrition à l'Africaine" className="h-16 w-auto mx-auto mb-6 object-contain relative z-10" />
+
+        <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-black mb-3 leading-tight relative z-10`}>
+            Bienvenue dans la famille,<br/> <span className="text-[#39FF14] bg-black px-3 py-1 rounded-xl inline-block mt-2">{diagData.name.split(' ')[0]} ! 🎉</span>
+        </h2>
+
+        <p className="text-sm font-medium text-zinc-600 mb-6 leading-relaxed relative z-10">
+            Ton plan nutritionnel sur-mesure est prêt. Garde précieusement ces accès temporaires pour te reconnecter à tout moment à ton espace de suivi.
+        </p>
+
+        {/* Encadré Identifiants Design Premium */}
+        <div className="bg-black border border-zinc-800 p-6 rounded-2xl w-full text-left space-y-4 mb-6 shadow-[0_10px_30px_rgba(0,0,0,0.15)] relative z-10">
+            <p className="font-black text-[#39FF14] text-xs uppercase tracking-widest border-b border-zinc-800 pb-3 mb-3 flex items-center gap-2">
+                <Lock size={14}/> Tes identifiants :
+            </p>
+            <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro WhatsApp</span>
+                <span className="font-black text-white">{diagData.phone}</span>
+            </div>
+            <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Mot de passe provisoire</span>
+                <span className="font-black text-black bg-[#39FF14] px-2 py-1 rounded-md tracking-wider">
+                    {diagData.phone.replace(/\s+/g, '').slice(-8).padStart(8, "0")}
+                </span>
+            </div>
+        </div>
+
+        <p className="text-[10px] font-bold text-zinc-500 mb-8 flex items-center justify-center gap-2 relative z-10">
+            Tu pourras modifier ce mot de passe dans tes paramètres
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" className="w-6 h-6 rounded-full shadow-sm" alt="Réglages" />
+        </p>
+
+        <button onClick={() => window.location.href = '/nutrition?from=diagnostic'} className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform flex justify-center items-center gap-2 relative z-10">
+            Accéder à mon Sama Menu <ArrowRight size={18}/>
+        </button>
+    </div>
+)}
             </div>
           </div>
         </div>
