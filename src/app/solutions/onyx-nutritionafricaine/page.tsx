@@ -192,27 +192,23 @@ export default function NutritionAfricaineLanding() {
   const [diagStep, setDiagStep] = useState(1);
   const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
   const [diagData, setDiagData] = useState({
-    name: "",
-    phone: "",
-    pin: "",
-    gender: "",
-    age: "",
-    birthDate: "",
-    height: "",
-    currentWeight: "",
-    targetWeight: "",
-    targetDate: "",
-    goalType: "Perte de poids",
-    dailySteps: "",
-    weightLossPace: "Normalement",
-    healthProfile: "",
-    mainChallenge: "",
-    dietaryHabits: "",
-    allergies: "",
-    cookingHabit: "",
-    weeklyBudget: "",
-    saas: ""
-  });
+  gender: "",
+  age: "",
+  height: "",
+  currentWeight: "",
+  targetWeight: "",
+  targetDate: "",
+  activityLevel: "",
+  sleepHours: "",
+  healthProfile: "",
+  femaleSpecific: "",
+  pastDiets: "",
+  waterIntake: "",
+  cookingFats: [] as string[],
+  name: "",
+  phone: "",
+  goalType: "Perte de poids"
+});
   const [forceTarget, setForceTarget] = useState(false);
   const [tempCredentials, setTempCredentials] = useState({ phone: "", password: "" });
 
@@ -1566,164 +1562,197 @@ export default function NutritionAfricaineLanding() {
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
               {diagStep !== 10 ? (
                 <form onSubmit={handleDiagSubmit} className="w-full">
+
+                  {/* ETAPE 1: Données démographiques */}
                   {diagStep === 1 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre sexe ?</h2>
-                      <div className="grid grid-cols-2 gap-4 w-full max-w-lg mb-8">
-                        {[{ id: 'Homme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg' }, { id: 'Femme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg' }].map(option => (
-                          <div key={option.id} onClick={() => setDiagData({...diagData, gender: option.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 ${diagData.gender === option.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
-                            <img src={option.img} alt={option.id} className="w-full aspect-square object-cover" />
-                            <div className="absolute bottom-0 w-full bg-black/80 text-white py-4 font-black uppercase tracking-widest text-sm text-center backdrop-blur-md">{option.id}</div>
-                          </div>
-                        ))}
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 1 : Parlez-nous de vous</h2>
+
+                      <div className="w-full mb-6 text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Quel est votre sexe ?</label>
+                        <div className="grid grid-cols-2 gap-4 w-full">
+                          {[{ id: 'Homme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg' }, { id: 'Femme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg' }].map(option => (
+                            <div key={option.id} onClick={() => setDiagData({...diagData, gender: option.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 ${diagData.gender === option.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                              <img src={option.img} alt={option.id} className="w-full aspect-square object-cover" />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white py-4 font-black uppercase tracking-widest text-sm text-center backdrop-blur-md">{option.id}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="w-full text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Quel âge avez-vous ?</label>
+                        <input type="number" required placeholder="Ex: 35" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                       </div>
                     </div>
                   )}
 
+                  {/* ETAPE 2: Objectifs physiques */}
                   {diagStep === 2 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre objectif principal ?</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-8">
-                        {[
-                          { id: 'Perte de poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg', desc: 'Déficit calorique pour affiner le ventre' },
-                          { id: 'Maintien du poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg', desc: 'Stabiliser et manger sainement au quotidien' },
-                          { id: 'Prise de masse', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg', desc: 'Développer la masse musculaire' }
-                        ].map(goal => (
-                          <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
-                            <img src={goal.img} alt={goal.id} className="w-full aspect-square object-cover" />
-                            <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
-                              <span className="font-black uppercase tracking-widest text-xs md:text-sm mb-1 text-center">{goal.id}</span>
-                              <span className="text-[10px] text-zinc-400 font-bold leading-tight text-center">{goal.desc}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 2 : Vos objectifs</h2>
 
-                  {diagStep === 3 && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel âge avez-vous ?</h2>
-                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
-                        <input type="number" required placeholder="Ex: 30" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-5 bg-zinc-50 border-2 border-zinc-200 rounded-2xl font-black text-xl text-center outline-none focus:border-[#39FF14] transition-colors text-black" />
-                      </div>
-                    </div>
-                  )}
-
-                  {diagStep === 4 && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quelles sont vos mensurations ?</h2>
-                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille (cm)</label>
+                      <div className="grid grid-cols-2 gap-4 w-full mb-6">
+                        <div className="text-left">
+                          <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Taille (cm)</label>
                           <input type="number" required placeholder="Ex: 170" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
+                        <div className="text-left">
+                          <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Poids actuel (kg)</label>
                           <input type="number" required placeholder="Ex: 75" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 w-full">
+                        <div className="text-left">
+                          <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Poids cible (kg)</label>
                           <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-                        <div className="space-y-2 pt-2 border-t border-zinc-100">
-                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date cible</label>
-                          <input type="date" required value={diagData.targetDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setDiagData({...diagData, targetDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-lg outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        <div className="text-left">
+                          <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Date cible souhaitée</label>
+                          <input type="date" required value={diagData.targetDate} onChange={(e) => setDiagData({...diagData, targetDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-sm outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {diagStep === 5 && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Avez-vous des conditions spécifiques ?</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-8">
-                        {['Diabète', 'Hypertension', 'Préménopause ou Ménopause', 'Aucun problème'].map(condition => {
-                          const isSelected = diagData.healthProfile === condition;
-                          return (
-                            <div key={condition} onClick={() => setDiagData({...diagData, healthProfile: condition})} className={`cursor-pointer border-4 rounded-2xl p-6 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                              <span className="font-bold text-sm md:text-base text-black">{condition}</span>
-                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-[#39FF14] bg-[#39FF14]' : 'border-zinc-300'}`}>{isSelected && <CheckCircle size={14} className="text-black" />}</div>
-                            </div>
-                          );
-                        })}
+                  {/* ETAPE 3: Activité & Sommeil */}
+                  {diagStep === 3 && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 3 : Activité & Sommeil</h2>
+
+                      <div className="w-full mb-6 text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Niveau d'activité physique</label>
+                        <div className="space-y-3 w-full">
+                          {['Sédentaire', 'Léger', 'Actif', 'Très actif'].map(level => (
+                             <div key={level} onClick={() => setDiagData({...diagData, activityLevel: level})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${diagData.activityLevel === level ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <span className="font-bold text-black">{level}</span>
+                                {diagData.activityLevel === level && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                             </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="w-full text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Combien d'heures de sommeil avez-vous chaque nuit ?</label>
+                        <div className="space-y-3 w-full">
+                          {['Moins de 5h', '6-7h', '8h ou plus'].map(hours => (
+                             <div key={hours} onClick={() => setDiagData({...diagData, sleepHours: hours})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${diagData.sleepHours === hours ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <span className="font-bold text-black">{hours}</span>
+                                {diagData.sleepHours === hours && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                             </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
 
+                  {/* ETAPE 4: Profil Médical & Hormonal */}
+                  {diagStep === 4 && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 4 : Médical & Hormonal</h2>
+
+                      <div className="w-full mb-6 text-left">
+                          <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Avez-vous des conditions médicales ?</label>
+                          <div className="space-y-3 w-full">
+                            {['Diabète', 'Hypertension', 'Aucun problème'].map(condition => {
+                                const isSelected = diagData.healthProfile === condition;
+                                return (
+                                  <div key={condition} onClick={() => setDiagData({...diagData, healthProfile: condition})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                    <span className="font-bold text-black">{condition}</span>
+                                    {isSelected && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                                  </div>
+                                );
+                            })}
+                          </div>
+                      </div>
+
+                      {diagData.gender === 'Femme' && (
+                          <div className="w-full text-left animate-in fade-in slide-in-from-top-2">
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Spécificités féminines :</label>
+                              <div className="space-y-3 w-full">
+                                {['Allaitement', 'Grossesse', 'SOPK', 'Périménopause / Ménopause', 'Aucune'].map(condition => {
+                                    const isSelected = diagData.femaleSpecific === condition;
+                                    return (
+                                      <div key={condition} onClick={() => setDiagData({...diagData, femaleSpecific: condition})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                        <span className="font-bold text-black">{condition}</span>
+                                        {isSelected && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                                      </div>
+                                    );
+                                })}
+                              </div>
+                          </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ETAPE 5: Habitudes alimentaires */}
+                  {diagStep === 5 && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 5 : Habitudes alimentaires</h2>
+
+                      <div className="w-full mb-6 text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Vous avez déjà entrepris plusieurs régimes sans parvenir à atteindre votre objectif ?</label>
+                        <div className="flex gap-4 w-full">
+                          {['Oui', 'Non'].map(ans => (
+                             <div key={ans} onClick={() => setDiagData({...diagData, pastDiets: ans})} className={`flex-1 cursor-pointer border-2 rounded-xl p-4 text-center transition-all duration-300 ${diagData.pastDiets === ans ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <span className="font-bold text-black">{ans}</span>
+                             </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="w-full mb-6 text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Quelle quantité d'eau consommez-vous chaque jour ?</label>
+                        <div className="space-y-3 w-full">
+                          {['Moins de 50cl', '1L', 'Plus de 1.5L'].map(vol => (
+                             <div key={vol} onClick={() => setDiagData({...diagData, waterIntake: vol})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${diagData.waterIntake === vol ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <span className="font-bold text-black">{vol}</span>
+                                {diagData.waterIntake === vol && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                             </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="w-full text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Quelles matières grasses utilisez-vous pour les assaisonnements et la cuisson ?</label>
+                        <div className="grid grid-cols-2 gap-3 w-full">
+                          {['Beurre', 'Huile d\'olive', 'Huile de tournesol', 'Huile de palme'].map(fat => {
+                            const isSelected = diagData.cookingFats.includes(fat);
+                            return (
+                              <div key={fat} onClick={() => {
+                                  const fats = isSelected ? diagData.cookingFats.filter(f => f !== fat) : [...diagData.cookingFats, fat];
+                                  setDiagData({...diagData, cookingFats: fats});
+                              }} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center gap-2 transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <div className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 ${isSelected ? 'bg-[#39FF14] border-[#39FF14]' : 'border-zinc-300'}`}>
+                                  {isSelected && <CheckCircle size={14} className="text-black"/>}
+                                </div>
+                                <span className="font-bold text-black text-[11px] leading-tight md:text-sm">{fat}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ETAPE 6: Identification (Landing Page Uniquement) */}
                   {diagStep === 6 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Comment déjeunez-vous le midi ?</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-                        {[
-                          { id: 'En solo au bureau', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/La_Gamelle_ywfy3t.jpg', desc: 'Avec ma gamelle / Tupperware' },
-                          { id: 'À la maison', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Le_Bol_Commun_hb9fns.jpg', desc: 'Autour du grand bol familial commun' }
-                        ].map(habit => (
-                          <div key={habit.id} onClick={() => setDiagData({...diagData, lunchHabit: habit.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
-                            <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
-                            <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
-                              <span className="font-black uppercase tracking-widest text-sm mb-2 text-center">{habit.id}</span>
-                              <span className="text-xs text-zinc-400 font-bold leading-relaxed text-center">{habit.desc}</span>
-                            </div>
-                          </div>
-                        ))}
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 6 : À qui avons-nous l'honneur ?</h2>
+
+                      <div className="w-full mb-6 text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Votre Prénom</label>
+                        <input type="text" required placeholder="Ex: Aminata" value={diagData.name} onChange={(e) => setDiagData({...diagData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                      </div>
+
+                      <div className="w-full text-left">
+                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Numéro WhatsApp</label>
+                        <input type="tel" required placeholder="+221..." value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                       </div>
                     </div>
                   )}
 
-                  {diagStep === 7 && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Pour qui préparez-vous les repas ?</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-                        {[
-                          { id: 'Je cuisine uniquement pour moi seule', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_moi_seule_mfo6vw.jpg' },
-                          { id: 'Je cuisine la marmite pour toute la famille', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_la_famille_qzlwke.jpg' }
-                        ].map(habit => (
-                          <div key={habit.id} onClick={() => setDiagData({...diagData, cookingHabit: habit.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
-                            <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
-                            <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
-                              <span className="font-black uppercase tracking-tight text-sm text-center">{habit.id}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {diagStep === 8 && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre budget courses par semaine ?</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-                        {[
-                          { id: 'Budget Serré', price: '8 000 F / semaine', desc: 'La base survie et efficacité', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630660/A_cute__highly_detailed_3D_202606161723_fcl8jj.jpg' },
-                          { id: 'Budget Famille', price: '15 000 F / semaine', desc: 'Équilibre, goût et variété', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630665/A_cute__highly_detailed_3D_202606161723_1_rx6yry.jpg' },
-                          { id: 'Budget Confort', price: '25 000 F / semaine', desc: 'Santé premium 100% locale', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630664/A_cute__highly_detailed_3D_202606161723_2_xxku54.jpg' }
-                        ].map(budget => (
-                          <div key={budget.id} onClick={() => setDiagData({...diagData, weeklyBudget: budget.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
-                            <img src={budget.img} alt={budget.id} className="w-full aspect-square object-cover" />
-                            <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
-                              <span className="font-black uppercase tracking-widest text-xs mb-1">{budget.id}</span>
-                              <span className="text-[#39FF14] font-bold text-[10px] mb-2">{budget.price}</span>
-                              <span className="text-zinc-400 text-[10px] text-center leading-tight">{budget.desc}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {diagStep === 9 && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Dernière étape pour finaliser</h2>
-                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-4">
-                        <input type="text" required placeholder="Votre Prénom et Nom" value={diagData.name} onChange={(e) => setDiagData({...diagData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" />
-                        <input type="tel" required placeholder="Numéro WhatsApp" value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" />
-                        {/* Mot de passe retiré pour Zero Friction */}
-                        {/* PIN retiré pour Zero Friction */}
-                        <button type="submit" disabled={isSubmittingDiag || !diagData.name || !diagData.phone} className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2">{isSubmittingDiag ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/></button>
-                      </div>
-                    </div>
-                  )}
 
                   {diagStep < 9 && (
                     <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
@@ -1732,15 +1761,28 @@ export default function NutritionAfricaineLanding() {
                                 Retour
                             </button>
                         )}
+
+                    </div>
+                  )}
+
+                  <button type="submit" id="hidden-submit-btn" style={{display:"none"}}></button>
+
+                  {diagStep < 10 && (
+                    <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
+                        {diagStep > 1 && (
+                            <button type="button" onClick={() => setDiagStep(s => s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
+                                Retour
+                            </button>
+                        )}
                         <button 
                             type="button" 
-                            onClick={() => setDiagStep(s => s + 1)}
+                            onClick={() => setDiagStep(s => s === 6 ? 10 : s + 1)}
                             disabled={
-                                (diagStep === 1 && !diagData.gender) ||
-                                (diagStep === 2 && !diagData.goalType) ||
-                                (diagStep === 3 && !diagData.age) ||
-                                (diagStep === 4 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
-                                (diagStep === 5 && !diagData.healthProfile)
+                                (diagStep === 1 && (!diagData.gender || !diagData.age)) ||
+                                (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
+                                (diagStep === 3 && (!diagData.activityLevel || !diagData.sleepHours)) ||
+                                (diagStep === 4 && (!diagData.healthProfile || (diagData.gender === 'Femme' && !diagData.femaleSpecific))) ||
+                                (diagStep === 5 && (!diagData.pastDiets || !diagData.waterIntake || diagData.cookingFats.length === 0)) || (diagStep === 6 && (!diagData.name || !diagData.phone))
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -1748,7 +1790,7 @@ export default function NutritionAfricaineLanding() {
                         </button>
                     </div>
                   )}
-                </form>
+</form>
 
               ) : (
                 <div className="text-center py-6 animate-in zoom-in">
