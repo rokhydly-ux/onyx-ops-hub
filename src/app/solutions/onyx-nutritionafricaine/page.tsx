@@ -335,104 +335,94 @@ export default function NutritionAfricaineLanding() {
   };
 
 
-  const calculateMacrosAndCalories = (data: any) => {
-      const heightCm = parseFloat(data.height) || 0;
-      const currentWeight = parseFloat(data.currentWeight) || 0;
-      const targetWInput = parseFloat(data.targetWeight) || 0;
-      const age = parseFloat(data.age) || 0;
-      const isMale = data.gender === "Homme";
+  const calculateDailyCalories = (data: any) => {
+    const heightCm = parseFloat(data.height) || 0;
+    const currentWeight = parseFloat(data.currentWeight) || 0;
+    const targetWInput = parseFloat(data.targetWeight) || 0;
+    const age = parseFloat(data.age) || 0;
+    const isMale = data.gender === "Homme";
 
-      let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+    // 1. Calcul du BMR (Mifflin-St Jeor)
+    let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-      const healthProfile = data.healthProfile || "";
-      if (healthProfile.includes("SOPK") || healthProfile.includes("Ménopause") || healthProfile.includes("Préménopause") || healthProfile.includes("Hypothyroïdie") || healthProfile === "Changements hormonaux") {
-          bmr = bmr * 0.90;
-      }
+    // 2. Modificateur Hormonal (SOPK / Ménopause / Hypothyroïdie)
+    if (data.gender === "Femme" && (data.healthProfile === "SOPK" || data.healthProfile === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie" || data.healthProfile === "Périménopause/Ménopause" || data.healthProfile === "SOPK (Syndrome des ovaires polykystiques)")) {
+        bmr = bmr * 0.90; // Malus métabolique de -10%
+    }
 
-      let nap = 1.2;
-      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+    // 3. Calcul du TDEE via le NAP
+    let nap = 1.2;
+    if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)" || data.dailySteps === "Léger") nap = 1.375;
+    else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)" || data.dailySteps === "Actif") nap = 1.55;
+    else if (data.dailySteps === "10 000+ pas/jour (Très actif)" || data.dailySteps === "Très actif") nap = 1.725;
+    let tdee = bmr * nap;
 
-      let tdee = bmr * nap;
+    // 4. Bonus Allaitement / Grossesse
+    if (data.gender === "Femme" && (data.healthProfile === "Allaitement" || data.healthProfile === "Grossesse")) {
+        tdee += 400; // Bonus énergétique vital
+    }
 
-      if (healthProfile === "Allaitement" || healthProfile === "Grossesse") {
-          tdee += 400;
-      }
+    // 5. Calcul du déficit (selon la date)
+    let requiredDailyDeficit = 0;
+    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+    const now = new Date();
+    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    const weightToLose = currentWeight - targetWInput;
 
-      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
-      const weightToLose = currentWeight - finalTargetWeight;
+    if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+    }
 
-      let rawCalories = tdee;
-      let calculatedHealthyDate = data.targetDate;
-      let isCapped = false;
-      let deficit = 0;
+    // 6. Plafond du déficit (Max 1000 kcal/jour)
+    if (requiredDailyDeficit > 1000) {
+        requiredDailyDeficit = 1000;
+    }
 
-      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
-          let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-          const now = new Date();
-          let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    let rawCalories = tdee;
+    if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
+    else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
 
-          if (!data.targetDate) {
-              if (data.weightLossPace === 'Progressivement') deficit = 300;
-              else if (data.weightLossPace === 'Rapidement') deficit = 700;
-              else deficit = 500;
-              isCapped = false; // It's a manual deficit, not date driven
-          } else {
-              deficit = (weightToLose * 7700) / daysToTarget;
-              if (deficit > 1000) {
-                  deficit = 1000;
-                  isCapped = true;
-                  const safeDays = Math.ceil((weightToLose * 7700) / 1000);
-                  const safeDate = new Date(now.getTime() + (safeDays * 24 * 3600 * 1000));
-                  calculatedHealthyDate = safeDate.toISOString().split('T')[0];
-              }
-          }
+    // 7. Plancher Médical (Anti-privation)
+    const floorCalories = isMale ? 1500 : 1200;
+    const finalCalories = Math.max(floorCalories, rawCalories);
 
-          rawCalories = tdee - deficit;
-      } else if (data.goalType === 'Prise de masse') {
-          rawCalories = tdee + 300;
-      } else if (data.goalType === 'Maintien') {
-          rawCalories = tdee;
-      }
+    return {
+        calories: Math.round(finalCalories),
+        deficit: Math.round(tdee - finalCalories),
+        tdee: Math.round(tdee),
+        hitFloor: finalCalories === floorCalories
+    };
+};
 
-      let proteinRatio = age >= 50 ? 0.35 : 0.30;
-      let carbsRatio = 0.70 - proteinRatio;
-      let fatsRatio = 0.30;
-
-      if (healthProfile === "Diabète") {
-          carbsRatio = 0.40;
-          proteinRatio = 0.35;
-          fatsRatio = 0.25;
-      }
-
-      const carbs = (rawCalories * carbsRatio) / 4;
-      const protein = (rawCalories * proteinRatio) / 4;
-      const fats = (rawCalories * fatsRatio) / 9;
-
-      return {
-          calories: Math.round(rawCalories),
-          carbs: Math.round(carbs),
-          protein: Math.round(protein),
-          fats: Math.round(fats),
-          bmr: Math.round(bmr),
-          tdee: Math.round(tdee),
-          isCapped,
-          healthyDate: calculatedHealthyDate
-      };
-  };
-
-  const calculateDailyCalories = (data: any, forceSafeMode: boolean = false) => {
-      return calculateMacrosAndCalories(data).calories;
-  };
-
-
-  // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingDiag(true);
     try {
+
+      const calcResult = calculateDailyCalories(diagData);
+      const dailyCalories = calcResult.calories;
+      const age = parseFloat(diagData.age) || 0;
+
+      let carbsRatio = 0.50;
+      let proteinRatio = age >= 50 ? 0.35 : 0.30;
+      let fatsRatio = 1 - carbsRatio - proteinRatio;
+
+      // Règle Diabète
+      if (diagData.healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
+      }
+      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
+      const protein = Math.round((dailyCalories * proteinRatio) / 4);
+      const fats = Math.round((dailyCalories * fatsRatio) / 9);
+
+      const payloadData = {
+          ...diagData,
+          bmr: calcResult.tdee,
+          tdee: calcResult.tdee
+      };
+
       // 1. Generation du mot de passe standardisé
       const cleanPhone = diagData.phone.replace(/\s+/g, '');
       const generatedPassword = cleanPhone.slice(-8).padStart(8, "0"); // Mot de passe simple à 5 caractères
@@ -1564,7 +1554,7 @@ export default function NutritionAfricaineLanding() {
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
-              {diagStep !== 10 ? (
+              {diagStep !== 11 ? (
                 <form onSubmit={handleDiagSubmit} className="w-full">
                   {diagStep === 1 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
@@ -1734,7 +1724,7 @@ export default function NutritionAfricaineLanding() {
                         )}
                         <button 
                             type="button" 
-                            onClick={() => setDiagStep(s => s + 1)} 
+                            onClick={() => setDiagStep(s => s === 6 ? 10 : s + 1)}
                             disabled={
                                 (diagStep === 1 && !diagData.gender) ||
                                 (diagStep === 2 && !diagData.goalType) ||
@@ -1749,40 +1739,21 @@ export default function NutritionAfricaineLanding() {
                     </div>
                   )}
                 </form>
+              ) : null}
 
-              ) : (
-                <div className="text-center py-6 animate-in zoom-in">
-                  <CheckCircle className="text-[#39FF14] w-24 h-24 mx-auto mb-8 drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]" />
-                  <div className="bg-zinc-50 p-8 rounded-[2rem] border border-zinc-100 max-w-xl mx-auto mb-6 text-left shadow-sm">
-                    <p className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-800 text-center">Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-3xl">{calculateDailyCalories(diagData)}</strong> kcal/jour.</p>
-                    <p className="text-lg md:text-xl font-medium leading-relaxed text-zinc-800 mt-6 text-center">La bonne nouvelle ? Vous n'aurez <span className="underline decoration-[#39FF14] decoration-4 font-bold">plus jamais</span> à les compter. Suivez simplement nos portions en bols et cuillères.</p>
+              {diagStep === 11 && (
+                  <div className="text-center animate-in zoom-in p-6 bg-white rounded-3xl shadow-2xl max-w-lg mx-auto">
+                      <h3 className="text-2xl font-black text-black mb-4">🎉 Compte créé avec succès !</h3>
+                      <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-6 text-left">
+                          <p className="font-bold text-orange-800 mb-2">⚠️ Conservez vos accès temporaires :</p>
+                          <p className="text-sm font-medium">Identifiant : <strong>{diagData.phone}</strong></p>
+                          <p className="text-sm font-medium">Mot de passe : <strong>{diagData.phone.replace(/\s+/g, '').slice(-8).padStart(8, "0")}</strong></p>
+                      </div>
+                      <p className="text-xs text-zinc-500 mb-6 flex items-center justify-center">
+                          Vous pourrez le modifier dans vos paramètres <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" className="w-6 h-6 rounded-full ml-2"/>
+                      </p>
+                      <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase hover:scale-105 transition-transform">Accéder à mon Sama Menu</button>
                   </div>
-
-                  {/* ALERTE ZERO FRICTION - IDENTIFIANTS */}
-                  <div className="bg-orange-50 border border-orange-200 p-6 rounded-2xl max-w-xl mx-auto mb-10 text-left">
-                     <p className="text-sm font-black text-orange-600 uppercase tracking-widest flex items-center gap-2 mb-4">
-                        <AlertTriangle size={18}/> Compte créé avec succès !
-                     </p>
-                     <p className="text-sm font-medium text-orange-900 mb-4">
-                        ⚠️ Voici vos accès temporaires pour vous reconnecter plus tard :
-                     </p>
-                     <div className="space-y-2 mb-4 bg-white p-4 rounded-xl border border-orange-100">
-                        <div className="flex justify-between items-center">
-                           <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Numéro WhatsApp :</span>
-                           <span className="font-black text-black text-sm">{tempCredentials.phone || diagData.phone}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                           <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Mot de passe :</span>
-                           <span className="font-black text-black text-sm">{tempCredentials.password || "00000000"}</span>
-                        </div>
-                     </div>
-                     <p className="text-xs font-bold text-orange-800 flex items-center flex-wrap">
-                        Vous pourrez le modifier dans vos paramètres <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" alt="Réglages" className="w-6 h-6 rounded-full inline-block ml-2"/>
-                     </p>
-                  </div>
-
-                  <button type="button" onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full max-w-md mx-auto bg-[#39FF14] text-black py-6 rounded-2xl font-black uppercase md:text-lg tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.4)] animate-pulse flex justify-center items-center gap-2">Accéder à mon Sama Menu</button>
-                </div>
               )}
 
             </div>
