@@ -1623,11 +1623,11 @@ export default function NutritionAfricaineLanding() {
 
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Niveau d'activité physique</label>
-                        <div className="space-y-3 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                           {['Sédentaire', 'Léger', 'Actif', 'Très actif'].map(level => (
-                             <div key={level} onClick={() => setDiagData({...diagData, activityLevel: level})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${diagData.activityLevel === level ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black">{level}</span>
-                                {diagData.activityLevel === level && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                             <div key={level} onClick={() => setDiagData({...diagData, activityLevel: level})} className={`cursor-pointer border-2 rounded-xl p-4 py-6 flex flex-col items-center justify-center relative transition-all duration-300 ${diagData.activityLevel === level ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <div className="flex flex-col items-center gap-2"><Activity size={24} className="text-zinc-400 mb-1"/><span className="font-bold text-black">{level}</span></div>
+                                {diagData.activityLevel === level && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
                              </div>
                           ))}
                         </div>
@@ -1635,11 +1635,11 @@ export default function NutritionAfricaineLanding() {
 
                       <div className="w-full text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Combien d'heures de sommeil avez-vous chaque nuit ?</label>
-                        <div className="space-y-3 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                           {['Moins de 5h', '6-7h', '8h ou plus'].map(hours => (
-                             <div key={hours} onClick={() => setDiagData({...diagData, sleepHours: hours})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${diagData.sleepHours === hours ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black">{hours}</span>
-                                {diagData.sleepHours === hours && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                             <div key={hours} onClick={() => setDiagData({...diagData, sleepHours: hours})} className={`cursor-pointer border-2 rounded-xl p-4 py-6 flex flex-col items-center justify-center relative transition-all duration-300 ${diagData.sleepHours === hours ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <div className="flex flex-col items-center gap-2"><Wind size={24} className="text-zinc-400 mb-1"/><span className="font-bold text-black">{hours}</span></div>
+                                {diagData.sleepHours === hours && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
                              </div>
                           ))}
                         </div>
@@ -1654,13 +1654,13 @@ export default function NutritionAfricaineLanding() {
 
                       <div className="w-full mb-6 text-left">
                           <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Avez-vous des conditions médicales ?</label>
-                          <div className="space-y-3 w-full">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                             {['Diabète', 'Hypertension', 'Aucun problème'].map(condition => {
                                 const isSelected = diagData.healthProfile === condition;
                                 return (
-                                  <div key={condition} onClick={() => setDiagData({...diagData, healthProfile: condition})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                    <span className="font-bold text-black">{condition}</span>
-                                    {isSelected && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                                  <div key={condition} onClick={() => setDiagData({...diagData, healthProfile: condition})} className={`cursor-pointer border-2 rounded-xl p-4 py-6 flex flex-col items-center justify-center relative transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                    <div className="flex flex-col items-center gap-2 text-center"><HeartPulse size={24} className="text-zinc-400 mb-1"/><span className="font-bold text-black text-sm">{condition}</span></div>
+                                    {isSelected && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
                                   </div>
                                 );
                             })}
@@ -1670,13 +1670,13 @@ export default function NutritionAfricaineLanding() {
                       {diagData.gender === 'Femme' && (
                           <div className="w-full text-left animate-in fade-in slide-in-from-top-2">
                               <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Spécificités féminines :</label>
-                              <div className="space-y-3 w-full">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                                 {['Allaitement', 'Grossesse', 'SOPK', 'Périménopause / Ménopause', 'Aucune'].map(condition => {
                                     const isSelected = diagData.femaleSpecific === condition;
                                     return (
-                                      <div key={condition} onClick={() => setDiagData({...diagData, femaleSpecific: condition})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                      <div key={condition} onClick={() => setDiagData({...diagData, femaleSpecific: condition})} className={`cursor-pointer border-2 rounded-xl p-4 py-6 flex flex-col items-center justify-center relative transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
                                         <span className="font-bold text-black">{condition}</span>
-                                        {isSelected && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                                        {isSelected && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
                                       </div>
                                     );
                                 })}
@@ -1693,10 +1693,10 @@ export default function NutritionAfricaineLanding() {
 
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Vous avez déjà entrepris plusieurs régimes sans parvenir à atteindre votre objectif ?</label>
-                        <div className="flex gap-4 w-full">
+                        <div className="grid grid-cols-2 gap-4 w-full">
                           {['Oui', 'Non'].map(ans => (
                              <div key={ans} onClick={() => setDiagData({...diagData, pastDiets: ans})} className={`flex-1 cursor-pointer border-2 rounded-xl p-4 text-center transition-all duration-300 ${diagData.pastDiets === ans ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black">{ans}</span>
+                                <span className="font-bold text-black text-lg">{ans}</span>
                              </div>
                           ))}
                         </div>
@@ -1704,11 +1704,11 @@ export default function NutritionAfricaineLanding() {
 
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Quelle quantité d'eau consommez-vous chaque jour ?</label>
-                        <div className="space-y-3 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                           {['Moins de 50cl', '1L', 'Plus de 1.5L'].map(vol => (
-                             <div key={vol} onClick={() => setDiagData({...diagData, waterIntake: vol})} className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${diagData.waterIntake === vol ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black">{vol}</span>
-                                {diagData.waterIntake === vol && <CheckCircle size={20} className="text-[#39FF14]"/>}
+                             <div key={vol} onClick={() => setDiagData({...diagData, waterIntake: vol})} className={`cursor-pointer border-2 rounded-xl p-4 py-6 flex flex-col items-center justify-center relative transition-all duration-300 ${diagData.waterIntake === vol ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                                <div className="flex flex-col items-center gap-2"><Droplet size={24} className="text-zinc-400 mb-1"/><span className="font-bold text-black">{vol}</span></div>
+                                {diagData.waterIntake === vol && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
                              </div>
                           ))}
                         </div>
@@ -1754,16 +1754,7 @@ export default function NutritionAfricaineLanding() {
                   )}
 
 
-                  {diagStep < 9 && (
-                    <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
-                        {diagStep > 1 && (
-                            <button type="button" onClick={() => setDiagStep(s => s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
-                                Retour
-                            </button>
-                        )}
 
-                    </div>
-                  )}
 
                   <button type="submit" id="hidden-submit-btn" style={{display:"none"}}></button>
 
