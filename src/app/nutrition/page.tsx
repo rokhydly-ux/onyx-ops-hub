@@ -625,13 +625,13 @@ export default function NutritionDashboard() {
                   activeProfile.diagnostic_data = { goalType: 'Perte de poids', currentWeight: 0, targetWeight: 0 };
               }
               if (!activeProfile.daily_macros) {
-                  activeProfile.daily_macros = { calorieGoal: 1500, proteinGoal: 100, fatsGoal: 50 };
+                  activeProfile.daily_macros = { calorieGoal: activeProfile.daily_calorie_goal || 0, proteinGoal: 100, fatsGoal: 50 };
               }
           } else {
              // Profil manquant, création d'un profile factice en mémoire
              activeProfile = {
                  diagnostic_data: { goalType: 'Maintien', currentWeight: 0, targetWeight: 0 },
-                 daily_macros: { calorieGoal: 1500, proteinGoal: 100, fatsGoal: 50 },
+                 daily_macros: { calorieGoal: activeProfile.daily_calorie_goal || 0, proteinGoal: 100, fatsGoal: 50 },
                  expert_mode: false,
                  jongoma_xp: 0
              };
@@ -707,7 +707,7 @@ export default function NutritionDashboard() {
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
-             setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
+             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
              setProteinGoal(nutritionData.protein_goal || 80);
              setCarbsGoal(nutritionData.carbs_goal || 150);
              setFatsGoal(nutritionData.fats_goal || 50);
@@ -1109,7 +1109,7 @@ export default function NutritionDashboard() {
       safeRecipes = safeRecipes.filter(r => !r.budget_tier || allowedTiers.includes(r.budget_tier));
 
       // RATIOS CALORIQUES MODE GUIDÉ (RULE 4)
-      const targetDailyCals = calorieGoal || 1500;
+      const targetDailyCals = calorieGoal || 0;
       const mealTargets: Record<string, number> = activeFastingMode ? {
          'Déjeuner': targetDailyCals * 0.45,
          'Collation': targetDailyCals * 0.20,
@@ -1279,7 +1279,7 @@ export default function NutritionDashboard() {
           let newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
           
           if (trackingMode === 'guided') {
-              const targetDailyCals = calorieGoal || 1500;
+              const targetDailyCals = calorieGoal || 0;
               const mealTargets: Record<string, number> = isFastingMode ? {
                  'Déjeuner': targetDailyCals * 0.45,
                  'Collation': targetDailyCals * 0.20,
@@ -1313,88 +1313,68 @@ export default function NutritionDashboard() {
   };
 
 
-  const calculateMacrosAndCalories = (data: any) => {
-      const heightCm = parseFloat(data.height) || 0;
-      const currentWeight = parseFloat(data.currentWeight) || 0;
-      const targetWInput = parseFloat(data.targetWeight) || 0;
-      const age = parseFloat(data.age) || 0;
-      const isMale = data.gender === "Homme";
+  const calculateDailyCalories = (data: any) => {
+    const heightCm = parseFloat(data.height) || 0;
+    const currentWeight = parseFloat(data.currentWeight) || 0;
+    const targetWInput = parseFloat(data.targetWeight) || 0;
+    const age = parseFloat(data.age) || 0;
+    const isMale = data.gender === "Homme";
 
-      let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+    // 1. Calcul du BMR (Mifflin-St Jeor)
+    let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-      const healthProfile = data.healthProfile || "";
-      if (healthProfile.includes("SOPK") || healthProfile.includes("Ménopause") || healthProfile.includes("Préménopause") || healthProfile.includes("Hypothyroïdie") || healthProfile === "Changements hormonaux") {
-          bmr = bmr * 0.90;
-      }
+    // 2. Modificateur Hormonal (SOPK / Ménopause / Hypothyroïdie)
+    if (data.gender === "Femme" && (data.femaleSpecific === "SOPK" || data.femaleSpecific === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie")) {
+        bmr = bmr * 0.90; // Malus métabolique de -10%
+    }
 
-      let nap = 1.2;
-      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+    // 3. Calcul du TDEE via le NAP
+    let nap = 1.2;
+    if (data.activityLevel === "Léger") nap = 1.375;
+    else if (data.activityLevel === "Actif") nap = 1.55;
+    else if (data.activityLevel === "Très actif") nap = 1.725;
+    let tdee = bmr * nap;
 
-      let tdee = bmr * nap;
+    // 4. Bonus Allaitement / Grossesse
+    if (data.gender === "Femme" && (data.femaleSpecific === "Allaitement" || data.femaleSpecific === "Grossesse")) {
+        tdee += 400; // Bonus énergétique vital pour la maman
+    }
 
-      if (healthProfile === "Allaitement") {
-          tdee += 400;
-      }
+    // 5. Calcul du déficit (selon la date cible)
+    let requiredDailyDeficit = 0;
+    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+    const now = new Date();
+    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    const weightToLose = currentWeight - targetWInput;
 
-      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
-      const weightToLose = currentWeight - finalTargetWeight;
+    if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+    }
 
-      let rawCalories = tdee;
-      let isCapped = false;
-      let deficit = 0;
+    // 6. Plafond du déficit (Max 1000 kcal/jour pour éviter la fonte musculaire)
+    if (requiredDailyDeficit > 1000) {
+        requiredDailyDeficit = 1000;
+    }
 
-      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
-          if (!data.targetDate) {
-              if (data.weightLossPace === 'Progressivement') deficit = 300;
-              else if (data.weightLossPace === 'Rapidement') deficit = 700;
-              else deficit = 500;
-              isCapped = false; // It's a manual deficit, not date driven
-          } else {
-              let userTargetDate = new Date(data.targetDate);
-              const now = new Date();
-              let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    let rawCalories = tdee;
+    if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
+    else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
+    // Si Maintien, rawCalories = tdee
 
-              deficit = (weightToLose * 7700) / daysToTarget;
-              if (deficit > 1000) {
-                  deficit = 1000;
-                  isCapped = true;
-              }
-          }
+    // 7. Plancher Médical (Anti-privation : Interdit de descendre sous 1200/1500)
+    const floorCalories = isMale ? 1500 : 1200;
+    const finalCalories = Math.max(floorCalories, rawCalories);
 
-          rawCalories = tdee - deficit;
-      } else if (data.goalType === 'Prise de masse') {
-          rawCalories = tdee + 300;
-      } else if (data.goalType === 'Maintien') {
-          rawCalories = tdee;
-      }
+    return {
+        calories: Math.round(finalCalories),
+        deficit: Math.round(tdee - finalCalories),
+        tdee: Math.round(tdee),
+        hitFloor: finalCalories === floorCalories,
+        hitCeiling: requiredDailyDeficit === 1000
+    };
+};
 
-      let proteinRatio = age >= 50 ? 0.35 : 0.30;
-      let carbsRatio = 0.70 - proteinRatio;
-      let fatsRatio = 0.30;
 
-      if (healthProfile === "Diabète") {
-          carbsRatio = 0.40;
-          proteinRatio = 0.35;
-          fatsRatio = 0.25;
-      }
-
-      const carbs = (rawCalories * carbsRatio) / 4;
-      const protein = (rawCalories * proteinRatio) / 4;
-      const fats = (rawCalories * fatsRatio) / 9;
-
-      return {
-          calories: Math.round(rawCalories),
-          carbs: Math.round(carbs),
-          protein: Math.round(protein),
-          fats: Math.round(fats),
-          bmr: Math.round(bmr),
-          tdee: Math.round(tdee),
-          isCapped
-      };
-  };
 
 
   const handleDiagSubmit = async (e: React.FormEvent) => {
@@ -1402,7 +1382,37 @@ export default function NutritionDashboard() {
 
       setIsSubmittingDiag(true);
       try {
-          const results = calculateMacrosAndCalories(diagData);
+
+      const calcResult = calculateDailyCalories(diagData);
+      const dailyCalories = calcResult.calories;
+
+      // Ratios standards
+      let carbsRatio = 0.50;
+      let proteinRatio = parseFloat(diagData.age) >= 50 ? 0.35 : 0.30;
+      let fatsRatio = 1 - carbsRatio - proteinRatio;
+
+      // Règle spécifique : Diabète (Limitation stricte des glucides à 40%)
+      if (diagData.healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35; // Hausse des protéines pour compenser
+          fatsRatio = 0.25;    // Hausse des lipides sains
+      }
+
+      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
+      const protein = Math.round((dailyCalories * proteinRatio) / 4);
+      const fats = Math.round((dailyCalories * fatsRatio) / 9);
+
+      const results = {
+          calories: dailyCalories,
+          carbs: carbs,
+          protein: protein,
+          fats: fats,
+          bmr: calcResult.tdee,
+          tdee: calcResult.tdee,
+          isCapped: calcResult.hitFloor || calcResult.deficit >= 1000,
+          healthyDate: diagData.targetDate
+      };
+
 
           localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
               calories: results.calories,
@@ -2259,7 +2269,7 @@ export default function NutritionDashboard() {
       }
   };
 
-  const targetCalories = calorieGoal || 1500;
+  const targetCalories = calorieGoal || 0;
   const targetCarbs = carbsGoal || 150;
   const targetProtein = proteinGoal || 80;
   const targetFats = fatsGoal || 50;
@@ -4069,7 +4079,7 @@ export default function NutritionDashboard() {
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
                   <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
-                  <div className="text-4xl font-black text-black">{clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  <div className="text-4xl font-black text-black">{clientProfile?.diagnostic_data?.bmr || 0} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
                 </div>
 
                 <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
