@@ -3421,7 +3421,7 @@ export default function NutritionDashboard() {
         )}
 
 
-        {activeTab === 'library' && (
+        {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                <h3 className="text-xl font-black uppercase text-black mb-2 flex items-center gap-2"><Apple className="text-[#39FF14]" size={28}/> Bibliothèque d'Aliments Sains</h3>
@@ -4717,7 +4717,7 @@ export default function NutritionDashboard() {
                                 const currentWeight = parseFloat(log.weight);
                                 const prevLog = arr[idx + 1]; // Dans la liste inversée (du plus récent au plus ancien), l'élément suivant (idx+1) est chronologiquement "avant"
                                 const prevWeight = prevLog ? parseFloat(prevLog.weight) : null;
-                                let diff = null;
+                                let diff: number | null = null;
                                 if (prevWeight) {
                                     diff = currentWeight - prevWeight;
                                 }
