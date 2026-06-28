@@ -500,41 +500,32 @@ export default function NutritionAfricaineLanding() {
       localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
       setTempCredentials({ phone: cleanPhone, password: generatedPassword });
 
-      const calcResult = calculateDailyCalories(diagData);
-      const dailyCalories = calcResult.calories;
-      const ageNum = parseFloat(diagData.age) || 0;
-      let carbsRatio = 0.50;
-      let proteinRatio = ageNum >= 50 ? 0.35 : 0.30;
-      let fatsRatio = 1 - carbsRatio - proteinRatio;
-      if (diagData.healthProfile === "Diabète") {
-          carbsRatio = 0.40;
-          proteinRatio = 0.35;
-          fatsRatio = 0.25;
-      }
-
-      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
-      const protein = Math.round((dailyCalories * proteinRatio) / 4);
-      const fats = Math.round((dailyCalories * fatsRatio) / 9);
+      const results = calculateMacrosAndCalories(diagData);
 
       localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
-         calories: dailyCalories, carbs: carbs, protein: protein, fats: fats
+         calories: results.calories, carbs: results.carbs, protein: results.protein, fats: results.fats
       }));
 
+      // Set healthy date back to diagData if capped
       let finalDiagData = { ...diagData };
+      if (results.isCapped) {
+          finalDiagData.targetDate = results.healthyDate;
+      }
 
+      // Destructure to remove phone which shouldn't be saved in nutrition_profiles
       const { phone: _discardedPhone, ...restDiagData } = finalDiagData;
 
       const payload = {
          client_id: userId,
          diagnostic_data: {
              ...restDiagData,
-             bmr: calcResult.tdee,
-             tdee: calcResult.tdee,
+             bmr: results.bmr,
+             tdee: results.tdee,
          },
-         daily_calorie_goal: dailyCalories,
-         carbs_goal: carbs,
-         protein_goal: protein,
-         fats_goal: fats,
+         daily_calorie_goal: results.calories,
+         carbs_goal: results.carbs,
+         protein_goal: results.protein,
+         fats_goal: results.fats,
          weekly_menu: []
       };
 
