@@ -356,7 +356,7 @@ export default function NutritionAfricaineLanding() {
 
       let tdee = bmr * nap;
 
-      if (healthProfile === "Allaitement") {
+      if (healthProfile === "Allaitement" || healthProfile === "Grossesse") {
           tdee += 400;
       }
 

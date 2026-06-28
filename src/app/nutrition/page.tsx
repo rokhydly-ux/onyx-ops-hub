@@ -1331,7 +1331,7 @@ export default function NutritionDashboard() {
 
       let tdee = bmr * nap;
 
-      if (healthProfile === "Allaitement") {
+      if (healthProfile === "Allaitement" || healthProfile === "Grossesse") {
           tdee += 400;
       }
 
