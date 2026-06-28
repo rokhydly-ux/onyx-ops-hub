@@ -1948,7 +1948,7 @@ export default function NutritionAfricaineLanding() {
                 <div className="text-center py-6 animate-in zoom-in">
                   <CheckCircle className="text-[#39FF14] w-24 h-24 mx-auto mb-8 drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]" />
                   <div className="bg-zinc-50 p-8 rounded-[2rem] border border-zinc-100 max-w-xl mx-auto mb-6 text-left shadow-sm">
-                    <p className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-800 text-center">Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-3xl">{calculateDailyCalories(diagData)}</strong> kcal/jour.</p>
+                    <p className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-800 text-center">Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-3xl">{calculateDailyCalories(diagData).calories}</strong> kcal/jour.</p>
                     <p className="text-lg md:text-xl font-medium leading-relaxed text-zinc-800 mt-6 text-center">La bonne nouvelle ? Vous n'aurez <span className="underline decoration-[#39FF14] decoration-4 font-bold">plus jamais</span> à les compter. Suivez simplement nos portions en bols et cuillères.</p>
                   </div>
 
