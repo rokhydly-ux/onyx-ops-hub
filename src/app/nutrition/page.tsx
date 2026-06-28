@@ -1309,67 +1309,120 @@ export default function NutritionDashboard() {
       }
   };
 
+
+  const calculateMacrosAndCalories = (data: any) => {
+      const heightCm = parseFloat(data.height) || 0;
+      const currentWeight = parseFloat(data.currentWeight) || 0;
+      const targetWInput = parseFloat(data.targetWeight) || 0;
+      const age = parseFloat(data.age) || 0;
+      const isMale = data.gender === "Homme";
+
+      let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+
+      const healthProfile = data.healthProfile || "";
+      if (healthProfile.includes("SOPK") || healthProfile.includes("Ménopause") || healthProfile.includes("Préménopause") || healthProfile.includes("Hypothyroïdie") || healthProfile === "Changements hormonaux") {
+          bmr = bmr * 0.90;
+      }
+
+      let nap = 1.2;
+      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+
+      let tdee = bmr * nap;
+
+      if (healthProfile === "Allaitement") {
+          tdee += 400;
+      }
+
+      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
+      const weightToLose = currentWeight - finalTargetWeight;
+
+      let rawCalories = tdee;
+      let isCapped = false;
+      let deficit = 0;
+
+      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+          if (!data.targetDate) {
+              if (data.weightLossPace === 'Progressivement') deficit = 300;
+              else if (data.weightLossPace === 'Rapidement') deficit = 700;
+              else deficit = 500;
+              isCapped = false; // It's a manual deficit, not date driven
+          } else {
+              let userTargetDate = new Date(data.targetDate);
+              const now = new Date();
+              let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+
+              deficit = (weightToLose * 7700) / daysToTarget;
+              if (deficit > 1000) {
+                  deficit = 1000;
+                  isCapped = true;
+              }
+          }
+          
+          rawCalories = tdee - deficit;
+      } else if (data.goalType === 'Prise de masse') {
+          rawCalories = tdee + 300;
+      } else if (data.goalType === 'Maintien') {
+          rawCalories = tdee;
+      }
+
+      let proteinRatio = age >= 50 ? 0.35 : 0.30;
+      let carbsRatio = 0.70 - proteinRatio;
+      let fatsRatio = 0.30;
+
+      if (healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
+      }
+
+      const carbs = (rawCalories * carbsRatio) / 4;
+      const protein = (rawCalories * proteinRatio) / 4;
+      const fats = (rawCalories * fatsRatio) / 9;
+
+      return {
+          calories: Math.round(rawCalories),
+          carbs: Math.round(carbs),
+          protein: Math.round(protein),
+          fats: Math.round(fats),
+          bmr: Math.round(bmr),
+          tdee: Math.round(tdee),
+          isCapped
+      };
+  };
+
+
   const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
-      const heightCm = parseFloat(diagData.height) || 0;
-      const currentWeight = parseFloat(diagData.currentWeight) || 0;
-      const targetWInput = parseFloat(diagData.targetWeight) || 0;
-      const age = parseFloat(diagData.age) || 0;
-      const isMale = diagData.gender === "Homme";
-
-      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-
-      // Removed blocking validation to prevent user friction. The UI warning is sufficient.
-
       setIsSubmittingDiag(true);
       try {
-          let deficit = 500;
-          if (diagData.weightLossPace === 'Progressivement') deficit = 300;
-          else if (diagData.weightLossPace === 'Rapidement') deficit = 700;
+          const results = calculateMacrosAndCalories(diagData);
 
-          const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
-          const weightToLose = currentWeight - finalTargetWeight;
-
-          const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
-          let nap = 1.2;
-          if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-          else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-          else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
-          const tdee = bmr * nap;
-          let rawCalories = tdee;
-          if (diagData.goalType === 'Perte de poids') {
-             rawCalories = tdee - deficit;
-          } else if (diagData.goalType === 'Prise de masse') {
-             rawCalories = tdee + 300;
-          } else if (diagData.goalType === 'Maintien') {
-             rawCalories = tdee;
-          }
-          if (diagData.healthProfile === "Allaitement") rawCalories += 500;
-          
-          const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
-          let proteinRatio = age >= 50 ? 0.35 : 0.30;
-          const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
-          const protein = (dailyCalories * proteinRatio) / 4;
-          const fats = (dailyCalories * 0.30) / 9;
-
-          localStorage.setItem('onyx_nutrition_goals', JSON.stringify({ calories: dailyCalories, carbs, protein, fats }));
-          setCalorieGoal(Math.round(dailyCalories));
-          setProteinGoal(Math.round(protein));
-          setCarbsGoal(Math.round(carbs));
-          setFatsGoal(Math.round(fats));
+          localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
+              calories: results.calories,
+              carbs: results.carbs,
+              protein: results.protein,
+              fats: results.fats
+          }));
+          setCalorieGoal(results.calories);
+          setProteinGoal(results.protein);
+          setCarbsGoal(results.carbs);
+          setFatsGoal(results.fats);
 
           if (clientProfile && user) {
               const payload = {
                   client_id: clientProfile.id,
-                  daily_calorie_goal: Math.round(dailyCalories),
-                  carbs_goal: Math.round(carbs),
-                  protein_goal: Math.round(protein),
-                  fats_goal: Math.round(fats),
+                  daily_calorie_goal: results.calories,
+                  carbs_goal: results.carbs,
+                  protein_goal: results.protein,
+                  fats_goal: results.fats,
                   diagnostic_data: { 
                       ...diagData,
-                      bmr: Math.round(bmr),
-                      tdee: Math.round(tdee)
+                      bmr: results.bmr,
+                      tdee: results.tdee
                   }
               };
               console.log("Payload du diagnostic (Espace Client):", payload);

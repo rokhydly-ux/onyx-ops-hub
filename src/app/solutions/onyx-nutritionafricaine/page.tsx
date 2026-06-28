@@ -214,6 +214,7 @@ export default function NutritionAfricaineLanding() {
     saas: ""
   });
   const [forceTarget, setForceTarget] = useState(false);
+  const [tempCredentials, setTempCredentials] = useState({ phone: "", password: "" });
 
   // Carousel & FAQ State
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -333,57 +334,99 @@ export default function NutritionAfricaineLanding() {
     }
   };
 
-    const calculateDailyCalories = (data: any, forceSafeMode: boolean = false) => {
+
+  const calculateMacrosAndCalories = (data: any) => {
       const heightCm = parseFloat(data.height) || 0;
       const currentWeight = parseFloat(data.currentWeight) || 0;
       const targetWInput = parseFloat(data.targetWeight) || 0;
       const age = parseFloat(data.age) || 0;
       const isMale = data.gender === "Homme";
 
-      const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+      let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+
+      const healthProfile = data.healthProfile || "";
+      if (healthProfile.includes("SOPK") || healthProfile.includes("Ménopause") || healthProfile.includes("Préménopause") || healthProfile.includes("Hypothyroïdie") || healthProfile === "Changements hormonaux") {
+          bmr = bmr * 0.90;
+      }
 
       let nap = 1.2;
       if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
       else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
       else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
 
-      const tdee = bmr * nap;
+      let tdee = bmr * nap;
+
+      if (healthProfile === "Allaitement") {
+          tdee += 400;
+      }
 
       const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
       const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
       const weightToLose = currentWeight - finalTargetWeight;
 
-      let requiredDailyDeficit = 0;
-      const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-      const now = new Date();
-      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+      let rawCalories = tdee;
+      let calculatedHealthyDate = data.targetDate;
+      let isCapped = false;
+      let deficit = 0;
 
       if (data.goalType === 'Perte de poids' && weightToLose > 0) {
-          requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+          let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+          const now = new Date();
+          let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+
+          if (!data.targetDate) {
+              if (data.weightLossPace === 'Progressivement') deficit = 300;
+              else if (data.weightLossPace === 'Rapidement') deficit = 700;
+              else deficit = 500;
+              isCapped = false; // It's a manual deficit, not date driven
+          } else {
+              deficit = (weightToLose * 7700) / daysToTarget;
+              if (deficit > 1000) {
+                  deficit = 1000;
+                  isCapped = true;
+                  const safeDays = Math.ceil((weightToLose * 7700) / 1000);
+                  const safeDate = new Date(now.getTime() + (safeDays * 24 * 3600 * 1000));
+                  calculatedHealthyDate = safeDate.toISOString().split('T')[0];
+              }
+          }
+
+          rawCalories = tdee - deficit;
+      } else if (data.goalType === 'Prise de masse') {
+          rawCalories = tdee + 300;
+      } else if (data.goalType === 'Maintien') {
+          rawCalories = tdee;
       }
 
-      const maxSafeWeeklyLossKg = currentWeight * 0.01;
-      const maxSafeDailyDeficit = (maxSafeWeeklyLossKg * 7700) / 7;
+      let proteinRatio = age >= 50 ? 0.35 : 0.30;
+      let carbsRatio = 0.70 - proteinRatio;
+      let fatsRatio = 0.30;
 
-      if (forceSafeMode) {
-          requiredDailyDeficit = Math.min(500, maxSafeDailyDeficit);
+      if (healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
       }
 
-      let rawCalories = tdee;
-      if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
-      else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
-      else if (data.goalType === 'Maintien') rawCalories = tdee;
-      if (data.healthProfile === "Allaitement") rawCalories += 500;
+      const carbs = (rawCalories * carbsRatio) / 4;
+      const protein = (rawCalories * proteinRatio) / 4;
+      const fats = (rawCalories * fatsRatio) / 9;
 
-      // Absolute floor of 1200 kcal to prevent negative or dangerously low calories when date is too close
-      let finalCalories = rawCalories;
-      const floorCalories = 1200;
-      if (finalCalories < floorCalories) {
-          finalCalories = floorCalories;
-      }
-
-      return Math.round(finalCalories);
+      return {
+          calories: Math.round(rawCalories),
+          carbs: Math.round(carbs),
+          protein: Math.round(protein),
+          fats: Math.round(fats),
+          bmr: Math.round(bmr),
+          tdee: Math.round(tdee),
+          isCapped,
+          healthyDate: calculatedHealthyDate
+      };
   };
+
+  const calculateDailyCalories = (data: any, forceSafeMode: boolean = false) => {
+      return calculateMacrosAndCalories(data).calories;
+  };
+
 
   // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
@@ -409,25 +452,42 @@ export default function NutritionAfricaineLanding() {
 
       const result = await res.json();
       
+      let finalUserId = null;
+
       if (!res.ok) {
           if (result.error && result.error.includes("already registered")) {
-              // Si existe déjà, on le connecte
+              // Si existe déjà, on va d'abord chercher l'utilisateur
+              // via l'API RPC de Supabase ou une requête dans la table clients (pour récupérer l'ID)
+              const { data: existingClient, error: clientFetchError } = await supabase.from('clients').select('id').eq('phone', cleanPhone).maybeSingle();
+              if (existingClient && existingClient.id) {
+                  finalUserId = existingClient.id;
+              } else {
+                 throw new Error("Compte existant mais impossible de récupérer l'ID client.");
+              }
+
+              // On essaye de le connecter avec le mot de passe généré juste pour la forme (s'il n'a pas changé), mais on ne bloque pas si le mot de passe est faux car on a déjà l'ID.
               await supabase.auth.signInWithPassword({
                   email: `${cleanPhone}@clients.onyxcrm.com`,
                   password: generatedPassword
-              });
+              }).catch(e => console.log('Login attempt failed, user might have changed password'));
+
           } else {
               throw new Error(result.error || "Erreur lors de la création du compte");
           }
       } else {
-          // Nouveau compte, on le connecte
+          // Nouveau compte, on utilise clientId retourné par l'API
+          finalUserId = result.clientId || result.user?.id;
+
           await supabase.auth.signInWithPassword({
               email: `${cleanPhone}@clients.onyxcrm.com`,
               password: generatedPassword
           });
       }
 
-      const userId = result.user?.id || crypto.randomUUID();
+      if (!finalUserId) {
+         throw new Error("Impossible de récupérer l'identifiant du client (client_id). Création de profil impossible.");
+      }
+      const userId = finalUserId;
 
       // 3. Stockage de la session
       const sessionData = {
@@ -438,94 +498,62 @@ export default function NutritionAfricaineLanding() {
          type: 'Client'
       };
       localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
+      setTempCredentials({ phone: cleanPhone, password: generatedPassword });
 
-      setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
+      const results = calculateMacrosAndCalories(diagData);
 
-          const heightCm = parseFloat(diagData.height) || 0;
-          const currentWeight = parseFloat(diagData.currentWeight) || 0;
-          const age = parseFloat(diagData.age) || 0;
-          const isMale = diagData.gender === "Homme";
-          const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-          const weightToLose = currentWeight - idealWeight;
-          const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
-          let nap = 1.2;
-          if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-          else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-          else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
-          const tdee = bmr * nap;
-          
-          let rawCalories = tdee;
-          if (diagData.goalType === 'Perte de poids') {
-             let deficit = 500;
-             if (diagData.weightLossPace === 'Progressivement') deficit = 300;
-             else if (diagData.weightLossPace === 'Rapidement') deficit = 700;
-             rawCalories = tdee - deficit;
-          } else if (diagData.goalType === 'Prise de masse') {
-             rawCalories = tdee + 300;
-          } else if (diagData.goalType === 'Maintien') {
-             rawCalories = tdee;
-          }
-          
-          if (diagData.healthProfile === "Allaitement") {
-              rawCalories += 500;
-          }
-          // We use the new dynamic logic function here as well to ensure consistency and floor rules
-          const dailyCalories = calculateDailyCalories(diagData);
+      localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
+         calories: results.calories, carbs: results.carbs, protein: results.protein, fats: results.fats
+      }));
 
-          let proteinRatio = 0.30;
-          if (age >= 50) proteinRatio = 0.35;
-          
-          const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
-          const protein = (dailyCalories * proteinRatio) / 4;
-          const fats = (dailyCalories * 0.30) / 9;
+      // Set healthy date back to diagData if capped
+      let finalDiagData = { ...diagData };
+      if (results.isCapped) {
+          finalDiagData.targetDate = results.healthyDate;
+      }
 
-          localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
-             calories: dailyCalories, carbs, protein, fats
-          }));
+      const payload = {
+         phone: finalDiagData.phone,
+         client_id: userId,
+         diagnostic_data: {
+             ...finalDiagData,
+             bmr: results.bmr,
+             tdee: results.tdee,
+         },
+         daily_calorie_goal: results.calories,
+         carbs_goal: results.carbs,
+         protein_goal: results.protein,
+         fats_goal: results.fats,
+         weekly_menu: []
+      };
 
-          const payload = {
-             phone: diagData.phone,
-             client_id: userId,
-             bmr: Math.round(bmr),
-             tdee: Math.round(tdee),
-             daily_calorie_goal: Math.round(dailyCalories),
-             carbs_goal: Math.round(carbs),
-             protein_goal: Math.round(protein),
-             fats_goal: Math.round(fats),
-             diagnostic_data: diagData,
-             weekly_menu: [] 
-          };
-          console.log("Diagnostic Landing payload en cours d'enregistrement:", payload);
+      const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+      if (profileErr) {
+          alert("Erreur SQL lors de l'enregistrement : " + profileErr.message);
+          throw profileErr;
+      }
 
-          const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
-          if (profileErr) {
-              alert("Erreur SQL lors de l'enregistrement : " + profileErr.message);
-              throw profileErr;
-          }
-
-          await supabase.from('leads').insert([{
-        full_name: diagData.name,
-        phone: diagData.phone,
+      await supabase.from('leads').insert([{
+        full_name: finalDiagData.name,
+        phone: finalDiagData.phone,
         source: "Diagnostic Nutrition Landing",
         intent: "A complété son diagnostic (Attente Plan)",
         status: "Nouveau",
         saas: "Nutrition à l'Africaine",
-            message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Poids cible: ${idealWeight.toFixed(1)}kg | Profil Santé: ${diagData.healthProfile || '-'}`
+        message: `BMR: ${results.bmr} | Objectif: ${results.calories} kcal | Profil Santé: ${finalDiagData.healthProfile || '-'}`
       }]);
       
-      // GÉNÉRATION DU MESSAGE D'ONBOARDING AUTOMATIQUE SELON LE PROFIL
       let welcomeMsg = "";
-      if (diagData.healthProfile === "Allaitement") {
-          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de maman allaitante, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
-      } else if (diagData.healthProfile === "Changements hormonaux" || age >= 50) {
-          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger tes articulations tout en douceur. Prête à retrouver la forme ?`;
+      if (finalDiagData.healthProfile === "Allaitement") {
+          welcomeMsg = `Bonjour ${finalDiagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de maman allaitante, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
+      } else if (finalDiagData.healthProfile === "Changements hormonaux" || parseFloat(finalDiagData.age) >= 50) {
+          welcomeMsg = `Bonjour ${finalDiagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger tes articulations tout en douceur. Prête à retrouver la forme ?`;
       } else {
-          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+          welcomeMsg = `Bonjour ${finalDiagData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
       }
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-      // Affiche proprement l'écran de succès final
-      router.push('/nutrition?from=diagnostic');
+      setDiagStep(10);
 
     } catch (err: any) {
       console.error("Erreur complète :", err);
@@ -609,33 +637,22 @@ export default function NutritionAfricaineLanding() {
   };
 
   // --- MOTEUR DE CALCUL NUTRITIONNEL (Pour le résultat Choc) ---
-  const heightCm = parseFloat(diagData.height) || 0;
-  const currentWeight = parseFloat(diagData.currentWeight) || 0;
-  const age = parseFloat(diagData.age) || 0;
-  const isMale = diagData.gender === "Homme";
   
-  const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-  const targetW = parseFloat(diagData.targetWeight);
-  const finalTargetWeight = targetW > 0 ? targetW : idealWeight;
-  const weightToLose = currentWeight - finalTargetWeight;
   
-  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0;
-  const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
-  let nap = 1.2;
-  if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-  else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-  else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
-  const tdee = bmr * nap;
+  // --- MOTEUR DE CALCUL NUTRITIONNEL ---
+  const results = calculateMacrosAndCalories(diagData);
 
-  // Use the exact same shared logic for the final recap view instead of old hardcoded math
-  const dailyCalories = calculateDailyCalories(diagData);
-
-  const heightM = heightCm / 100;
+  const heightM = (parseFloat(diagData.height) || 0) / 100;
   const currentW = parseFloat(diagData.currentWeight) || 0;
   const targetWInput = parseFloat(diagData.targetWeight) || 0;
   const idealW = heightM > 0 ? 22 * (heightM * heightM) : 0;
   const diffIdealTarget = Math.abs(targetWInput - idealW);
   const showWarning = targetWInput > 0 && idealW > 0 && diffIdealTarget > 5;
+  const finalTargetWeight = targetWInput > 0 ? targetWInput : idealW;
+  const weightToLose = currentW - finalTargetWeight;
+  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0;
+
+
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -1730,16 +1747,42 @@ export default function NutritionAfricaineLanding() {
                     </div>
                   )}
                 </form>
+
               ) : (
                 <div className="text-center py-6 animate-in zoom-in">
                   <CheckCircle className="text-[#39FF14] w-24 h-24 mx-auto mb-8 drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]" />
-                  <div className="bg-zinc-50 p-8 rounded-[2rem] border border-zinc-100 max-w-xl mx-auto mb-10 text-left shadow-sm">
+                  <div className="bg-zinc-50 p-8 rounded-[2rem] border border-zinc-100 max-w-xl mx-auto mb-6 text-left shadow-sm">
                     <p className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-800 text-center">Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-3xl">{calculateDailyCalories(diagData)}</strong> kcal/jour.</p>
                     <p className="text-lg md:text-xl font-medium leading-relaxed text-zinc-800 mt-6 text-center">La bonne nouvelle ? Vous n'aurez <span className="underline decoration-[#39FF14] decoration-4 font-bold">plus jamais</span> à les compter. Suivez simplement nos portions en bols et cuillères.</p>
                   </div>
+
+                  {/* ALERTE ZERO FRICTION - IDENTIFIANTS */}
+                  <div className="bg-orange-50 border border-orange-200 p-6 rounded-2xl max-w-xl mx-auto mb-10 text-left">
+                     <p className="text-sm font-black text-orange-600 uppercase tracking-widest flex items-center gap-2 mb-4">
+                        <AlertTriangle size={18}/> Compte créé avec succès !
+                     </p>
+                     <p className="text-sm font-medium text-orange-900 mb-4">
+                        ⚠️ Voici vos accès temporaires pour vous reconnecter plus tard :
+                     </p>
+                     <div className="space-y-2 mb-4 bg-white p-4 rounded-xl border border-orange-100">
+                        <div className="flex justify-between items-center">
+                           <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Numéro WhatsApp :</span>
+                           <span className="font-black text-black text-sm">{tempCredentials.phone || diagData.phone}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                           <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Mot de passe :</span>
+                           <span className="font-black text-black text-sm">{tempCredentials.password || "00000000"}</span>
+                        </div>
+                     </div>
+                     <p className="text-xs font-bold text-orange-800 flex items-center flex-wrap">
+                        Vous pourrez le modifier dans vos paramètres <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" alt="Réglages" className="w-6 h-6 rounded-full inline-block ml-2"/>
+                     </p>
+                  </div>
+
                   <button type="button" onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full max-w-md mx-auto bg-[#39FF14] text-black py-6 rounded-2xl font-black uppercase md:text-lg tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.4)] animate-pulse flex justify-center items-center gap-2">Découvrir mon Sama Menu</button>
                 </div>
               )}
+
             </div>
           </div>
         </div>

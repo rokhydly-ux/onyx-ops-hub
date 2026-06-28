@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, user: authData.user }, { status: 200 });
+    return NextResponse.json({ success: true, user: authData.user, clientId: userId }, { status: 200 });
   } catch (error: any) {
     console.error('Erreur API create-user:', error.stack || error.message || error);
     return NextResponse.json({ error: error.message || JSON.stringify(error) }, { status: 500 });
