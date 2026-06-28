@@ -1310,96 +1310,96 @@ export default function NutritionDashboard() {
   };
 
 
-  const calculateDailyCalories = (data: any) => {
-    const heightCm = parseFloat(data.height) || 0;
-    const currentWeight = parseFloat(data.currentWeight) || 0;
-    const targetWInput = parseFloat(data.targetWeight) || 0;
-    const age = parseFloat(data.age) || 0;
-    const isMale = data.gender === "Homme";
+  const calculateMacrosAndCalories = (data: any) => {
+      const heightCm = parseFloat(data.height) || 0;
+      const currentWeight = parseFloat(data.currentWeight) || 0;
+      const targetWInput = parseFloat(data.targetWeight) || 0;
+      const age = parseFloat(data.age) || 0;
+      const isMale = data.gender === "Homme";
 
-    // 1. Calcul du BMR (Mifflin-St Jeor)
-    let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+      let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-    // 2. Modificateur Hormonal (SOPK / Ménopause / Hypothyroïdie)
-    if (data.gender === "Femme" && (data.healthProfile === "SOPK" || data.healthProfile === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie" || data.healthProfile === "Périménopause/Ménopause" || data.healthProfile === "SOPK (Syndrome des ovaires polykystiques)")) {
-        bmr = bmr * 0.90; // Malus métabolique de -10%
-    }
+      const healthProfile = data.healthProfile || "";
+      if (healthProfile.includes("SOPK") || healthProfile.includes("Ménopause") || healthProfile.includes("Préménopause") || healthProfile.includes("Hypothyroïdie") || healthProfile === "Changements hormonaux") {
+          bmr = bmr * 0.90;
+      }
 
-    // 3. Calcul du TDEE via le NAP
-    let nap = 1.2;
-    if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)" || data.dailySteps === "Léger") nap = 1.375;
-    else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)" || data.dailySteps === "Actif") nap = 1.55;
-    else if (data.dailySteps === "10 000+ pas/jour (Très actif)" || data.dailySteps === "Très actif") nap = 1.725;
-    let tdee = bmr * nap;
+      let nap = 1.2;
+      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
 
-    // 4. Bonus Allaitement / Grossesse
-    if (data.gender === "Femme" && (data.healthProfile === "Allaitement" || data.healthProfile === "Grossesse")) {
-        tdee += 400; // Bonus énergétique vital
-    }
+      let tdee = bmr * nap;
 
-    // 5. Calcul du déficit (selon la date)
-    let requiredDailyDeficit = 0;
-    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-    const now = new Date();
-    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
-    const weightToLose = currentWeight - targetWInput;
+      if (healthProfile === "Allaitement") {
+          tdee += 400;
+      }
 
-    if (data.goalType === 'Perte de poids' && weightToLose > 0) {
-        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
-    }
+      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
+      const weightToLose = currentWeight - finalTargetWeight;
 
-    // 6. Plafond du déficit (Max 1000 kcal/jour)
-    if (requiredDailyDeficit > 1000) {
-        requiredDailyDeficit = 1000;
-    }
+      let rawCalories = tdee;
+      let isCapped = false;
+      let deficit = 0;
 
-    let rawCalories = tdee;
-    if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
-    else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
+      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+          if (!data.targetDate) {
+              if (data.weightLossPace === 'Progressivement') deficit = 300;
+              else if (data.weightLossPace === 'Rapidement') deficit = 700;
+              else deficit = 500;
+              isCapped = false; // It's a manual deficit, not date driven
+          } else {
+              let userTargetDate = new Date(data.targetDate);
+              const now = new Date();
+              let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
-    // 7. Plancher Médical (Anti-privation)
-    const floorCalories = isMale ? 1500 : 1200;
-    const finalCalories = Math.max(floorCalories, rawCalories);
+              deficit = (weightToLose * 7700) / daysToTarget;
+              if (deficit > 1000) {
+                  deficit = 1000;
+                  isCapped = true;
+              }
+          }
 
-    return {
-        calories: Math.round(finalCalories),
-        deficit: Math.round(tdee - finalCalories),
-        tdee: Math.round(tdee),
-        hitFloor: finalCalories === floorCalories
-    };
-};
+          rawCalories = tdee - deficit;
+      } else if (data.goalType === 'Prise de masse') {
+          rawCalories = tdee + 300;
+      } else if (data.goalType === 'Maintien') {
+          rawCalories = tdee;
+      }
+
+      let proteinRatio = age >= 50 ? 0.35 : 0.30;
+      let carbsRatio = 0.70 - proteinRatio;
+      let fatsRatio = 0.30;
+
+      if (healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
+      }
+
+      const carbs = (rawCalories * carbsRatio) / 4;
+      const protein = (rawCalories * proteinRatio) / 4;
+      const fats = (rawCalories * fatsRatio) / 9;
+
+      return {
+          calories: Math.round(rawCalories),
+          carbs: Math.round(carbs),
+          protein: Math.round(protein),
+          fats: Math.round(fats),
+          bmr: Math.round(bmr),
+          tdee: Math.round(tdee),
+          isCapped
+      };
+  };
+
 
   const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       setIsSubmittingDiag(true);
       try {
-
-          const calcResult = calculateDailyCalories(diagData);
-          const dailyCalories = calcResult.calories;
-          const age = parseFloat(diagData.age) || 0;
-
-          let carbsRatio = 0.50;
-          let proteinRatio = age >= 50 ? 0.35 : 0.30;
-          let fatsRatio = 1 - carbsRatio - proteinRatio;
-
-          // Règle Diabète
-          if (diagData.healthProfile === "Diabète") {
-              carbsRatio = 0.40;
-              proteinRatio = 0.35;
-              fatsRatio = 0.25;
-          }
-          const carbs = Math.round((dailyCalories * carbsRatio) / 4);
-          const protein = Math.round((dailyCalories * proteinRatio) / 4);
-          const fats = Math.round((dailyCalories * fatsRatio) / 9);
-
-          const results = {
-              calories: dailyCalories,
-              carbs, protein, fats,
-              bmr: calcResult.tdee, // approximated BMR/TDEE logic for local storage
-              tdee: calcResult.tdee
-          };
-
+          const results = calculateMacrosAndCalories(diagData);
 
           localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
               calories: results.calories,
@@ -3474,6 +3474,45 @@ export default function NutritionDashboard() {
         )}
 
 
+        {activeTab === 'profile' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <h3 className="text-xl font-black uppercase text-black mb-2 flex items-center gap-2"><Apple className="text-[#39FF14]" size={28}/> Bibliothèque d'Aliments Sains</h3>
+               <p className="text-sm text-zinc-500 font-medium mb-6">Découvrez notre base d'aliments recommandés et leurs unités de mesure.</p>
+
+               {shopDataDB.length === 0 ? (
+                   <div className="text-center py-10">
+                       <p className="text-zinc-500">Aucun aliment n'a été importé pour le moment.</p>
+                   </div>
+               ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                       {shopDataDB.flatMap(cat => cat.produits).map((product: any, idx: number) => (
+                           <div key={idx} className="bg-zinc-50 rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow border border-zinc-100">
+                               {product.image_url ? (
+                                   <img src={product.image_url} alt={product.nom} className="w-16 h-16 rounded-xl object-cover" />
+                               ) : (
+                                   <div className="w-16 h-16 rounded-xl bg-zinc-200 flex items-center justify-center flex-shrink-0">
+                                       <Apple className="text-zinc-400" size={24} />
+                                   </div>
+                               )}
+                               <div className="flex-1">
+                                   <h4 className="font-bold text-sm text-black">{product.nom}</h4>
+                                   <p className="text-xs text-zinc-500 uppercase tracking-wider">{product.categorie_nom}</p>
+                                   <div className="flex items-center gap-2 mt-2">
+                                       <span className="text-[10px] bg-black text-white px-2 py-1 rounded-md font-bold">Unité : {product.ux_unit || 'portion'}</span>
+                                       {isExpertMode && product.calories && (
+                                           <span className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-md font-bold">{product.calories} kcal</span>
+                                       )}
+                                   </div>
+                               </div>
+                           </div>
+                       ))}
+                   </div>
+               )}
+            </div>
+          </div>
+        )}
+
         {/* VUE COACHING */}
         {activeTab === 'coaching' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
@@ -5118,7 +5157,7 @@ export default function NutritionDashboard() {
                     </div>
                   )}
 
-                  {diagStep < 10 && (
+                  {diagStep < 7 && (
                     <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
                         {diagStep > 1 && (
                             <button type="button" onClick={() => setDiagStep(s => s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
@@ -5127,7 +5166,7 @@ export default function NutritionDashboard() {
                         )}
                         <button 
                             type="button" 
-                            onClick={() => setDiagStep(s => s === 5 ? 10 : s + 1)}
+                            onClick={() => setDiagStep(s => s + 1)}
                             disabled={
                                 (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight)) ||
                                 (diagStep === 3 && !diagData.healthProfile)
