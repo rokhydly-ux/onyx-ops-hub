@@ -401,6 +401,512 @@ export default function NutritionAfricaineLanding() {
 
       const calcResult = calculateDailyCalories(diagData);
       const dailyCalories = calcResult.calories;
+      const ageNum = parseFloat(diagData.age) || 0;
+      let carbsRatio = 0.50;
+      let proteinRatio = ageNum >= 50 ? 0.35 : 0.30;
+      let fatsRatio = 1 - carbsRatio - proteinRatio;
+      if (diagData.healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
+      }
+
+      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
+      const protein = Math.round((dailyCalories * proteinRatio) / 4);
+      const fats = Math.round((dailyCalories * fatsRatio) / 9);
+
+      // Set healthy date back to diagData if capped
+      let finalDiagData = { ...diagData };
+      if (calcResult.hitFloor || calcResult.deficit >= 1000) {
+           // (This is mostly done via the UI button, but kept here for safety)
+      }
+
+      // Destructure to remove phone which shouldn't be saved in nutrition_profiles
+      const { phone: _discardedPhone, ...restDiagData } = finalDiagData;
+
+      const payloadData = {
+          ...restDiagData,
+          bmr: calcResult.tdee,
+          tdee: calcResult.tdee
+      };
+
+      // 1. Generation du mot de passe standardisé
+      const cleanPhone = diagData.phone.replace(/\s+/g, '');
+      const generatedPassword = cleanPhone.slice(-8).padStart(8, "0"); // Mot de passe simple à 5 caractères
+
+      // 2. Création de l'utilisateur via l'API Admin
+      const res = await fetch('/api/create-user', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+             fullName: diagData.name,
+             phone: cleanPhone,
+             password: generatedPassword,
+             role: 'client',
+             saas: "Nutrition à l'Africaine"
+         })
+      });
+
+      const result = await res.json();
+
+      let finalUserId = null;
+      if (!res.ok) {
+          if (result.error && result.error.includes("already registered")) {
+              const signInRes = await supabase.auth.signInWithPassword({
+                  phone: cleanPhone,
+                  password: generatedPassword
+              });
+              if (signInRes.data.user) {
+                  finalUserId = signInRes.data.user.id;
+              } else {
+                  throw new Error("Erreur reconnexion.");
+              }
+          } else {
+              throw new Error(result.error || "Erreur création client.");
+          }
+      } else {
+          finalUserId = result.user.id;
+      }
+
+      if (!finalUserId) throw new Error("Impossible de récupérer l'ID client.");
+
+      const userId = finalUserId;
+
+      // 3. Stockage de la session
+      const sessionData = {
+         id: userId,
+         full_name: diagData.name,
+         phone: cleanPhone,
+         plan_type: 'essai',
+         type: 'Client'
+      };
+      localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
+
+      const { data: upsertData, error: upsertErr } = await supabase.from('nutrition_profiles').upsert({
+            id: finalUserId,
+            client_id: finalUserId,
+            daily_calorie_goal: dailyCalories,
+            carbs_goal: carbs,
+            protein_goal: protein,
+            fats_goal: fats,
+            diagnostic_data: payloadData
+         }, { onConflict: 'id' });
+
+      if (upsertErr) {
+          console.error("Upsert nutrition profile error:", upsertErr);
+      }
+
+      setTempCredentials({ phone: cleanPhone, password: generatedPassword });
+      setDiagStep(11); // Trigger success UI (Correction 4)
+      setIsSubmittingDiag(false);
+    } catch (err) {
+      console.error(err);
+      setIsSubmittingDiag(false);
+    }
+  };
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+import {
+  Activity, HeartPulse, Smartphone, Flame, CheckCircle, Wind, Droplet,
+  ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
+  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag, Utensils
+} from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import Autoplay from "embla-carousel-autoplay";
+import jsPDF from "jspdf";
+
+const spaceGrotesk = { className: "font-sans" };
+
+const TESTIMONIALS = [
+  {
+    name: "Aïssatou K.",
+    role: "35 ans, Mère de famille, Dakar",
+    text: "Finie la fatigue de l'après-midi. Je mange avec mes enfants et le suivi WhatsApp me motive tous les jours !",
+    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg", // Placeholder, replace with actual image if available
+    stats: "-8 kg en 3 mois"
+  },
+  {
+    name: "Penda DIOP",
+    role: "56 ans, Retraitée, Saint-Louis",
+    text: "Mon médecin m'avait dit de faire attention au diabète et au sel. L'application m'a sauvé la vie en me montrant comment remplacer le cube Maggi par le Nététou brut.",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111507_ukx5d4.jpg",
+    stats: "Profil Périménopause"
+  },
+  {
+    name: "Amadou T.",
+    role: "62 ans, Cadre, Dakar",
+    text: "J'ai éliminé mon ventre de sédentaire en 2 mois au restaurant en apprenant à choisir les bonnes céréales. Ma tension est redevenue stable.",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111512_f3zs3t.jpg",
+    stats: "Profil Tension & Ventre Plat"
+  }
+];
+
+const CalorieGauge = ({ value, maxValue = 1200, colorClass, label }: { value: number, maxValue?: number, colorClass: string, label: string }) => {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.min(value / maxValue, 1);
+  const offset = circumference - progress * circumference;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative w-32 h-32">
+        <svg className="w-full h-full" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            className="stroke-current text-zinc-200"
+            strokeWidth="12"
+            fill="transparent"
+          />
+          {/* Progress circle */}
+          <motion.circle
+            cx="50"
+            cy="50"
+            r={radius}
+            className={`stroke-current ${colorClass}`}
+            strokeWidth="12"
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+            initial={{ strokeDashoffset: circumference }}
+            whileInView={{ strokeDashoffset: offset }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.5, ease: "circOut" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className={`text-3xl font-black ${colorClass}`}>{value}</span>
+          <span className="text-xs font-bold text-zinc-500">kcal</span>
+        </div>
+      </div>
+      <p className="text-xs font-black uppercase tracking-widest text-center">{label}</p>
+    </div>
+  );
+};
+
+const INGREDIENTS = [
+  { name: "Le Fonio", benefits: "L'alternative n'1 au riz blanc", desc: "Indice glycémique très bas, idéal pour couper la faim des diabétiques. Retrouvez-le au rayon terroir chez Auchan Sénégal.", icon: "🌾" },
+  { name: "Le Soumbala (Nététou)", benefits: "Notre bouillon cube naturel", desc: "Donne le goût traditionnel aux sauces tout en aidant à réguler la tension artérielle. Disponible sur tous les marchés locaux.", icon: "🍲" },
+  { name: "La Poudre de Bouye (Baobab)", benefits: "6 fois plus riche en vitamine C que l'orange", desc: "Ses fibres se transforment en gel coupe-faim naturel dans l'estomac. Un coupe-faim naturel et délicieux.", icon: "🌳" },
+  { name: "Le Riz local étuvé", benefits: "Moins transformé que le riz blanc", desc: "Une option plus saine que le riz blanc classique, avec un indice glycémique légèrement plus bas. Retrouvez-le chez Auchan Sénégal.", icon: "🍚" }
+];
+
+const DISH_CALORIES: Record<string, { calories: number; optimizedCalories: number; tip: string }> = {
+  "Thieboudienne (Plat standard)": {
+    calories: 850,
+    optimizedCalories: 550,
+    tip: "En réduisant l'huile et en privilégiant le poisson, on peut facilement descendre à 550 kcal tout en gardant le goût !"
+  },
+  "Mafé (Plat standard)": {
+    calories: 950,
+    optimizedCalories: 600,
+    tip: "Le secret ? Contrôler la quantité de pâte d'arachide et d'huile. Une version rééquilibrée tourne autour de 600 kcal."
+  },
+  "Yassa Poulet (Plat standard)": {
+    calories: 750,
+    optimizedCalories: 500,
+    tip: "Utiliser du poulet sans la peau et une cuisson avec moins d'huile (ou Air Fryer) peut ramener ce plat à 500 kcal."
+  }
+};
+
+const FAQ_DATA = [
+  {
+    question: "Est-ce un régime restrictif ?",
+    answer: "Non, pas du tout. 'Nutrition à l'Africaine' est un rééquilibrage alimentaire, pas un régime. Nous n'éliminons aucun groupe d'aliments. Le but est de vous apprendre à manger les bonnes portions de VOS plats, pour des résultats durables sans frustration."
+  },
+  {
+    question: "Dois-je arrêter de manger du Thieboudienne ou du Mafé ?",
+    answer: "Absolument pas ! C'est le cœur de notre méthode. Nous vous montrons comment continuer à manger vos plats préférés en ajustant simplement les quantités et la fréquence, pour qu'ils s'intègrent dans votre objectif de perte de poids."
+  },
+  {
+    question: "Comment fonctionne le suivi sur WhatsApp ?",
+    answer: "Chaque semaine, vous avez un point avec votre coach nutritionniste directement sur WhatsApp. Vous pouvez poser vos questions, partager vos repas en photo pour des conseils, et recevoir la motivation nécessaire. C'est comme avoir un expert dans votre poche."
+  },
+  {
+    question: "Est-ce que ça coûte cher en courses ?",
+    answer: "Non, car notre programme est basé sur les aliments que vous achetez déjà au marché local. Pas de quinoa, de baies de goji ou de produits importés coûteux. On optimise ce qui est déjà dans votre cuisine."
+  },
+  {
+    question: "En combien de temps puis-je voir des résultats ?",
+    answer: "La plupart de nos membres ressentent une différence (plus d'énergie, moins de ballonnements) dès la première semaine. La perte de poids visible commence généralement dès le premier mois. Notre objectif est une perte de poids saine et durable, pas un 'choc' pour votre corps."
+  }
+];
+
+const FAMILY_APPROACH_POINTS_NEW = [
+  {
+    icon: "🍲",
+    title: "Partagez la même sauce",
+    text: "Vous mangez le même Yassa savoureux (légumes, poisson, zébu) que vos proches."
+  },
+  {
+    icon: "🔄",
+    title: "Le 'Switch' Intelligent",
+    text: "Pendant que la famille prend le riz blanc lourd, vous versez votre portion de Fonio précuit ou de Riz local étuvé acheté chez Auchan Sénégal. C'est simple et discret."
+  },
+  {
+    icon: "⚖️",
+    title: "Le Contrôle des Portions",
+    text: "L'application vous apprend à vous servir la juste quantité dans le bol commun sans frustration."
+  },
+  {
+    icon: "👨‍👩‍👧‍👦",
+    title: "Montrez l'exemple",
+    text: "En mangeant plus sainement sans vous isoler, vous inspirez positivement vos proches. Le bien-être devient une affaire de famille." // Kept this one as it's still relevant
+  }
+];
+
+const HERO_SLIDES = [
+  {
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781371355/A_cinematic_16_9_split-screen_before-and-after_202606131604_id9wzx.jpg",
+    title: "PERDEZ JUSQU'À 8 KG CE MOIS-CI.",
+    highlight: "SANS RÉGIME TOUBAB.",
+    sub: "Affinez vos bras et retrouvez un ventre plat tout en mangeant du Yassa et du Thieb. Le rééquilibrage 100% sénégalais."
+  },
+  {
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/A_cinematic_16_9_wide_shot_202606131426_deadb8.jpg",
+    title: "ADIEU LE GROS VENTRE.",
+    highlight: "BONJOUR L'ÉNERGIE.",
+    sub: "Fini les ballonnements de l'après-midi. Apprenez à doser l'huile et remplacez le riz blanc pour une silhouette harmonieuse."
+  },
+  {
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/remplace_ses_vetements_avec_la_202606131429_l6inum.jpg",
+    title: "LA SANTÉ AVANT TOUT.",
+    highlight: "UNE LIGNE AFFINÉE.",
+    sub: "Régulez votre tension et traversez la ménopause avec légèreté grâce aux super-aliments de nos marchés."
+  }
+];
+
+export default function NutritionAfricaineLanding() {
+  const router = useRouter();
+  const waNumber = "221785338417";
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Modale Diagnostic State
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState(false);
+  const hasAutoOpened = useRef(false);
+  const [diagStep, setDiagStep] = useState(1);
+  const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
+  const [diagData, setDiagData] = useState({
+    name: "",
+    phone: "",
+    pin: "",
+    gender: "",
+    age: "",
+    birthDate: "",
+    height: "",
+    currentWeight: "",
+    targetWeight: "",
+    targetDate: "",
+    goalType: "Perte de poids",
+    dailySteps: "",
+    weightLossPace: "Normalement",
+    healthProfile: "",
+    mainChallenge: "",
+    dietaryHabits: "",
+    allergies: "",
+    cookingHabit: "",
+    weeklyBudget: "",
+    saas: ""
+  });
+  const [forceTarget, setForceTarget] = useState(false);
+  const [tempCredentials, setTempCredentials] = useState({ phone: "", password: "" });
+
+  // Carousel & FAQ State
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [showFreeMenuModal, setShowFreeMenuModal] = useState(false);
+  const [freeMenuData, setFreeMenuData] = useState({ name: '', contact: '' });
+
+  const [recentRecipe, setRecentRecipe] = useState<string | null>(null);
+
+  // Calorie Calculator State
+  const [selectedDish, setSelectedDish] = useState<string>("");
+  const [dishInfo, setDishInfo] = useState<{ calories: number; optimizedCalories: number; tip: string } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Lead Capture State for Calculator
+  const [calcLeadData, setCalcLeadData] = useState({ name: '', phone: '' });
+  const [isCalcLeadCaptured, setIsCalcLeadCaptured] = useState(false);
+  const [pendingDish, setPendingDish] = useState<string>("");
+  const [storeProducts, setStoreProducts] = useState<any[]>([]);
+
+  const [emblaStoreRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+
+  // Nouvelle logique Parallax globale liée au scroll de la page
+  const { scrollYProgress } = useScroll();
+
+  // 1. Fonio (en haut à droite, monte très lentement)
+  const yFonio = useTransform(scrollYProgress, [0, 1], [0, -400]);
+  // 2. Bissap (milieu gauche, descend légèrement avec très lente rotation)
+  const yBissap = useTransform(scrollYProgress, [0, 1], [0, 300]);
+  const rotateBissap = useTransform(scrollYProgress, [0, 1], [0, 15]);
+  // 3. Moringa (3/4 droite, Y statique, s'éloigne/se réduit)
+  const scaleMoringa = useTransform(scrollYProgress, [0, 1], [1, 0.6]);
+  // 4. Bouye (en bas à gauche, remonte délicatement en tournant)
+  const yBouye = useTransform(scrollYProgress, [0, 1], [0, -800]);
+  const rotateBouye = useTransform(scrollYProgress, [0, 1], [0, 90]);
+
+  const [heroSlide, setHeroSlide] = useState(0);
+  useEffect(() => {
+      const interval = setInterval(() => {
+          setHeroSlide(prev => (prev + 1) % HERO_SLIDES.length);
+      }, 5000);
+      return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+      const fetchRecentRecipe = async () => {
+          const { data } = await supabase.from('nutrition_recipes').select('nom').order('created_at', { ascending: false }).limit(1);
+          if (data && data.length > 0) setRecentRecipe(data[0].nom);
+      };
+      fetchRecentRecipe();
+  }, []);
+
+  const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
+  const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
+
+  // FOMO Timer
+  const [fomoTime, setFomoTime] = useState(900);
+  useEffect(() => {
+    const interval = setInterval(() => setFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (fomoTime > 0 && fomoTime <= 10) {
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    }
+  }, [fomoTime]);
+
+  useEffect(() => {
+      const fetchStore = async () => {
+          const { data } = await supabase.from('nutrition_products').select('*').limit(6);
+          if (data && data.length > 0) setStoreProducts(data);
+      };
+      fetchStore();
+  }, []);
+
+  const triggerResult = async (dishName: string) => {
+      if (DISH_CALORIES[dishName]) {
+          setDishInfo(DISH_CALORIES[dishName]);
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 5000);
+
+      // Sauvegarde du choix en arrière-plan pour analyse
+      try {
+         await supabase.from('leads').insert([{
+             full_name: calcLeadData.name || 'Visiteur (Calculateur)',
+             phone: calcLeadData.phone,
+             message: `Plat simulé : ${dishName}`,
+             intent: "Simulation de plat",
+             source: "Calculateur Calories",
+             status: 'Nouveau',
+             saas: "Nutrition à l'Africaine"
+         }]);
+      } catch (err) {}
+      }
+  };
+
+  // Calorie Calculator Handler
+  const handleDishChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const dishName = e.target.value;
+    setSelectedDish(dishName);
+
+    if (!dishName) {
+      setDishInfo(null);
+      setPendingDish("");
+      return;
+    }
+
+    if (isCalcLeadCaptured) {
+      triggerResult(dishName);
+    } else {
+      setPendingDish(dishName);
+      setDishInfo(null);
+    }
+  };
+
+
+  const calculateDailyCalories = (data: any) => {
+    const heightCm = parseFloat(data.height) || 0;
+    const currentWeight = parseFloat(data.currentWeight) || 0;
+    const targetWInput = parseFloat(data.targetWeight) || 0;
+    const age = parseFloat(data.age) || 0;
+    const isMale = data.gender === "Homme";
+
+    // 1. Calcul du BMR (Mifflin-St Jeor)
+    let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+
+    // 2. Modificateur Hormonal (SOPK / Ménopause / Hypothyroïdie)
+    if (data.gender === "Femme" && (data.healthProfile === "SOPK" || data.healthProfile === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie" || data.healthProfile === "Périménopause/Ménopause" || data.healthProfile === "SOPK (Syndrome des ovaires polykystiques)")) {
+        bmr = bmr * 0.90; // Malus métabolique de -10%
+    }
+
+    // 3. Calcul du TDEE via le NAP
+    let nap = 1.2;
+    if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)" || data.dailySteps === "Léger") nap = 1.375;
+    else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)" || data.dailySteps === "Actif") nap = 1.55;
+    else if (data.dailySteps === "10 000+ pas/jour (Très actif)" || data.dailySteps === "Très actif") nap = 1.725;
+    let tdee = bmr * nap;
+
+    // 4. Bonus Allaitement / Grossesse
+    if (data.gender === "Femme" && (data.healthProfile === "Allaitement" || data.healthProfile === "Grossesse")) {
+        tdee += 400; // Bonus énergétique vital
+    }
+
+    // 5. Calcul du déficit (selon la date)
+    let requiredDailyDeficit = 0;
+    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+    const now = new Date();
+    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    const weightToLose = currentWeight - targetWInput;
+
+    if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+    }
+
+    // 6. Plafond du déficit (Max 1000 kcal/jour)
+    if (requiredDailyDeficit > 1000) {
+        requiredDailyDeficit = 1000;
+    }
+
+    let rawCalories = tdee;
+    if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
+    else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
+
+    // 7. Plancher Médical (Anti-privation)
+    const floorCalories = isMale ? 1500 : 1200;
+    const finalCalories = Math.max(floorCalories, rawCalories);
+
+    return {
+        calories: Math.round(finalCalories),
+        deficit: Math.round(tdee - finalCalories),
+        tdee: Math.round(tdee),
+        hitFloor: finalCalories === floorCalories
+    };
+};
+
+  const handleDiagSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingDiag(true);
+    try {
+
+      const calcResult = calculateDailyCalories(diagData);
+      const dailyCalories = calcResult.calories;
       const age = parseFloat(diagData.age) || 0;
 
       let carbsRatio = 0.50;
