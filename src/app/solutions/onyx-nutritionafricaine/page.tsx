@@ -331,97 +331,68 @@ export default function NutritionAfricaineLanding() {
   };
 
 
-  const calculateMacrosAndCalories = (data: any) => {
-      const heightCm = parseFloat(data.height) || 0;
-      const currentWeight = parseFloat(data.currentWeight) || 0;
-      const targetWInput = parseFloat(data.targetWeight) || 0;
-      const age = parseFloat(data.age) || 0;
-      const isMale = data.gender === "Homme";
+  const calculateDailyCalories = (data: any) => {
+    const heightCm = parseFloat(data.height) || 0;
+    const currentWeight = parseFloat(data.currentWeight) || 0;
+    const targetWInput = parseFloat(data.targetWeight) || 0;
+    const age = parseFloat(data.age) || 0;
+    const isMale = data.gender === "Homme";
 
-      let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+    // 1. Calcul du BMR (Mifflin-St Jeor)
+    let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-      const healthProfile = data.healthProfile || "";
-      if (healthProfile.includes("SOPK") || healthProfile.includes("Ménopause") || healthProfile.includes("Préménopause") || healthProfile.includes("Hypothyroïdie") || healthProfile === "Changements hormonaux") {
-          bmr = bmr * 0.90;
-      }
+    // 2. Modificateur Hormonal (SOPK / Ménopause / Hypothyroïdie)
+    if (data.gender === "Femme" && (data.femaleSpecific === "SOPK" || data.femaleSpecific === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie")) {
+        bmr = bmr * 0.90; // Malus métabolique de -10%
+    }
 
-      let nap = 1.2;
-      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
-      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
-      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+    // 3. Calcul du TDEE via le NAP
+    let nap = 1.2;
+    if (data.activityLevel === "Léger") nap = 1.375;
+    else if (data.activityLevel === "Actif") nap = 1.55;
+    else if (data.activityLevel === "Très actif") nap = 1.725;
+    let tdee = bmr * nap;
 
-      let tdee = bmr * nap;
+    // 4. Bonus Allaitement / Grossesse
+    if (data.gender === "Femme" && (data.femaleSpecific === "Allaitement" || data.femaleSpecific === "Grossesse")) {
+        tdee += 400; // Bonus énergétique vital pour la maman
+    }
 
-      if (healthProfile === "Allaitement") {
-          tdee += 400;
-      }
+    // 5. Calcul du déficit (selon la date cible)
+    let requiredDailyDeficit = 0;
+    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+    const now = new Date();
+    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    const weightToLose = currentWeight - targetWInput;
 
-      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
-      const weightToLose = currentWeight - finalTargetWeight;
+    if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+    }
 
-      let rawCalories = tdee;
-      let calculatedHealthyDate = data.targetDate;
-      let isCapped = false;
-      let deficit = 0;
+    // 6. Plafond du déficit (Max 1000 kcal/jour pour éviter la fonte musculaire)
+    if (requiredDailyDeficit > 1000) {
+        requiredDailyDeficit = 1000;
+    }
 
-      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
-          let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-          const now = new Date();
-          let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+    let rawCalories = tdee;
+    if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
+    else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
+    // Si Maintien, rawCalories = tdee
 
-          if (!data.targetDate) {
-              if (data.weightLossPace === 'Progressivement') deficit = 300;
-              else if (data.weightLossPace === 'Rapidement') deficit = 700;
-              else deficit = 500;
-              isCapped = false; // It's a manual deficit, not date driven
-          } else {
-              deficit = (weightToLose * 7700) / daysToTarget;
-              if (deficit > 1000) {
-                  deficit = 1000;
-                  isCapped = true;
-                  const safeDays = Math.ceil((weightToLose * 7700) / 1000);
-                  const safeDate = new Date(now.getTime() + (safeDays * 24 * 3600 * 1000));
-                  calculatedHealthyDate = safeDate.toISOString().split('T')[0];
-              }
-          }
+    // 7. Plancher Médical (Anti-privation : Interdit de descendre sous 1200/1500)
+    const floorCalories = isMale ? 1500 : 1200;
+    const finalCalories = Math.max(floorCalories, rawCalories);
 
-          rawCalories = tdee - deficit;
-      } else if (data.goalType === 'Prise de masse') {
-          rawCalories = tdee + 300;
-      } else if (data.goalType === 'Maintien') {
-          rawCalories = tdee;
-      }
+    return {
+        calories: Math.round(finalCalories),
+        deficit: Math.round(tdee - finalCalories),
+        tdee: Math.round(tdee),
+        hitFloor: finalCalories === floorCalories,
+        hitCeiling: requiredDailyDeficit === 1000
+    };
+};
 
-      let proteinRatio = age >= 50 ? 0.35 : 0.30;
-      let carbsRatio = 0.70 - proteinRatio;
-      let fatsRatio = 0.30;
 
-      if (healthProfile === "Diabète") {
-          carbsRatio = 0.40;
-          proteinRatio = 0.35;
-          fatsRatio = 0.25;
-      }
-
-      const carbs = (rawCalories * carbsRatio) / 4;
-      const protein = (rawCalories * proteinRatio) / 4;
-      const fats = (rawCalories * fatsRatio) / 9;
-
-      return {
-          calories: Math.round(rawCalories),
-          carbs: Math.round(carbs),
-          protein: Math.round(protein),
-          fats: Math.round(fats),
-          bmr: Math.round(bmr),
-          tdee: Math.round(tdee),
-          isCapped,
-          healthyDate: calculatedHealthyDate
-      };
-  };
-
-  const calculateDailyCalories = (data: any, forceSafeMode: boolean = false) => {
-      return calculateMacrosAndCalories(data).calories;
-  };
 
 
   // Diagnostic Modal Handlers
@@ -429,9 +400,41 @@ export default function NutritionAfricaineLanding() {
     e.preventDefault();
     setIsSubmittingDiag(true);
     try {
+
       // 1. Generation du mot de passe standardisé
       const cleanPhone = diagData.phone.replace(/\s+/g, '');
       const generatedPassword = cleanPhone.slice(-8).padStart(8, "0"); // Mot de passe simple à 5 caractères
+
+      const calcResult = calculateDailyCalories(diagData);
+      const dailyCalories = calcResult.calories;
+
+      // Ratios standards
+      let carbsRatio = 0.50;
+      let proteinRatio = parseFloat(diagData.age) >= 50 ? 0.35 : 0.30;
+      let fatsRatio = 1 - carbsRatio - proteinRatio;
+
+      // Règle spécifique : Diabète (Limitation stricte des glucides à 40%)
+      if (diagData.healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35; // Hausse des protéines pour compenser
+          fatsRatio = 0.25;    // Hausse des lipides sains
+      }
+
+      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
+      const protein = Math.round((dailyCalories * proteinRatio) / 4);
+      const fats = Math.round((dailyCalories * fatsRatio) / 9);
+
+      // On simule "results" pour que le vieux code en dessous continue de marcher si nécessaire
+      const results = {
+          calories: dailyCalories,
+          carbs: carbs,
+          protein: protein,
+          fats: fats,
+          bmr: calcResult.tdee,
+          tdee: calcResult.tdee,
+          isCapped: calcResult.hitFloor || calcResult.deficit >= 1000,
+          healthyDate: diagData.targetDate // (Already applied via UI button theoretically)
+      };
 
       // 2. Création de l'utilisateur via l'API Admin
       const res = await fetch('/api/create-user', {
@@ -496,7 +499,7 @@ export default function NutritionAfricaineLanding() {
       localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
       setTempCredentials({ phone: cleanPhone, password: generatedPassword });
 
-      const results = calculateMacrosAndCalories(diagData);
+
 
       localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
          calories: results.calories, carbs: results.carbs, protein: results.protein, fats: results.fats
@@ -638,7 +641,7 @@ export default function NutritionAfricaineLanding() {
   
   
   // --- MOTEUR DE CALCUL NUTRITIONNEL ---
-  const results = calculateMacrosAndCalories(diagData);
+
 
   const heightM = (parseFloat(diagData.height) || 0) / 100;
   const currentW = parseFloat(diagData.currentWeight) || 0;
