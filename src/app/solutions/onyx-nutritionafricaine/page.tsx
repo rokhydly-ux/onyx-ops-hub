@@ -490,7 +490,25 @@ export default function NutritionAfricaineLanding() {
       localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
       setTempCredentials({ phone: cleanPhone, password: generatedPassword });
 
-      const results = calculateMacrosAndCalories(diagData);
+      const calcResult = calculateDailyCalories(diagData);
+      const dailyCalories = calcResult.calories;
+      const ageNum = parseFloat(diagData.age) || 0;
+      let carbsRatio = 0.50;
+      let proteinRatio = ageNum >= 50 ? 0.35 : 0.30;
+      let fatsRatio = 1 - carbsRatio - proteinRatio;
+      if (diagData.healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
+      }
+      const results = {
+          calories: dailyCalories,
+          carbs: Math.round((dailyCalories * carbsRatio) / 4),
+          protein: Math.round((dailyCalories * proteinRatio) / 4),
+          fats: Math.round((dailyCalories * fatsRatio) / 9),
+          bmr: calcResult.tdee,
+          tdee: calcResult.tdee
+      };
 
       localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
          calories: results.calories, carbs: results.carbs, protein: results.protein, fats: results.fats
@@ -632,7 +650,25 @@ export default function NutritionAfricaineLanding() {
   
   
   // --- MOTEUR DE CALCUL NUTRITIONNEL ---
-  const results = calculateMacrosAndCalories(diagData);
+  const calcResult = calculateDailyCalories(diagData);
+      const dailyCalories = calcResult.calories;
+      const ageNum = parseFloat(diagData.age) || 0;
+      let carbsRatio = 0.50;
+      let proteinRatio = ageNum >= 50 ? 0.35 : 0.30;
+      let fatsRatio = 1 - carbsRatio - proteinRatio;
+      if (diagData.healthProfile === "Diabète") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.35;
+          fatsRatio = 0.25;
+      }
+      const results = {
+          calories: dailyCalories,
+          carbs: Math.round((dailyCalories * carbsRatio) / 4),
+          protein: Math.round((dailyCalories * proteinRatio) / 4),
+          fats: Math.round((dailyCalories * fatsRatio) / 9),
+          bmr: calcResult.tdee,
+          tdee: calcResult.tdee
+      };
 
   const heightM = (parseFloat(diagData.height) || 0) / 100;
   const currentW = parseFloat(diagData.currentWeight) || 0;
