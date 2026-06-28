@@ -512,11 +512,13 @@ export default function NutritionAfricaineLanding() {
           finalDiagData.targetDate = results.healthyDate;
       }
 
+      // Destructure to remove phone which shouldn't be saved in nutrition_profiles
+      const { phone: _discardedPhone, ...restDiagData } = finalDiagData;
+
       const payload = {
-         phone: finalDiagData.phone,
          client_id: userId,
          diagnostic_data: {
-             ...finalDiagData,
+             ...restDiagData,
              bmr: results.bmr,
              tdee: results.tdee,
          },
@@ -1779,7 +1781,7 @@ export default function NutritionAfricaineLanding() {
                      </p>
                   </div>
 
-                  <button type="button" onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full max-w-md mx-auto bg-[#39FF14] text-black py-6 rounded-2xl font-black uppercase md:text-lg tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.4)] animate-pulse flex justify-center items-center gap-2">Découvrir mon Sama Menu</button>
+                  <button type="button" onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full max-w-md mx-auto bg-[#39FF14] text-black py-6 rounded-2xl font-black uppercase md:text-lg tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.4)] animate-pulse flex justify-center items-center gap-2">Accéder à mon Sama Menu</button>
                 </div>
               )}
 
