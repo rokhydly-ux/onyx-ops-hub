@@ -424,8 +424,8 @@ export default function NutritionAfricaineLanding() {
         const cleanPhone = diagData.phone.replace(/\s+/g, '');
         const generatedPassword = cleanPhone.slice(-8).padStart(8, "0");
 
-        // 1. Création du compte via API (On ignore l'ID retourné pour éviter les erreurs)
-        await fetch('/api/create-user', {
+        // 1. Création du compte via API
+        const res = await fetch('/api/create-user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -436,31 +436,35 @@ export default function NutritionAfricaineLanding() {
                 saas: "Nutrition à l'Africaine"
             })
         });
+        if (!res.ok) throw new Error("Erreur de l'API de création.");
 
-        // 2. Connexion OBLIGATOIRE avant de sauvegarder le profil
-        const { error: authError } = await supabase.auth.signInWithPassword({
+        // 2. Connexion immédiate pour obtenir la session
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email: `${cleanPhone}@clients.onyxcrm.com`,
             password: generatedPassword
         });
+        if (authError) throw authError;
 
-        if (authError && !authError.message.includes("Invalid login")) {
-             throw new Error("Erreur de connexion : " + authError.message);
-        }
+        const realUserId = authData.user?.id;
+        if (!realUserId) throw new Error("ID de session introuvable.");
 
-        // 3. Récupération du VRAI ID généré par Supabase
-        const { data: { session } } = await supabase.auth.getSession();
-        const realUserId = session?.user?.id;
+        // 3. FIX CRITIQUE : Upsert OBLIGATOIRE dans la table 'clients' pour satisfaire la Foreign Key
+        const { error: clientErr } = await supabase.from('clients').upsert({
+            id: realUserId,
+            full_name: diagData.name,
+            phone: cleanPhone
+        }, { onConflict: 'id' });
 
-        if (!realUserId) throw new Error("Impossible de synchroniser l'ID de session.");
+        if (clientErr) throw new Error("Erreur synchronisation table clients: " + clientErr.message);
 
-        // 4. Calcul de l'algorithme avec les données validées
+        // 4. Calcul de l'algorithme
         const profile = calculateDailyCalories(diagData);
 
-        // 5. Sauvegarde du Profil avec le VRAI ID
+        // 5. Sauvegarde du Profil Nutritionnel (Maintenant la FK est valide)
         const payload = {
             client_id: realUserId,
             phone: cleanPhone,
-            bmr: profile.bmr || Math.round(profile.tdee / 1.2), // Fallback if calculateDailyCalories doesn't return bmr explicitly
+            bmr: profile.bmr || Math.round(profile.tdee / 1.2),
             tdee: profile.tdee,
             daily_calorie_goal: profile.calories,
             carbs_goal: Math.round((profile.calories * 0.4) / 4),
@@ -471,12 +475,9 @@ export default function NutritionAfricaineLanding() {
         };
 
         const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
-        if (profileErr) throw profileErr;
+        if (profileErr) throw new Error("Erreur sauvegarde profil: " + profileErr.message);
 
-        // 6. Mise à jour de sécurité de la table clients
-        await supabase.from('clients').update({ full_name: diagData.name }).eq('id', realUserId);
-
-        // 7. Tracking d'événement
+        // Tracking d'événement
         await supabase.from('leads').insert([{
             full_name: diagData.name,
             phone: cleanPhone,
@@ -487,9 +488,6 @@ export default function NutritionAfricaineLanding() {
             message: `Objectif: ${profile.calories} kcal | Profil Santé: ${diagData.healthProfile || '-'}`
         }]);
 
-        // 8. Succès -> Affichage du Pop-up (Étape finale)
-
-        // Let's store welcome message just like before
         let welcomeMsg = "";
         if (diagData.femaleSpecific === "Allaitement" || diagData.femaleSpecific === "Grossesse") {
             welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de maman allaitante/enceinte, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour te soutenir en toute sécurité sans bloquer tes objectifs. Prête à commencer ?`;
@@ -500,11 +498,12 @@ export default function NutritionAfricaineLanding() {
         }
         localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
+        // 6. Succès -> On passe à la modale d'identifiants
         setDiagStep(11);
 
     } catch (err: any) {
-        console.error("Erreur complète :", err);
-        alert(`Une erreur est survenue: ${err.message || 'Erreur inconnue'}`);
+        console.error("Erreur d'enregistrement :", err);
+        alert(`Une erreur est survenue: ${err.message}`);
     } finally {
         setIsSubmittingDiag(false);
     }
