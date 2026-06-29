@@ -419,170 +419,96 @@ export default function NutritionAfricaineLanding() {
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingDiag(true);
+
     try {
+        const cleanPhone = diagData.phone.replace(/\s+/g, '');
+        const generatedPassword = cleanPhone.slice(-8).padStart(8, "0");
 
-      // 1. Generation du mot de passe standardisé
-      const cleanPhone = diagData.phone.replace(/\s+/g, '');
-      const generatedPassword = cleanPhone.slice(-8).padStart(8, "0"); // Mot de passe simple à 5 caractères
+        // 1. Création du compte via API (On ignore l'ID retourné pour éviter les erreurs)
+        await fetch('/api/create-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fullName: diagData.name,
+                phone: cleanPhone,
+                password: generatedPassword,
+                role: 'client',
+                saas: "Nutrition à l'Africaine"
+            })
+        });
 
-      const calcResult = calculateDailyCalories(diagData);
-      const dailyCalories = calcResult.calories;
+        // 2. Connexion OBLIGATOIRE avant de sauvegarder le profil
+        const { error: authError } = await supabase.auth.signInWithPassword({
+            email: `${cleanPhone}@clients.onyxcrm.com`,
+            password: generatedPassword
+        });
 
-      // Ratios standards
-      let carbsRatio = 0.50;
-      let proteinRatio = parseFloat(diagData.age) >= 50 ? 0.35 : 0.30;
-      let fatsRatio = 1 - carbsRatio - proteinRatio;
+        if (authError && !authError.message.includes("Invalid login")) {
+             throw new Error("Erreur de connexion : " + authError.message);
+        }
 
-      // Règle spécifique : Diabète (Limitation stricte des glucides à 40%)
-      if (diagData.healthProfile === "Diabète") {
-          carbsRatio = 0.40;
-          proteinRatio = 0.35; // Hausse des protéines pour compenser
-          fatsRatio = 0.25;    // Hausse des lipides sains
-      }
+        // 3. Récupération du VRAI ID généré par Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        const realUserId = session?.user?.id;
 
-      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
-      const protein = Math.round((dailyCalories * proteinRatio) / 4);
-      const fats = Math.round((dailyCalories * fatsRatio) / 9);
+        if (!realUserId) throw new Error("Impossible de synchroniser l'ID de session.");
 
-      // On simule "results" pour que le vieux code en dessous continue de marcher si nécessaire
-      const results = {
-          calories: dailyCalories,
-          carbs: carbs,
-          protein: protein,
-          fats: fats,
-          bmr: calcResult.tdee,
-          tdee: calcResult.tdee,
-          isCapped: calcResult.hitFloor || calcResult.deficit >= 1000,
-          healthyDate: diagData.targetDate // (Already applied via UI button theoretically)
-      };
+        // 4. Calcul de l'algorithme avec les données validées
+        const profile = calculateDailyCalories(diagData);
 
-      // 2. Création de l'utilisateur via l'API Admin
-      const res = await fetch('/api/create-user', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-             fullName: diagData.name,
-             phone: cleanPhone,
-             password: generatedPassword,
-             role: 'client',
-             saas: "Nutrition à l'Africaine"
-         })
-      });
+        // 5. Sauvegarde du Profil avec le VRAI ID
+        const payload = {
+            client_id: realUserId,
+            phone: cleanPhone,
+            bmr: profile.bmr || Math.round(profile.tdee / 1.2), // Fallback if calculateDailyCalories doesn't return bmr explicitly
+            tdee: profile.tdee,
+            daily_calorie_goal: profile.calories,
+            carbs_goal: Math.round((profile.calories * 0.4) / 4),
+            protein_goal: Math.round((profile.calories * 0.3) / 4),
+            fats_goal: Math.round((profile.calories * 0.3) / 9),
+            diagnostic_data: diagData,
+            tracking_mode: 'guided'
+        };
 
-      const result = await res.json();
-      
-      let finalUserId = null;
+        const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+        if (profileErr) throw profileErr;
 
-      if (!res.ok) {
-          if (result.error && result.error.includes("already registered")) {
-              // Si existe déjà, on va d'abord chercher l'utilisateur
-              // via l'API RPC de Supabase ou une requête dans la table clients (pour récupérer l'ID)
-              const { data: existingClient, error: clientFetchError } = await supabase.from('clients').select('id').eq('phone', cleanPhone).maybeSingle();
-              if (existingClient && existingClient.id) {
-                  finalUserId = existingClient.id;
-              } else {
-                 throw new Error("Compte existant mais impossible de récupérer l'ID client.");
-              }
+        // 6. Mise à jour de sécurité de la table clients
+        await supabase.from('clients').update({ full_name: diagData.name }).eq('id', realUserId);
 
-              // On essaye de le connecter avec le mot de passe généré juste pour la forme (s'il n'a pas changé), mais on ne bloque pas si le mot de passe est faux car on a déjà l'ID.
-              await supabase.auth.signInWithPassword({
-                  email: `${cleanPhone}@clients.onyxcrm.com`,
-                  password: generatedPassword
-              }).catch(e => console.log('Login attempt failed, user might have changed password'));
+        // 7. Tracking d'événement
+        await supabase.from('leads').insert([{
+            full_name: diagData.name,
+            phone: cleanPhone,
+            source: "Diagnostic Nutrition Landing",
+            intent: "A complété son diagnostic (Attente Plan)",
+            status: "Nouveau",
+            saas: "Nutrition à l'Africaine",
+            message: `Objectif: ${profile.calories} kcal | Profil Santé: ${diagData.healthProfile || '-'}`
+        }]);
 
-          } else {
-              throw new Error(result.error || "Erreur lors de la création du compte");
-          }
-      } else {
-          // Nouveau compte, on utilise clientId retourné par l'API
-          finalUserId = result.clientId || result.user?.id;
+        // 8. Succès -> Affichage du Pop-up (Étape finale)
 
-          await supabase.auth.signInWithPassword({
-              email: `${cleanPhone}@clients.onyxcrm.com`,
-              password: generatedPassword
-          });
-      }
+        // Let's store welcome message just like before
+        let welcomeMsg = "";
+        if (diagData.femaleSpecific === "Allaitement" || diagData.femaleSpecific === "Grossesse") {
+            welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de maman allaitante/enceinte, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour te soutenir en toute sécurité sans bloquer tes objectifs. Prête à commencer ?`;
+        } else if (diagData.healthProfile === "Changements hormonaux" || parseFloat(diagData.age) >= 50) {
+            welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger tes articulations tout en douceur. Prête à retrouver la forme ?`;
+        } else {
+            welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+        }
+        localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-      if (!finalUserId) {
-         throw new Error("Impossible de récupérer l'identifiant du client (client_id). Création de profil impossible.");
-      }
-      const userId = finalUserId;
-
-      // 3. Stockage de la session
-      const sessionData = {
-         id: userId,
-         full_name: diagData.name,
-         phone: cleanPhone,
-         plan_type: 'essai',
-         type: 'Client'
-      };
-      localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
-      setTempCredentials({ phone: cleanPhone, password: generatedPassword });
-
-
-
-      localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
-         calories: results.calories, carbs: results.carbs, protein: results.protein, fats: results.fats
-      }));
-
-      // Set healthy date back to diagData if capped
-      let finalDiagData = { ...diagData };
-      if (results.isCapped) {
-          finalDiagData.targetDate = results.healthyDate;
-      }
-
-      // Destructure to remove phone which shouldn't be saved in nutrition_profiles
-      const { phone: _discardedPhone, ...restDiagData } = finalDiagData;
-
-      const payload = {
-         client_id: userId,
-         diagnostic_data: {
-             ...restDiagData,
-             bmr: results.bmr,
-             tdee: results.tdee,
-         },
-         daily_calorie_goal: results.calories,
-         carbs_goal: results.carbs,
-         protein_goal: results.protein,
-         fats_goal: results.fats,
-         weekly_menu: []
-      };
-
-      const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
-      if (profileErr) {
-          alert("Erreur SQL lors de l'enregistrement : " + profileErr.message);
-          throw profileErr;
-      }
-
-      await supabase.from('leads').insert([{
-        full_name: finalDiagData.name,
-        phone: finalDiagData.phone,
-        source: "Diagnostic Nutrition Landing",
-        intent: "A complété son diagnostic (Attente Plan)",
-        status: "Nouveau",
-        saas: "Nutrition à l'Africaine",
-        message: `BMR: ${results.bmr} | Objectif: ${results.calories} kcal | Profil Santé: ${finalDiagData.healthProfile || '-'}`
-      }]);
-      
-      let welcomeMsg = "";
-      if (finalDiagData.healthProfile === "Allaitement") {
-          welcomeMsg = `Bonjour ${finalDiagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de maman allaitante, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
-      } else if (finalDiagData.healthProfile === "Changements hormonaux" || parseFloat(finalDiagData.age) >= 50) {
-          welcomeMsg = `Bonjour ${finalDiagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger tes articulations tout en douceur. Prête à retrouver la forme ?`;
-      } else {
-          welcomeMsg = `Bonjour ${finalDiagData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
-      }
-      localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
-
-      setDiagStep(11);
+        setDiagStep(11);
 
     } catch (err: any) {
-      console.error("Erreur complète :", err);
-      alert(`Une erreur est survenue: ${err.message || 'Erreur inconnue'}`);
+        console.error("Erreur complète :", err);
+        alert(`Une erreur est survenue: ${err.message || 'Erreur inconnue'}`);
     } finally {
-      setIsSubmittingDiag(false);
+        setIsSubmittingDiag(false);
     }
-  };
+};
 
   const calculateIMC = () => {
     const h = parseFloat(diagData.height) / 100;
