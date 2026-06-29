@@ -555,6 +555,50 @@ export default function NutritionDashboard() {
   const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   useEffect(() => {
+    if (!clientProfile?.id) return;
+
+    const realtimeChannel = supabase.channel('custom-daily-logs-channel')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'nutrition_daily_logs',
+                filter: `client_id=eq.${clientProfile.id}`
+            },
+            (payload: any) => {
+                const newData = payload.new;
+
+                if (newData && newData.log_date === todayStr) {
+                    setCalories(newData.calories_consumed || 0);
+                    setProteins(newData.proteins_consumed || 0);
+                    setCarbs(newData.carbs_consumed || 0);
+                    setFats(newData.fats_consumed || 0);
+                    setWaterGlasses(newData.water_glasses || 0);
+
+                    if (newData.report_data) {
+                        setReportData(newData.report_data);
+                        if (newData.report_data.consumedMeals) {
+                            setConsumedMeals(newData.report_data.consumedMeals);
+                        }
+                        if (newData.report_data.moods) {
+                            setMoods(newData.report_data.moods);
+                        }
+                        if (newData.report_data.moodNotes) {
+                            setMoodNotes(newData.report_data.moodNotes);
+                        }
+                    }
+                }
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(realtimeChannel);
+    };
+  }, [clientProfile?.id, todayStr]);
+
+  useEffect(() => {
     // Gestion PWA Hors-Ligne & Sync
     const handleOnline = async () => {
        setIsOffline(false);
