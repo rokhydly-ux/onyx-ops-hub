@@ -1674,7 +1674,7 @@ export default function NutritionDashboard() {
       carbs_consumed: carbs,
       fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-    });
+    }, { onConflict: 'client_id, log_date' });
     
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
@@ -1817,7 +1817,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-          });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -1849,7 +1849,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -2150,7 +2150,7 @@ export default function NutritionDashboard() {
     }
 
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload);
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
 
        if (error) throw error;
 
@@ -2484,7 +2484,7 @@ export default function NutritionDashboard() {
            proteins_consumed: proteins,
            carbs_consumed: carbs,
            fats_consumed: fats
-         });
+         }, { onConflict: 'client_id, log_date' });
          alert("Notes et humeurs du jour sauvegardées !");
      } catch(e) {
          alert("Erreur de sauvegarde.");
