@@ -5400,141 +5400,99 @@ export default function NutritionDashboard() {
 
 {/* ETAPE 10: BILAN VISUEL */}
                   {diagStep === 10 && (
-    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full">
+    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full bg-white p-6 md:p-8 rounded-[2rem] shadow-xl">
         {(() => {
-            const calcResult = calculateDailyCalories(diagData);
+            const profile = calculateDailyCalories(diagData);
             const currentW = parseFloat(diagData.currentWeight) || 0;
             const targetW = parseFloat(diagData.targetWeight) || 0;
             const weightToLose = currentW - targetW;
 
-            // Vérification si le rythme est trop rapide (Hit Ceiling = déficit bloqué à 1000)
-            const isTooFast = calcResult.hitCeiling || calcResult.hitFloor;
-            const healthyDateStr = getHealthyDate(currentW, targetW);
+            // Calcul de l'IMC
+            const hM = (parseFloat(diagData.height) || 0) / 100;
+            const imcVal = hM > 0 ? currentW / (hM * hM) : 0;
+            const imc = imcVal.toFixed(1);
 
-            // Calcul de l'IMC pour le badge
-            const heightM = (parseFloat(diagData.height) || 0) / 100;
-            const imc = (heightM > 0 && currentW > 0) ? (currentW / (heightM * heightM)).toFixed(1) : "0";
-            const imcVal = parseFloat(imc);
-
-            let imcColor = "text-zinc-500 bg-zinc-100";
+            let imcBadge = "bg-green-100 text-green-700";
             let imcText = "Normal";
-            if (imcVal > 0) {
-                if (imcVal < 18.5) { imcColor = "text-orange-600 bg-orange-100"; imcText = "Sous-poids"; }
-                else if (imcVal < 25) { imcColor = "text-green-700 bg-[#39FF14]/20"; imcText = "Normal"; }
-                else if (imcVal < 30) { imcColor = "text-orange-600 bg-orange-100"; imcText = "Surpoids"; }
-                else { imcColor = "text-red-600 bg-red-100"; imcText = "Obésité"; }
-            }
+            if (imcVal < 18.5) { imcBadge = "bg-blue-100 text-blue-600"; imcText = "Maigreur"; }
+            else if (imcVal >= 25 && imcVal < 30) { imcBadge = "bg-orange-100 text-orange-600"; imcText = "Surpoids"; }
+            else if (imcVal >= 30) { imcBadge = "bg-red-100 text-red-600"; imcText = "Obésité"; }
+
+            // Calcul de l'angle de l'aiguille (Min IMC 15 = 0°, Max IMC 40 = 180°)
+            const clampedImc = Math.max(15, Math.min(imcVal, 40));
+            const needleRotation = ((clampedImc - 15) / 25) * 180;
 
             return (
                 <div className="w-full">
-                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-2 text-black">Vos Nouveaux Objectifs</h2>
-                    <p className="text-sm font-medium text-zinc-500 mb-8 max-w-lg mx-auto">Voici le plan calculé sur mesure selon vos réponses. Ces valeurs remplaceront vos anciens réglages.</p>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-2 text-black">Vos Objectifs Validés</h2>
+                    <p className="text-sm font-medium text-zinc-500 mb-8 max-w-lg mx-auto">Voici l'analyse complète de votre profil de départ.</p>
 
-                    {/* Badge IMC */}
-                    <div className="flex justify-center mb-8">
-                        <div className="flex items-center gap-3 bg-white border border-zinc-200 p-3 rounded-2xl shadow-sm">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" alt="IMC" className="w-10 h-10 rounded-xl" />
-                            <div className="text-left">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Votre IMC estimé</p>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-black text-lg text-black">{imc}</span>
-                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${imcColor}`}>{imcText}</span>
-                                </div>
+                    {/* Grille Principale à 4 Colonnes */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+
+                        {/* Carte 1 : Jauge IMC Demi-Cercle (Speedometer) */}
+                        <div className="bg-zinc-50 border border-zinc-200 p-6 rounded-[2rem] flex flex-col items-center justify-between min-h-[220px]">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Indice de Masse Corporelle</p>
+
+                            <div className="relative w-32 h-16 mt-2 overflow-visible">
+                                <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
+                                    {/* Arc de cercle avec dégradé fonctionnel */}
+                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#speedometerGradient)" strokeWidth="12" strokeLinecap="round" />
+                                    <defs>
+                                        <linearGradient id="speedometerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stopColor="#3b82f6" />
+                                            <stop offset="35%" stopColor="#22c55e" />
+                                            <stop offset="70%" stopColor="#eab308" />
+                                            <stop offset="100%" stopColor="#ef4444" />
+                                        </linearGradient>
+                                    </defs>
+                                    {/* Aiguille rotative pivotant sur l'axe central inférieur (50,50) */}
+                                    <g style={{ transform: `rotate(${needleRotation}deg)`, transformOrigin: '50px 50px', transition: 'transform 1.5s ease-out' }}>
+                                        <polygon points="48,50 50,12 52,50" fill="#18181b" />
+                                        <circle cx="50" cy="50" r="5" fill="#18181b" />
+                                    </g>
+                                </svg>
+                            </div>
+
+                            <div className="text-center mt-2">
+                                <p className="text-2xl font-black text-black">{imc}</p>
+                                <span className={`inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 ${imcBadge}`}>{imcText}</span>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Les 3 Cartes */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                        {/* Carte Calories */}
-                        <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col items-center relative">
-                            <div className="absolute top-4 right-4 text-red-500">
-                                {calcResult.hitFloor && <AlertTriangle size={20} />}
+                        {/* Carte 2 : Calories Cibles */}
+                        <div className="bg-zinc-50 border border-zinc-200 p-6 rounded-[2rem] flex flex-col items-center justify-between min-h-[220px]">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Apport Énergétique</p>
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781443964/A_cute__highly_detailed_3D_202606141332_ggiubt.jpg" className="w-12 h-12 rounded-full object-cover" alt="Calories" />
+                            <div className="text-center">
+                                <p className="text-3xl font-black text-black">{profile.calories} <span className="text-sm font-bold text-zinc-500">kcal</span></p>
+                                {profile.hitFloor && <span className="text-red-600 font-bold text-[8px] uppercase tracking-wider block mt-1">Plancher de sécurité activé</span>}
                             </div>
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" className="w-12 h-12 mb-4" alt="Calories" />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Calories Cibles</p>
-                            <p className="text-4xl font-black text-black mb-1">{calcResult.calories}</p>
-                            <p className="text-xs font-bold text-zinc-500 mb-4">kcal / jour</p>
-                            {calcResult.hitFloor && (
-                                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Limité au minimum vital</span>
-                            )}
                         </div>
 
-                        {/* Carte Cible */}
-                        <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col items-center">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458359/A_cute__highly_detailed_3D_202606141731_wog3pz.jpg" className="w-12 h-12 mb-4" alt="Cible" />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Cible</p>
-                            <p className="text-4xl font-black text-black mb-1">{targetW}<span className="text-xl">kg</span></p>
-                            {weightToLose > 0 && (
-                                <p className="text-xs font-bold text-zinc-500">-{weightToLose.toFixed(1)} kg à perdre</p>
-                            )}
+                        {/* Carte 3 : Objectif Poids */}
+                        <div className="bg-zinc-50 border border-zinc-200 p-6 rounded-[2rem] flex flex-col items-center justify-between min-h-[220px]">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Poids Cible</p>
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" className="w-12 h-12 rounded-full object-cover" alt="Poids" />
+                            <div className="text-center">
+                                <p className="text-3xl font-black text-black">{targetW} <span className="text-sm font-bold text-zinc-500">kg</span></p>
+                                {weightToLose > 0 && <p className="text-[10px] font-bold text-zinc-500 mt-1">-{weightToLose.toFixed(1)} kg à éliminer</p>}
+                            </div>
                         </div>
 
-                        {/* Carte Date */}
-                        <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col items-center relative">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" className="w-12 h-12 mb-4" alt="Date" />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Objectif Prévu</p>
-                            <p className="text-2xl font-black text-black leading-tight mb-2">
+                        {/* Carte 4 : Date Cible */}
+                        <div className="bg-zinc-50 border border-zinc-200 p-6 rounded-[2rem] flex flex-col items-center justify-between min-h-[220px]">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Date Prévue</p>
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" className="w-12 h-12 rounded-full object-cover" alt="Date" />
+                            <p className="text-xl font-black text-black capitalize leading-tight">
                                 {diagData.targetDate ? new Date(diagData.targetDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '-'}
                             </p>
-                            {isTooFast && (
-                                <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><AlertTriangle size={10}/> Rythme Rapide</span>
-                            )}
                         </div>
                     </div>
 
-                    {/* Alerte Rythme Sain */}
-                    {isTooFast && healthyDateStr && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-[2rem] p-6 mb-8 text-left animate-in slide-in-from-bottom-4">
-                            <div className="flex gap-3 items-start">
-                                <div className="bg-white p-2 rounded-full shadow-sm shrink-0"><Sparkles size={20} className="text-blue-500" /></div>
-                                <div>
-                                    <p className="text-sm text-blue-900 font-medium leading-relaxed">
-                                        <strong>Notre conseil santé :</strong> Atteindre votre objectif en <strong>{healthyDateStr}</strong> serait plus durable et préserverait votre masse musculaire sans effet yoyo.
-                                    </p>
-                                    <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                // Normally, we'd update the date in state, but the user prompt strictly said to advance to the next step.
-                                                // Actually the user prompt is: document.getElementById("hidden-submit-btn")?.click();
-                                                // Since this is step 10, the final step is 11, but the submission is tied to the button in step 10? No, the user prompt says:
-                                                // "Les boutons doivent uniquement faire un setDiagStep(s => s + 1) pour passer à l'étape finale (celle de la demande d'identifiants ou de la validation)."
-                                                document.getElementById("hidden-submit-btn")?.click();
-
-                                                // Also, if it's the dashboard, step 11 doesn't exist, we just submit.
-                                                // Actually, if we don't have step 11 in dashboard, we should click the hidden submit button.
-                                                // We can check if step 11 exists or just manually fire the submit if needed. Let's just follow the prompt exactly: setDiagStep(s => s + 1)
-                                            }}
-                                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition shadow-md"
-                                        >
-                                            Choisir le rythme sain
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                document.getElementById("hidden-submit-btn")?.click();
-                                            }}
-                                            className="text-zinc-500 font-bold text-[10px] uppercase underline hover:text-black transition"
-                                        >
-                                            Garder mon choix (Risqué)
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Bouton Suivant si le rythme est normal */}
-                    {!isTooFast && (
-                        <button
-                            type="button"
-                            onClick={() => document.getElementById("hidden-submit-btn")?.click()}
-                            className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform flex justify-center items-center gap-2"
-                        >
-                            Continuer <ArrowRight size={18}/>
-                        </button>
-                    )}
+                    <button onClick={handleDiagSubmit} disabled={isSubmittingDiag} className="w-full bg-black text-[#39FF14] py-5 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl hover:scale-[1.01] transition-transform">
+                        {isSubmittingDiag ? "Enregistrement en cours..." : "Valider mes objectifs"}
+                    </button>
                 </div>
             );
         })()}
