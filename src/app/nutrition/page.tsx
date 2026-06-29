@@ -2650,7 +2650,7 @@ export default function NutritionDashboard() {
   const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
   return (
-    <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
+    <div className={`flex min-h-screen overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -2853,9 +2853,9 @@ export default function NutritionDashboard() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 mt-12 space-y-12">
+      <div className="w-full max-w-3xl mx-auto px-6 mt-12 space-y-12">
         {activeTab === 'today' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4">
             
             {/* EN-TÊTE MON JOUR */}
             <div className={`flex flex-col md:flex-row md:items-center justify-between pb-4 border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'} gap-4`}>
@@ -2900,7 +2900,7 @@ export default function NutritionDashboard() {
         )}
 
             {/* JAUGES DU JOUR */}
-            <div className={`p-8 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center relative overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
+            <div className={`w-full p-8 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center relative overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                
                <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter flex items-center justify-center gap-3 mb-6`}><Activity className="text-[#39FF14]"/> Synthèse Journalière</h2>
                
@@ -3009,8 +3009,8 @@ export default function NutritionDashboard() {
             </div>
 
             {/* SUIVI DE L'EAU & HUMEUR */}
-            <div className="grid md:grid-cols-2 gap-6 mt-6">
-               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 w-full">
+               <div className={`w-full p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                   <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-4 shadow-sm object-cover" alt="Eau" />
                   <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
                   <p className="text-xs font-bold text-zinc-500 mb-1">{waterGlasses} / 8 verres (Env. 2 Litres)</p>
@@ -3030,7 +3030,7 @@ export default function NutritionDashboard() {
                   )}
                </div>
 
-               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
+               <div className={`w-full p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                   <h3 className="font-black text-lg uppercase mb-4">Mon Humeur & Notes</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                      {[{e:'😃',l:'Enjoué'}, {e:'🤩',l:'Motivé'}, {e:'🧘‍♀️',l:'Zen'}, {e:'🤔',l:'Pensif'}, {e:'😴',l:'Fatigué'}, {e:'😫',l:'Épuisé'}, {e:'😢',l:'Triste'}, {e:'😠',l:'Enervé'}, {e:'🤢',l:'Barbouillé'}, {e:'😭',l:'Critique'}].map(m => {
@@ -3048,7 +3048,7 @@ export default function NutritionDashboard() {
 
             {/* GRAPHIQUE ÉVOLUTION POIDS (MON JOUR) */}
             {Array.isArray(weightLogs) && weightLogs.length > 0 && (
-               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
+               <div className={`w-full p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                   <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><Scale className="text-[#39FF14]"/> Évolution de mon poids</h3>
                   <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -3084,7 +3084,7 @@ export default function NutritionDashboard() {
                     const itemsForThisMeal = safeConsumedMeals.filter(m => m.type === mealType);
                     
                     return (
-                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 shadow-xl' : 'bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)]'} p-4 sm:p-5 rounded-[1.5rem] border-0 transition-all hover:scale-[1.01] flex flex-col`}>
+                       <div key={mealType} className={`w-full bg-white rounded-[2rem] p-4 md:p-6 mb-6 flex flex-col gap-4 shadow-sm border border-zinc-100 ${theme === 'dark' ? 'bg-zinc-900 shadow-xl border-zinc-800' : ''}`}>
                           <div className="flex justify-between items-center mb-3">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
                              {trackingMode === 'guided' && plannedMeal && (
@@ -4262,7 +4262,7 @@ export default function NutritionDashboard() {
                    />
                 </div>
                 
-                <div className="flex gap-4 overflow-x-auto pb-6 mb-4 custom-scrollbar">
+                <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide w-full gap-4 pb-6 mb-4 custom-scrollbar">
                    {RECIPE_FILTERS.map(filter => (
                       <button 
                          key={filter.id} 
@@ -4275,7 +4275,7 @@ export default function NutritionDashboard() {
                    ))}
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-7xl mx-auto p-4">
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
@@ -4312,7 +4312,7 @@ export default function NutritionDashboard() {
                        if (fav.fats <= 15) tags.push("Low Fat");
                        
                        return (
-                       <div key={fav.id || i} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
+                       <div key={fav.id || i} className="w-full bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
                            <div>
                                {fav.image_url && <img src={fav.image_url} alt={name} className="w-full h-32 object-cover rounded-xl mb-3" />}
                                <div className="flex justify-between items-start mb-2">
