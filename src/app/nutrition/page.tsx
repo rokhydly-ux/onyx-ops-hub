@@ -758,10 +758,7 @@ export default function NutritionDashboard() {
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
-             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
-             setProteinGoal(nutritionData.protein_goal || 80);
-             setCarbsGoal(nutritionData.carbs_goal || 150);
-             setFatsGoal(nutritionData.fats_goal || 50);
+             setBmr(nutritionData.bmr || 0);
              setCalorieGoal(nutritionData.daily_calorie_goal || 0);
              setProteinGoal(nutritionData.protein_goal || 0);
              setCarbsGoal(nutritionData.carbs_goal || 0);
@@ -1507,8 +1504,15 @@ export default function NutritionDashboard() {
                  alert("Erreur SQL lors de l'enregistrement : " + error.message);
                  throw error;
               }
+
+              setBmr(results.bmr);
+              setCalorieGoal(dailyCalories);
+              setProteinGoal(payload.protein_goal);
+              setCarbsGoal(payload.carbs_goal);
+              setFatsGoal(payload.fats_goal);
+
               alert("Succès");
-              window.location.reload();
+              setShowRedoDiagModal(false);
           }
           
       } catch (err: any) {
@@ -3866,7 +3870,7 @@ export default function NutritionDashboard() {
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
-                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories} kcal` : (recipe.ux_unit || "1 portion")}</span>
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories || recipe.kcal || (recipe.nutrition && recipe.nutrition.calories) || "—"} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
