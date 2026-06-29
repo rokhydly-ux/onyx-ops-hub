@@ -422,45 +422,69 @@ export default function NutritionAfricaineLanding() {
 
     try {
         const cleanPhone = diagData.phone.replace(/\s+/g, '');
+        const generatedEmail = `${cleanPhone}@clients.onyxcrm.com`;
         const generatedPassword = cleanPhone.slice(-8).padStart(8, "0");
 
-        // 1. Création du compte via API
-        const res = await fetch('/api/create-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                fullName: diagData.name,
-                phone: cleanPhone,
-                password: generatedPassword,
-                role: 'client',
-                saas: "Nutrition à l'Africaine"
-            })
-        });
-        if (!res.ok) throw new Error("Erreur de l'API de création.");
+        let realUserId = null;
 
-        // 2. Connexion immédiate pour obtenir la session
+        // 1. Tenter la connexion en priorité (si l'utilisateur a déjà essayé avant)
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: `${cleanPhone}@clients.onyxcrm.com`,
+            email: generatedEmail,
             password: generatedPassword
         });
-        if (authError) throw authError;
 
-        const realUserId = authData.user?.id;
-        if (!realUserId) throw new Error("ID de session introuvable.");
+        if (authData?.user) {
+            realUserId = authData.user.id;
+        } else {
+            // 2. Le compte n'existe pas, on tente de le créer via l'API Onyx
+            await fetch('/api/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: diagData.name,
+                    phone: cleanPhone,
+                    password: generatedPassword,
+                    role: 'client',
+                    saas: "Nutrition à l'Africaine"
+                })
+            });
 
-        // 3. FIX CRITIQUE : Upsert OBLIGATOIRE dans la table 'clients' pour satisfaire la Foreign Key
+            // 3. Et on se connecte immédiatement
+            const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
+                email: generatedEmail,
+                password: generatedPassword
+            });
+
+            if (newAuthError) {
+                // 4. PLAN B (Sécurité anti-crash) : Inscription native Supabase si l'API a foiré
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    email: generatedEmail,
+                    password: generatedPassword,
+                    options: { data: { full_name: diagData.name, phone: cleanPhone } }
+                });
+
+                if (signUpError) throw new Error("Échec d'authentification : " + signUpError.message);
+                realUserId = signUpData.user?.id;
+            } else {
+                realUserId = newAuthData.user?.id;
+            }
+        }
+
+        if (!realUserId) throw new Error("Impossible d'identifier l'utilisateur.");
+
+        // 5. FIX CLÉ ÉTRANGÈRE : Upsert OBLIGATOIRE dans la table 'clients'
         const { error: clientErr } = await supabase.from('clients').upsert({
             id: realUserId,
             full_name: diagData.name,
             phone: cleanPhone
         }, { onConflict: 'id' });
 
-        if (clientErr) throw new Error("Erreur synchronisation table clients: " + clientErr.message);
+        if (clientErr) throw new Error("Erreur synchronisation client : " + clientErr.message);
 
-        // 4. Calcul de l'algorithme
+        // 6. Calcul de l'algorithme métabolique
         const profile = calculateDailyCalories(diagData);
 
-        // 5. Sauvegarde du Profil Nutritionnel (Maintenant la FK est valide)
+        // 7. Sauvegarde du Profil Nutritionnel
         const payload = {
             client_id: realUserId,
             phone: cleanPhone,
@@ -475,7 +499,7 @@ export default function NutritionAfricaineLanding() {
         };
 
         const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
-        if (profileErr) throw new Error("Erreur sauvegarde profil: " + profileErr.message);
+        if (profileErr) throw new Error("Erreur sauvegarde profil : " + profileErr.message);
 
         // Tracking d'événement
         await supabase.from('leads').insert([{
@@ -498,7 +522,7 @@ export default function NutritionAfricaineLanding() {
         }
         localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-        // 6. Succès -> On passe à la modale d'identifiants
+        // 8. Succès ! -> Affichage du Pop-up final
         setDiagStep(11);
 
     } catch (err: any) {
