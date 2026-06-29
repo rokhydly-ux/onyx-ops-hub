@@ -291,6 +291,9 @@ const getEmbedUrl = (url: string) => {
 };
 
 export default function NutritionDashboard() {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
@@ -713,7 +716,6 @@ export default function NutritionDashboard() {
           if (logsData) {
             setDailyLogs(logsData);
             
-            const todayStr = new Date().toISOString().split('T')[0];
             const todayLog = logsData.find(log => log.log_date === todayStr);
             if (todayLog) {
               setCalories(todayLog.calories_consumed || 0);
@@ -922,8 +924,6 @@ export default function NutritionDashboard() {
         const newLog = payload.new as any;
         if (!newLog || Object.keys(newLog).length === 0) return;
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        
         // Mettre à jour l'état si le log concerne aujourd'hui
         if (newLog.log_date === todayStr) {
           setCalories(newLog.calories_consumed || 0);
@@ -1040,7 +1040,6 @@ export default function NutritionDashboard() {
   useEffect(() => {
     const checkReminder = () => {
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
       const hasLoggedToday = dailyLogs.some(log => log.log_date === todayStr && log.report_data);
       
       if (now.getHours() >= 20 && !hasLoggedToday) {
@@ -1704,7 +1703,6 @@ export default function NutritionDashboard() {
         setRokhyMessage({ title: "Journée Parfaite ! 🎯", text: "Incroyable ! Tu as rempli toutes tes jauges aujourd'hui (Eau + Macros). Ton corps te remercie ! Profite de tes 50 XP bien mérités.", type: 'success' });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
     const todayLog = dailyLogs.find(l => l.log_date === todayStr);
     
     await supabase.from('nutrition_daily_logs').upsert({
@@ -1848,7 +1846,6 @@ export default function NutritionDashboard() {
       setRokhyMessage({ title: alertTitle, text: alertText, type: alertType });
 
       if (clientProfile) {
-          const todayStr = new Date().toISOString().split('T')[0];
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
             ...(todayLog?.id ? { id: todayLog.id } : {}),
@@ -1880,7 +1877,6 @@ export default function NutritionDashboard() {
       setConsumedMeals(updatedConsumedMeals);
 
       if (clientProfile) {
-          const todayStr = new Date().toISOString().split('T')[0];
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
             ...(todayLog?.id ? { id: todayLog.id } : {}),
@@ -2013,7 +2009,6 @@ export default function NutritionDashboard() {
   };
 
   const handleSaveWeight = async () => {
-      const todayStr = new Date().toISOString().split('T')[0];
       const lastLog = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1] : null;
 
       const newWeightVal = parseFloat(newWeight);
@@ -2152,7 +2147,6 @@ export default function NutritionDashboard() {
   const submitDailyReport = async () => {
     if (!clientProfile) return;
     setIsSubmittingReport(true);
-    const todayStr = new Date().toISOString().split('T')[0];
     
     // Valeurs simulées du menu respecté pour l'exemple
     let currentCals = calories;
@@ -2515,7 +2509,6 @@ export default function NutritionDashboard() {
      if (!clientProfile) return;
      setIsSaving(true);
      try {
-         const todayStr = new Date().toISOString().split('T')[0];
          const todayLog = dailyLogs.find(l => l.log_date === todayStr);
          await supabase.from('nutrition_daily_logs').upsert({
            ...(todayLog?.id ? { id: todayLog.id } : {}),
