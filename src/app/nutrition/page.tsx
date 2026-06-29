@@ -3507,44 +3507,7 @@ export default function NutritionDashboard() {
         )}
 
 
-        {activeTab === 'profile' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <h3 className="text-xl font-black uppercase text-black mb-2 flex items-center gap-2"><Apple className="text-[#39FF14]" size={28}/> Bibliothèque d'Aliments Sains</h3>
-               <p className="text-sm text-zinc-500 font-medium mb-6">Découvrez notre base d'aliments recommandés et leurs unités de mesure.</p>
 
-               {shopDataDB.length === 0 ? (
-                   <div className="text-center py-10">
-                       <p className="text-zinc-500">Aucun aliment n'a été importé pour le moment.</p>
-                   </div>
-               ) : (
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                       {shopDataDB.flatMap(cat => cat.produits).map((product: any, idx: number) => (
-                           <div key={idx} className="bg-zinc-50 rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow border border-zinc-100">
-                               {product.image_url ? (
-                                   <img src={product.image_url} alt={product.nom} className="w-16 h-16 rounded-xl object-cover" />
-                               ) : (
-                                   <div className="w-16 h-16 rounded-xl bg-zinc-200 flex items-center justify-center flex-shrink-0">
-                                       <Apple className="text-zinc-400" size={24} />
-                                   </div>
-                               )}
-                               <div className="flex-1">
-                                   <h4 className="font-bold text-sm text-black">{product.nom}</h4>
-                                   <p className="text-xs text-zinc-500 uppercase tracking-wider">{product.categorie_nom}</p>
-                                   <div className="flex items-center gap-2 mt-2">
-                                       <span className="text-[10px] bg-black text-white px-2 py-1 rounded-md font-bold">Unité : {product.ux_unit || 'portion'}</span>
-                                       {isExpertMode && product.calories && (
-                                           <span className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-md font-bold">{product.calories} kcal</span>
-                                       )}
-                                   </div>
-                               </div>
-                           </div>
-                       ))}
-                   </div>
-               )}
-            </div>
-          </div>
-        )}
 
         {/* VUE COACHING */}
         {activeTab === 'coaching' && (
