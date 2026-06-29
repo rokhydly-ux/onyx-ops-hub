@@ -2643,7 +2643,7 @@ export default function NutritionDashboard() {
   const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
   return (
-    <div className={`flex min-h-screen overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
+    <div className={`flex min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -2759,7 +2759,7 @@ export default function NutritionDashboard() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center sticky top-0 z-40 shadow-md">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
@@ -2846,9 +2846,9 @@ export default function NutritionDashboard() {
         </div>
       </header>
 
-      <div className="w-full max-w-3xl mx-auto px-6 mt-12 space-y-12">
+      <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
         {activeTab === 'today' && (
-          <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="w-full max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
             
             {/* EN-TÊTE MON JOUR */}
             <div className={`flex flex-col md:flex-row md:items-center justify-between pb-4 border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'} gap-4`}>
@@ -3828,7 +3828,7 @@ export default function NutritionDashboard() {
                      </button>
                   </div>
                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full">
                      {(() => {
                          const today = weeklyGeneratedMenu.find(d => d.day === formattedCurrentDay);
                          const others = weeklyGeneratedMenu.filter(d => d.day !== formattedCurrentDay);
@@ -4240,8 +4240,8 @@ export default function NutritionDashboard() {
       )}
 
         {activeTab === 'favorites' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
                 <div className="relative mb-6">
@@ -4268,7 +4268,7 @@ export default function NutritionDashboard() {
                    ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-7xl mx-auto p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
@@ -4305,8 +4305,8 @@ export default function NutritionDashboard() {
                        if (fav.fats <= 15) tags.push("Low Fat");
                        
                        return (
-                       <div key={fav.id || i} className="w-full bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
-                           <div>
+                       <div key={fav.id || i} className="w-full flex flex-col bg-zinc-50 p-5 rounded-2xl border border-zinc-100 justify-between hover:border-[#39FF14] transition-colors group">
+                           <div className="w-full">
                                {fav.image_url && <img src={fav.image_url} alt={name} className="w-full h-32 object-cover rounded-xl mb-3" />}
                                <div className="flex justify-between items-start mb-2">
                                    <div className="flex flex-col">
