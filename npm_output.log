@@ -14,3 +14,48 @@
  ○ Compiling /login ...
  ✓ Compiled /login in 5s (3063 modules)
  ✓ Compiled in 1545ms (1444 modules)
+ ✓ Compiled in 5.9s (1444 modules)
+ ○ Compiling /nutrition ...
+ ✓ Compiled /nutrition in 2s (1609 modules)
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '3051581955'
+}
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '2075436546'
+}
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '2075436546'
+}
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '2075436546'
+}
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '3051581955'
+}
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '3051581955'
+}
+ ⨯ [TypeError: Cannot read properties of undefined (reading 'call')] {
+  digest: '3678579080'
+}
+ ⨯ Error: Could not find the module "/app/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '3051581955'
+}
+[TypeError: Cannot read properties of undefined (reading 'call')]
+ ⨯ [TypeError: Cannot read properties of undefined (reading 'call')]
+ ⨯ [TypeError: Cannot read properties of undefined (reading 'call')] {
+  page: '/nutrition'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 3.5s (3389 modules)
+ GET /nutrition 500 in 11077ms
