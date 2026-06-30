@@ -318,6 +318,7 @@ export default function NutritionDashboard() {
   // Jauges quotidiennes
   const [calories, setCalories] = useState(0);
   const [waterGlasses, setWaterGlasses] = useState(0);
+  const [bmr, setBmr] = useState(0);
   const [proteins, setProteins] = useState(0);
   const [carbs, setCarbs] = useState(0);
   const [fats, setFats] = useState(0);
@@ -625,9 +626,13 @@ export default function NutritionDashboard() {
        handleOnline();
     }
 
+    return () => {
+       window.removeEventListener('online', handleOnline);
+       window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
-
-    useEffect(() => {
+  useEffect(() => {
         const fetchCatalogue = async () => {
             try {
                 // Fetch DB Products
@@ -684,6 +689,7 @@ export default function NutritionDashboard() {
         fetchCatalogue();
     }, []);
 
+    useEffect(() => {
     const verifyAuth = async () => {
       try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -700,22 +706,22 @@ export default function NutritionDashboard() {
         }
       }
 
-      setUser({ ...finalUser, full_name: finalUser.user_metadata?.full_name || finalUser.full_name || "Membre" });
+      setUser({ ...finalUser, full_name: finalUser?.user_metadata?.full_name || finalUser?.full_name || "Membre" });
       setProfileForm({
-         full_name: finalUser.user_metadata?.full_name || finalUser.full_name || "",
-         avatar_url: finalUser.user_metadata?.avatar_url || finalUser.avatar_url || "",
+         full_name: finalUser?.user_metadata?.full_name || finalUser?.full_name || "",
+         avatar_url: finalUser?.user_metadata?.avatar_url || finalUser?.avatar_url || "",
          password: ""
       });
 
       // Récupérer le profil client complet depuis la table 'clients'
-      const phoneMatch = finalUser.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
-      const userPhone = phoneMatch ? phoneMatch[1] : (finalUser.user_metadata?.phone || finalUser.phone);
+      const phoneMatch = finalUser?.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
+      const userPhone = phoneMatch ? phoneMatch[1] : (finalUser?.user_metadata?.phone || finalUser?.phone);
 
       let query = supabase.from('clients').select('*');
       if (userPhone) {
         query = query.eq('phone', userPhone);
-      } else if (finalUser.id && String(finalUser.id).includes('-')) {
-        query = query.eq('id', finalUser.id);
+      } else if (finalUser?.id && String(finalUser?.id).includes('-')) {
+        query = query.eq('id', finalUser?.id);
       } else {
         setLoading(false);
         return;
@@ -891,11 +897,6 @@ export default function NutritionDashboard() {
     };
 
     verifyAuth();
-
-    return () => {
-       window.removeEventListener('online', handleOnline);
-       window.removeEventListener('offline', handleOffline);
-    };
 
     // Afficher un message de bienvenue après le diagnostic
     if (searchParams.get('from') === 'diagnostic') {
