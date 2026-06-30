@@ -4,25 +4,27 @@ import type { NextRequest } from 'next/server';
 export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
 
-    // Récupération propre du hostname (gère les cas avec ou sans port, et www)
-    let hostname = req.headers.get('host') || '';
-    hostname = hostname.split(':')[0].replace(/^www\./, '');
+    // Récupération stricte du domaine
+    const hostname = req.headers.get('host')?.split(':')[0].replace(/^www\./, '') || '';
 
-    // RÈGLE 1 : DOMAINE NUTRIAFRO.APP
+    // 🚨 DEBUG VERCEL : Regarde tes logs Vercel pour vérifier ce qui s'affiche ici
+    console.log(`[Middleware] Host: ${hostname} | Path: ${url.pathname}`);
+
+    // 👑 RÈGLE NUTRIAFRO : PRIORITÉ ABSOLUE (DOIT ÊTRE EN PREMIER)
     if (hostname === 'nutriafro.app') {
-        // Si on est à la racine exacte du domaine
         if (url.pathname === '/') {
-            // On réécrit l'URL en interne vers la bonne page, SANS changer l'URL du navigateur
-            return NextResponse.rewrite(new URL('/solutions/onyx-nutritionafricaine', req.url));
+            url.pathname = '/solutions/onyx-nutritionafricaine';
+            return NextResponse.rewrite(url); // LE RETURN ARRÊTE LE MIDDLEWARE ICI
         }
 
         // (Règle ajoutée précédemment pour le login)
         if (url.pathname === '/login') {
-            return NextResponse.rewrite(new URL('/nutriafro-login', req.url));
+            url.pathname = '/nutriafro-login';
+            return NextResponse.rewrite(url);
         }
     }
 
-    // --- TES AUTRES RÈGLES ONYXLINKS RESTENT ICI EN DESSOUS ---
+    // 👇 --- TES AUTRES RÈGLES ONYXLINKS COMMENCENT SEULEMENT ICI --- 👇
 
     return NextResponse.next();
 }
