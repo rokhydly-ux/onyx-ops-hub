@@ -626,6 +626,7 @@ export default function NutritionDashboard() {
     }
 
     const verifyAuth = async () => {
+      try {
       const { data: { session } } = await supabase.auth.getSession();
       let finalUser = session?.user;
 
@@ -868,8 +869,11 @@ export default function NutritionDashboard() {
               } catch (e) {}
           }
       }
-
-      setLoading(false);
+      } catch (err) {
+        console.error("Erreur de chargement auth/profil :", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     verifyAuth();
