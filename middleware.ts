@@ -1,14 +1,22 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  // Ce middleware autorise la navigation sans la bloquer agressivement.
-  // La vérification se fait directement dans vos pages (comme /hub) et dans le AuthContext.
-  return NextResponse.next();
+export function middleware(req: NextRequest) {
+    const url = req.nextUrl;
+    const hostname = req.headers.get('host') || '';
+
+    // Si on est sur le domaine NutriAfro
+    if (hostname.includes('nutriafro.app')) {
+        if (url.pathname === '/') {
+            return NextResponse.rewrite(new URL('/solutions/onyx-nutritionafricaine', req.url));
+        }
+        if (url.pathname === '/login') {
+            return NextResponse.rewrite(new URL('/nutriafro-login', req.url));
+        }
+    }
+    return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+};

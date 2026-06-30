@@ -877,25 +877,29 @@ export default function NutritionAfricaineLanding() {
           Offre de lancement : Seulement 2.900 F/mois. Expire dans {formatTime(fomoTime)}
       </div>
 
-      {/* NAVBAR */}
-      <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
-         <button onClick={() => window.location.href = '/'} className="flex items-center hover:opacity-90 transition-opacity">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224303/NOIR_VERT_k8px4q.png" alt="Nutrition à l'Africaine" className="h-28 md:h-32 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
-         </button>
-         
-         <div className="flex items-center gap-4">
-             <div className="relative" ref={dropdownRef}>
-                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
-                    Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                 </button>
-                 <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-2xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
-                    <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🏠 Accueil Onyx</button>
-                 </div>
-             </div>
-             <button onClick={() => window.location.href = '/'} className="bg-white border border-zinc-200 text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-black hover:text-[#39FF14] transition-colors flex items-center gap-1 shadow-sm">
-                 <ChevronLeft size={14}/> Accueil
-             </button>
-         </div>
+      {/* Header Fixe NutriAfro */}
+      <nav className="fixed top-0 left-0 w-full p-4 md:p-6 flex justify-between items-center z-50 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm">
+          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-8 md:h-12 w-auto object-contain" />
+
+          <div className="flex items-center gap-3 md:gap-4">
+              {/* Bouton Connexion */}
+              <button onClick={() => router.push('/login')} className="bg-black/50 backdrop-blur-md border border-white/20 text-white px-4 md:px-6 py-2 md:py-2.5 rounded-full font-black uppercase text-[10px] md:text-xs tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-all flex items-center gap-2">
+                  <Lock size={14} /> <span className="hidden sm:inline">Se Connecter</span>
+              </button>
+
+              {/* Bouton Diagnostic */}
+              <button onClick={() => {
+                  if (!showDiagnosticModal) {
+                      setShowDiagnosticModal(true);
+                      setDiagStep(1);
+                  }
+                  setTimeout(() => {
+                      document.getElementById('diagnostic-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+              }} className="bg-[#39FF14] text-black px-4 md:px-6 py-2 md:py-2.5 rounded-full font-black uppercase text-[10px] md:text-xs tracking-widest shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform flex items-center gap-2">
+                  <Target size={14} /> <span className="hidden sm:inline">Créer un compte</span>
+              </button>
+          </div>
       </nav>
 
       {/* 1. HERO SECTION (NOUVEAU) */}
