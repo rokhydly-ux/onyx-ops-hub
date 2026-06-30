@@ -1,0 +1,16 @@
+
+> onyx-ops-hub@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.15
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling /nutrition ...
+ ✓ Compiled /nutrition in 15.5s (3064 modules)
+ GET /nutrition 200 in 18692ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 5s (3063 modules)
+ ✓ Compiled in 1545ms (1444 modules)
