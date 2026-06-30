@@ -472,6 +472,7 @@ export default function NutritionDashboard() {
   const [showSecondBadgeModal, setShowSecondBadgeModal] = useState(false);
 
   // Objectifs
+  const [bmr, setBmr] = useState(0);
   const [calorieGoal, setCalorieGoal] = useState(0);
   const [proteinGoal, setProteinGoal] = useState(0);
   const [carbsGoal, setCarbsGoal] = useState(0);
@@ -625,9 +626,13 @@ export default function NutritionDashboard() {
        handleOnline();
     }
 
+    return () => {
+       window.removeEventListener('online', handleOnline);
+       window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
-
-    useEffect(() => {
+  useEffect(() => {
         const fetchCatalogue = async () => {
             try {
                 // Fetch DB Products
@@ -682,8 +687,9 @@ export default function NutritionDashboard() {
         };
 
         fetchCatalogue();
-    }, []);
+  }, []);
 
+  useEffect(() => {
     const verifyAuth = async () => {
       try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -891,19 +897,15 @@ export default function NutritionDashboard() {
     };
 
     verifyAuth();
+  }, [router, searchParams]);
 
-    return () => {
-       window.removeEventListener('online', handleOnline);
-       window.removeEventListener('offline', handleOffline);
-    };
-
+  useEffect(() => {
     // Afficher un message de bienvenue après le diagnostic
     if (searchParams.get('from') === 'diagnostic') {
       alert("Félicitations et bienvenue ! Votre espace personnel est prêt.");
       // Nettoyer l'URL
       router.replace('/nutrition');
     }
-
   }, [router, searchParams]);
 
   useEffect(() => {
@@ -2264,6 +2266,10 @@ export default function NutritionDashboard() {
     }
   };
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
+  }
+
   const dayIndex = new Date().getDay();
   const daysArray = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const formattedCurrentDay = daysArray[dayIndex];
@@ -2315,9 +2321,7 @@ export default function NutritionDashboard() {
   };
 
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
-  }
+
   
   const toggleFavorite = async (meal: any) => {
       const mealName = meal.meal || meal.nom;
