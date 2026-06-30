@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const session = localStorage.getItem('onyx_custom_session') || localStorage.getItem('onyx_session');
       if (session) {
         setUser(JSON.parse(session));
+// eslint-disable-next-line react-hooks/exhaustive-deps
       }
     } catch (error) {
       console.error('Failed to parse session from localStorage', error);
