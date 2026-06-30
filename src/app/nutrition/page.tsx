@@ -625,6 +625,63 @@ export default function NutritionDashboard() {
        handleOnline();
     }
 
+    useEffect(() => {
+        const fetchCatalogue = async () => {
+            try {
+                // Fetch DB Products
+                let prodQuery = supabase.from('nutrition_products').select('*');
+                const { data: dbProds } = await prodQuery;
+                if (dbProds && dbProds.length > 0) {
+                    const grouped = dbProds.reduce((acc: any, p: any) => {
+                        if (!acc[p.categorie_nom]) acc[p.categorie_nom] = { categorie_nom: p.categorie_nom, slug: p.slug || 'cat', produits: [] };
+                        acc[p.categorie_nom].produits.push(p);
+                        return acc;
+                    }, {});
+                    setShopDataDB(Object.values(grouped));
+                } else {
+                    const grouped = SHOP_DATA.reduce((acc: any, p: any) => {
+                        if (!acc[p.categorie_nom]) acc[p.categorie_nom] = { categorie_nom: p.categorie_nom, slug: p.slug || 'cat', produits: [] };
+                        p.produits.forEach((prod: any) => acc[p.categorie_nom].produits.push(prod));
+                        return acc;
+                    }, {});
+                    setShopDataDB(Object.values(grouped));
+                }
+
+                // Fetch Promo Codes
+                let promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+                const { data: dbPromos } = await promoQuery;
+                if (dbPromos) setShopPromoCodesDB(dbPromos);
+
+                // Fetch Community Posts
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+                if (cPosts) {
+                    setCommunityPosts(cPosts.map((p: any) => ({
+                        ...p,
+                        client: p.clients?.full_name || 'Membre'
+                    })));
+                }
+
+                // Fetch Foods
+                const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
+                if (dbFoods) setFoodDatabaseDB(dbFoods);
+
+                // Fetch All Recipes for Gallery
+                let recipeQuery = supabase.from('nutrition_recipes').select('*');
+                const { data: dbRecipes } = await recipeQuery;
+                if (dbRecipes && dbRecipes.length > 0) setAllRecipesDB(dbRecipes);
+                else setAllRecipesDB(DEFAULT_RECIPES);
+
+                // Fetch Articles
+                const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
+                if (articlesData) setArticles(articlesData);
+            } catch (err) {
+                console.error("Erreur de chargement du catalogue :", err);
+            }
+        };
+
+        fetchCatalogue();
+    }, []);
+
     const verifyAuth = async () => {
       try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -809,52 +866,7 @@ export default function NutritionDashboard() {
           if (ordersData) setClientOrders(ordersData);
           } // Fin if (activeProfile.id)
 
-          // Fetch DB Products
-          let prodQuery = supabase.from('nutrition_products').select('*');
-          const { data: dbProds } = await prodQuery;
-          if (dbProds && dbProds.length > 0) {
-             const grouped = dbProds.reduce((acc: any, p: any) => {
-                if (!acc[p.categorie_nom]) acc[p.categorie_nom] = { categorie_nom: p.categorie_nom, slug: p.slug || 'cat', produits: [] };
-                acc[p.categorie_nom].produits.push(p);
-                return acc;
-             }, {});
-             setShopDataDB(Object.values(grouped));
-          } else {
-             const grouped = SHOP_DATA.reduce((acc: any, p: any) => {
-                if (!acc[p.categorie_nom]) acc[p.categorie_nom] = { categorie_nom: p.categorie_nom, slug: p.slug || 'cat', produits: [] };
-                p.produits.forEach((prod: any) => acc[p.categorie_nom].produits.push(prod));
-                return acc;
-             }, {});
-             setShopDataDB(Object.values(grouped));
-          }
 
-          // Fetch Promo Codes
-          let promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
-          const { data: dbPromos } = await promoQuery;
-          if (dbPromos) setShopPromoCodesDB(dbPromos);
-          
-          // Fetch Community Posts
-          const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
-          if (cPosts) {
-              setCommunityPosts(cPosts.map((p: any) => ({
-                 ...p,
-                 client: p.clients?.full_name || 'Membre'
-              })));
-          }
-
-          // Fetch Foods
-          const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
-          if (dbFoods) setFoodDatabaseDB(dbFoods);
-
-          // Fetch All Recipes for Gallery
-          let recipeQuery = supabase.from('nutrition_recipes').select('*');
-          const { data: dbRecipes } = await recipeQuery;
-          if (dbRecipes && dbRecipes.length > 0) setAllRecipesDB(dbRecipes);
-          else setAllRecipesDB(DEFAULT_RECIPES);
-
-          // Fetch Articles
-          const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
-          if (articlesData) setArticles(articlesData);
 
           // Load banner from settings specific to the coach
           if (activeProfile.tenant_id) {
@@ -3069,14 +3081,15 @@ export default function NutritionDashboard() {
             <div className="grid md:grid-cols-2 gap-4">
                 {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map((mealType) => {
                     const generatedMeal = todayPlan?.meals ? todayPlan.meals[mealType] : null;
+                    const baseCalories = generatedMeal ? (generatedMeal.calories || generatedMeal.kcal || generatedMeal.energy || 0) : 0;
                     const plannedMeal = generatedMeal ? {
                         type: mealType,
                         time: mealType === 'Petit-déjeuner' ? '08:00' : mealType === 'Déjeuner' ? '13:30' : mealType === 'Collation' ? '16:00' : '19:30',
                         meal: generatedMeal.nom,
-                        cals: generatedMeal.calories,
-                        proteins: generatedMeal.proteins !== undefined ? generatedMeal.proteins : Math.round((generatedMeal.calories * 0.2) / 4),
-                        carbs: generatedMeal.carbs !== undefined ? generatedMeal.carbs : Math.round((generatedMeal.calories * 0.5) / 4),
-                        fats: generatedMeal.fats !== undefined ? generatedMeal.fats : Math.round((generatedMeal.calories * 0.3) / 9),
+                        cals: baseCalories || "—",
+                        proteins: generatedMeal.proteins !== undefined ? generatedMeal.proteins : (baseCalories ? Math.round((baseCalories * 0.2) / 4) : 0),
+                        carbs: generatedMeal.carbs !== undefined ? generatedMeal.carbs : (baseCalories ? Math.round((baseCalories * 0.5) / 4) : 0),
+                        fats: generatedMeal.fats !== undefined ? generatedMeal.fats : (baseCalories ? Math.round((baseCalories * 0.3) / 9) : 0),
                         ux_unit: (generatedMeal as any).ux_unit || "1 portion",
                         recipe: generatedMeal.recipe || `Ingrédients : ${generatedMeal.ingredients?.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ') || ''}`
                     } : null;
