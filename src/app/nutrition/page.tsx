@@ -625,6 +625,8 @@ export default function NutritionDashboard() {
        handleOnline();
     }
 
+
+
     useEffect(() => {
         const fetchCatalogue = async () => {
             try {
