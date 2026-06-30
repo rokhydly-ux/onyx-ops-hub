@@ -883,7 +883,7 @@ export default function NutritionAfricaineLanding() {
 
           <div className="flex items-center gap-3 md:gap-4">
               {/* Bouton Connexion */}
-              <button onClick={() => router.push('/login')} className="bg-black/50 backdrop-blur-md border border-white/20 text-white px-4 md:px-6 py-2 md:py-2.5 rounded-full font-black uppercase text-[10px] md:text-xs tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-all flex items-center gap-2">
+              <button onClick={() => router.push('/nutriafro-login')} className="bg-black/50 backdrop-blur-md border border-white/20 text-white px-4 md:px-6 py-2 md:py-2.5 rounded-full font-black uppercase text-[10px] md:text-xs tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-all flex items-center gap-2">
                   <Lock size={14} /> <span className="hidden sm:inline">Se Connecter</span>
               </button>
 
@@ -919,7 +919,7 @@ export default function NutritionAfricaineLanding() {
         </AnimatePresence>
 
         {/* Content */}
-        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-28 md:pt-32">
+        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-40 md:pt-48">
            <AnimatePresence mode="wait">
               <motion.div
                  key={heroSlide}
