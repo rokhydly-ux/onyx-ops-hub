@@ -19,7 +19,8 @@ export default function NutriAfroLogin() {
                 password,
             });
             if (authError) throw authError;
-            window.location.href = '/nutrition'; // Redirection directe Espace Client
+            // Redirection absolue vers le SAMA MENU (Espace client)
+            window.location.href = '/nutrition';
         } catch (err) {
             setError("Identifiants incorrects.");
         } finally {
@@ -30,11 +31,11 @@ export default function NutriAfroLogin() {
     return (
         <div className="min-h-screen bg-black flex flex-col lg:flex-row overflow-hidden font-sans">
 
-            {/* Formulaire Gauche */}
+            {/* MOITIÉ GAUCHE : Formulaire Glassmorphism */}
             <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 min-h-screen lg:min-h-0">
-                {/* Image Fond Mobile */}
+                {/* Image Mobile Uniquement */}
                 <div className="lg:hidden absolute inset-0 w-full h-full opacity-30 z-[-1]">
-                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg" alt="NutriAfro Mobile" className="w-full h-full object-cover" />
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg" alt="Fond Mobile" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
                 </div>
 
@@ -43,7 +44,7 @@ export default function NutriAfroLogin() {
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-16 object-contain" />
                     </div>
                     <h1 className="text-2xl font-black text-white text-center uppercase tracking-wider mb-2">Bienvenue</h1>
-                    <p className="text-zinc-400 text-sm text-center mb-8">Accédez à votre Sama Menu.</p>
+                    <p className="text-zinc-400 text-sm text-center mb-8">Accédez à votre espace nutritionnel personnel.</p>
 
                     {error && <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-xl mb-6 text-center">{error}</div>}
 
@@ -62,6 +63,7 @@ export default function NutriAfroLogin() {
                     </form>
 
                     <div className="mt-8 pt-8 border-t border-white/10 text-center">
+                        <p className="text-zinc-500 text-xs mb-4">Nouveau membre de l'équipe ?</p>
                         <a href="/" className="w-full bg-white/5 border border-white/10 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-white hover:text-black transition-all flex justify-center items-center gap-2">
                             <Stethoscope size={14}/> Démarrer le diagnostic gratuit
                         </a>
@@ -69,7 +71,7 @@ export default function NutriAfroLogin() {
                 </div>
             </div>
 
-            {/* Image Droite (PC) */}
+            {/* MOITIÉ DROITE : Image Cover Desktop */}
             <div className="hidden lg:block w-1/2 relative h-screen">
                 <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-10"></div>
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg" alt="Nutrition Cover" className="w-full h-full object-cover" />

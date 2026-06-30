@@ -2,22 +2,20 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
-    const url = req.nextUrl;
-    // Récupérer le host de manière sécurisée (avec ou sans port, vercel, etc.)
+    const url = req.nextUrl.clone();
     const hostname = req.headers.get('host') || '';
 
-    // Nettoyage du hostname pour éviter les bugs (ex: www.nutriafro.app:3000)
-    const cleanHostname = hostname.split(':')[0].replace('www.', '');
-
-    // Si on est sur le domaine NutriAfro
-    if (cleanHostname === 'nutriafro.app') {
-        // Racine du domaine -> Affiche la landing page
+    // Détection stricte du domaine NutriAfro
+    if (hostname.includes('nutriafro.app')) {
+        // Si on est à la racine de nutriafro.app, on affiche la landing page
         if (url.pathname === '/') {
-            return NextResponse.rewrite(new URL('/solutions/onyx-nutritionafricaine', req.url));
+            url.pathname = '/solutions/onyx-nutritionafricaine';
+            return NextResponse.rewrite(url);
         }
-        // Login -> Affiche la page de connexion dédiée
+        // Si l'utilisateur tape /login manuellement, on le force vers notre login dédié
         if (url.pathname === '/login') {
-            return NextResponse.rewrite(new URL('/nutriafro-login', req.url));
+            url.pathname = '/nutriafro-login';
+            return NextResponse.rewrite(url);
         }
     }
 
