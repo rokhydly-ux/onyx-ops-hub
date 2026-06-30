@@ -133,6 +133,7 @@ export default function AdminNutritionAfricaine() {
 
   // Filtres Boutique Admin
   const [shopSearch, setShopSearch] = useState("");
+  const [shopCategory, setShopCategory] = useState("Tous");
   const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
   const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
   const [shopOutOfStock, setShopOutOfStock] = useState(false);
@@ -1476,17 +1477,20 @@ export default function AdminNutritionAfricaine() {
   // Calculs pagination et filtres boutique
   const filteredShop = products.filter(p => {
       const matchSearch = !shopSearch || p.nom?.toLowerCase().includes(shopSearch.toLowerCase()) || p.categorie_nom?.toLowerCase().includes(shopSearch.toLowerCase());
+      const matchCategory = shopCategory === "Tous" || p.categorie_nom === shopCategory;
       const price = p.prix_standard || 0;
       const matchMin = shopMinPrice === "" || price >= shopMinPrice;
       const matchMax = shopMaxPrice === "" || price <= shopMaxPrice;
       const matchStock = shopOutOfStock ? p.stock === 0 : true;
-      return matchSearch && matchMin && matchMax && matchStock;
+      return matchSearch && matchCategory && matchMin && matchMax && matchStock;
   }).sort((a, b) => {
       if (shopSort === "old") return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
       if (shopSort === "views") return (b.views || 0) - (a.views || 0);
       if (shopSort === "rating") return (b.rating || 0) - (a.rating || 0);
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(); // recent default
   });
+
+  const shopCategoriesList = ["Tous", ...Array.from(new Set(products.map(p => p.categorie_nom).filter(Boolean)))];
 
   const shopItemsPerPage = 12;
   const totalShopPages = Math.ceil(filteredShop.length / shopItemsPerPage);
@@ -2327,10 +2331,22 @@ export default function AdminNutritionAfricaine() {
                    </div>
                </div>
            )}
+           <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide gap-3 pb-2 mb-4 w-full">
+              {shopCategoriesList.map((cat: any) => (
+                 <button
+                    key={cat}
+                    onClick={() => setShopCategory(cat)}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors border ${shopCategory === cat ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50'}`}
+                 >
+                    {cat}
+                 </button>
+              ))}
+           </div>
+
            <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
               <div className="relative flex-1 w-full md:w-auto">
                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                 <input type="text" placeholder="Rechercher (nom, catégorie)..." value={shopSearch} onChange={e=>setShopSearch(e.target.value)} className="w-full pl-10 p-3 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black shadow-sm" />
+                 <input type="text" placeholder="Rechercher par nom..." value={shopSearch} onChange={e=>setShopSearch(e.target.value)} className="w-full pl-10 p-3 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black shadow-sm" />
               </div>
               <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-zinc-200 shadow-sm w-full md:w-auto">
                  <Filter size={16} className="text-zinc-400 ml-2" />
