@@ -3,21 +3,26 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
-    const hostname = req.headers.get('host') || '';
 
-    // Détection stricte du domaine NutriAfro
-    if (hostname.includes('nutriafro.app')) {
-        // Si on est à la racine de nutriafro.app, on affiche la landing page
+    // Récupération propre du hostname (gère les cas avec ou sans port, et www)
+    let hostname = req.headers.get('host') || '';
+    hostname = hostname.split(':')[0].replace(/^www\./, '');
+
+    // RÈGLE 1 : DOMAINE NUTRIAFRO.APP
+    if (hostname === 'nutriafro.app') {
+        // Si on est à la racine exacte du domaine
         if (url.pathname === '/') {
-            url.pathname = '/solutions/onyx-nutritionafricaine';
-            return NextResponse.rewrite(url);
+            // On réécrit l'URL en interne vers la bonne page, SANS changer l'URL du navigateur
+            return NextResponse.rewrite(new URL('/solutions/onyx-nutritionafricaine', req.url));
         }
-        // Si l'utilisateur tape /login manuellement, on le force vers notre login dédié
+
+        // (Règle ajoutée précédemment pour le login)
         if (url.pathname === '/login') {
-            url.pathname = '/nutriafro-login';
-            return NextResponse.rewrite(url);
+            return NextResponse.rewrite(new URL('/nutriafro-login', req.url));
         }
     }
+
+    // --- TES AUTRES RÈGLES ONYXLINKS RESTENT ICI EN DESSOUS ---
 
     return NextResponse.next();
 }
