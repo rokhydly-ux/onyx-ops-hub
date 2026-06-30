@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabaseClient';
 import { ArrowRight, Lock, Phone, Stethoscope } from 'lucide-react';
 
 export default function NutriAfroLogin() {
@@ -8,7 +8,6 @@ export default function NutriAfroLogin() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const supabase = createClientComponentClient();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
