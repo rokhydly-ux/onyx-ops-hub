@@ -919,7 +919,7 @@ export default function NutritionAfricaineLanding() {
         </AnimatePresence>
 
         {/* Content */}
-        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center">
+        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-28 md:pt-32">
            <AnimatePresence mode="wait">
               <motion.div
                  key={heroSlide}
