@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowRight, Lock, User, Stethoscope, X } from 'lucide-react';
+import { ArrowRight, Lock, User, X } from 'lucide-react';
 
 export default function NutriAfroLogin() {
     const [identifier, setIdentifier] = useState('');
@@ -50,7 +50,7 @@ export default function NutriAfroLogin() {
                 <img
                     src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782918952/MANGO_lo6yxx.png"
                     alt="Mangue"
-                    className="absolute bottom-20 left-1/3 w-28 md:w-40 opacity-70 blur-[1px] animate-[bounce_8s_ease-in-out_infinite_reverse]"
+                    className="absolute bottom-32 left-[45%] lg:left-[48%] w-28 md:w-40 opacity-70 blur-[1px] animate-[bounce_8s_ease-in-out_infinite_reverse]"
                 />
             </div>
 
@@ -84,7 +84,7 @@ export default function NutriAfroLogin() {
                         <img
                             src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png"
                             alt="Coach Rokhy"
-                            className="w-full h-auto drop-shadow-2xl"
+                            className="w-full h-auto drop-shadow-2xl animate-[bounce_7s_ease-in-out_infinite]"
                         />
                     </div>
 
