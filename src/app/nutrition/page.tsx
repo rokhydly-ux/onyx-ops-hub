@@ -1521,7 +1521,7 @@ export default function NutritionDashboard() {
                   protein_goal: results.protein,
                   fats_goal: results.fats,
                   diagnostic_data: { 
-                      ...diagData,
+                      ...cleanDiagData,
                       bmr: results.bmr,
                       tdee: results.tdee
                   }
@@ -2299,12 +2299,13 @@ export default function NutritionDashboard() {
   // --- GESTION ET SAUVEGARDE DU MODE DE SUIVI ---
   const handleTrackingModeChange = async (mode: 'guided' | 'flexible') => {
      setTrackingMode(mode);
-     if (clientProfile && clientProfile.phone) {
-        await supabase.from('nutrition_profiles').update({ tracking_mode: mode }).eq('phone', clientProfile.phone);
-     } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        const phone = user?.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/)?.[1] || user?.phone;
-        if (phone) await supabase.from('nutrition_profiles').update({ tracking_mode: mode }).eq('phone', phone);
+     // Note: `tracking_mode` might not be a real column in `nutrition_profiles`.
+     // If it's part of diagnostic_data or just doesn't exist, we save it there.
+     // Also `phone` column doesn't exist in `nutrition_profiles`. Use client_id.
+     if (clientProfile?.id) {
+         const updatedDiag = { ...(clientProfile.diagnostic_data || {}), tracking_mode: mode };
+         await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiag }).eq('client_id', clientProfile.id);
+         setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiag } : prev);
      }
   };
 
