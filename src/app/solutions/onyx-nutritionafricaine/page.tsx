@@ -192,7 +192,7 @@ export default function NutritionAfricaineLanding() {
   const hasAutoOpened = useRef(false);
   const [diagStep, setDiagStep] = useState(1);
   const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
-  const [diagData, setDiagData] = useState({
+  const [diagData, setDiagData] = useState<any>({
   gender: "",
   age: "",
   goal: "",

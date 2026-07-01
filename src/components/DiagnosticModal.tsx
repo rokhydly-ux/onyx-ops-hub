@@ -167,7 +167,6 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
     if (!isOpen) return null;
 
     return (
-<div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && onClose()}>
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && onClose()}>
           <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col relative animate-in zoom-in-95 max-h-[95vh] overflow-hidden">
             <button onClick={() => onClose()} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/20 text-white rounded-full hover:bg-black hover:text-[#39FF14] transition z-50"><X size={20}/></button>
@@ -689,6 +688,5 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             </div>
           </div>
         </div>
-</div>
     );
 }

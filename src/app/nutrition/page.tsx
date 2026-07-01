@@ -1,4 +1,5 @@
 "use client";
+import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,7 +9,7 @@ import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
+  ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
 , PartyPopper } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -2676,7 +2677,7 @@ export default function NutritionDashboard() {
   const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
   return (
-    <div className={`flex min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
+    <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -2713,86 +2714,58 @@ export default function NutritionDashboard() {
       )}
 
       {/* SIDEBAR VERTICAL */}
-      <aside 
-         onMouseEnter={() => { 
-            if (window.innerWidth >= 1024) {
-               if (sidebarTimeoutRef.current) clearTimeout(sidebarTimeoutRef.current);
-               setIsSidebarOpen(true);
-            }
-         }}
-         onMouseLeave={() => { 
-            if (window.innerWidth >= 1024) {
-               sidebarTimeoutRef.current = setTimeout(() => {
-                  setIsSidebarOpen(false);
-               }, 400);
-            }
-         }}
-         className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
-      >
-         <div className="p-6 flex items-center justify-between">
-            <div className={`flex items-center gap-3 overflow-hidden transition-all duration-500 ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
-               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
-            </div>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'} ${!isSidebarOpen ? 'mx-auto' : ''}`}>
-               {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
-            </button>
-            <button onClick={() => setIsMobileMenuOpen(false)} className={`lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors ${!isSidebarOpen ? 'mx-auto' : ''}`}>
-               <X size={24}/>
-            </button>
-         </div>
 
-         <nav className="mt-6 px-4 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
+      {/* HEADER & HORIZONTAL NAVIGATION */}
+      <header className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 px-4 md:px-8 py-4 flex flex-col gap-4">
+        <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-2">
+                <img src={logoSrc} alt="OnyxNutrition" className="h-10 w-auto object-contain" />
+            </div>
+
+            {/* Actions Droite */}
+            <div className="flex items-center gap-4">
+                <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+                    <Search size={14} className="text-zinc-500" />
+                    <input type="text" placeholder="Rechercher..." className="bg-transparent border-none text-xs text-white outline-none w-24 focus:w-32 transition-all ml-2" />
+                </div>
+                <button className="relative p-2 rounded-full bg-white/5 border border-white/10 text-zinc-400 hover:text-white transition-colors">
+                    <Bell size={16} />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+
+                {/* Dropdown Profil */}
+                <div className="relative group">
+                    <button className="flex items-center gap-2 focus:outline-none">
+                        <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-10 h-10 rounded-full border border-white/10 object-cover" />
+                        <ChevronDown size={14} className="text-zinc-500 group-hover:text-white" />
+                    </button>
+                    <div className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
+                        <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-white text-left hover:bg-white/5 transition-colors flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
+                        <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-white text-left hover:bg-white/5 transition-colors flex items-center gap-2"><Settings size={14}/> Paramètres</button>
+                        <div className="h-px w-full bg-white/5"></div>
+                        <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-500/10 transition-colors flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Menu Pills Horizontal */}
+        <nav className="w-full overflow-x-auto scrollbar-hide flex items-center justify-center space-x-2 pb-2">
             {menuItems.map((item: any) => (
                <button 
                   key={item.id} 
-                  title={item.label}
-                  onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center p-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')} ${!isSidebarOpen ? 'justify-center' : 'justify-start'}`}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full font-black uppercase text-[10px] tracking-widest transition-all ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_0_15px_rgba(57,255,20,0.3)]' : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-white/5'}`}
                >
-                  {typeof item.icon === 'string' ? (
-                     <motion.img 
-                        animate={{ y: [0, -3, 0] }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        src={item.icon} 
-                        className="w-6 h-6 rounded-xl object-cover shrink-0" 
-                        alt="" 
-                     />
-                  ) : (
-                     <item.icon size={20} className="shrink-0" />
-                  )}
-                  <span className={`whitespace-nowrap transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0 ml-0' : 'max-w-[200px] opacity-100 ml-4'}`}>{item.label}</span>
-                  {item.dot && (
-                     <span className="absolute top-4 right-4 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                     </span>
-                  )}
+                  {item.label}
                </button>
             ))}
-         </nav>
+        </nav>
+      </header>
 
-         <div className={`mt-auto p-4 shrink-0 transition-all duration-300 overflow-hidden`}>
-            <div className={`flex items-center gap-3 px-2 cursor-pointer hover:opacity-80 transition-opacity ${isSidebarOpen ? 'mb-4' : 'mb-0 justify-center'}`} onClick={() => { setActiveTab('profile'); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }} title="Mon Profil">
-               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className={`w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'} shadow-sm shrink-0 cursor-pointer`} onClick={(e) => { e.stopPropagation(); handleChangeAvatar(); }} title="Changer l'avatar" />
-               <div className={`flex-1 min-w-0 transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
-                  <p className="text-xs font-black uppercase truncate text-black dark:text-white">{user?.full_name || 'Membre'}</p>
-                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest truncate">Mon Profil</p>
-               </div>
-            </div>
-            <div className={`rounded-[1.5rem] border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-h-0 opacity-0 border-transparent m-0 p-0' : 'max-h-[200px] opacity-100 mt-4 p-4'}`}>
-               <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase mb-2">XP Progression</p>
-               <div className="flex items-center gap-3">
-                  <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black' : 'bg-zinc-200'}`}>
-                     <div className="h-full bg-[#39FF14]" style={{ width: `${Math.min((jongomaXP / 2000) * 100, 100)}%` }}></div>
-                  </div>
-                  <span className="text-[10px] font-black text-black dark:text-white">{jongomaXP}</span>
-               </div>
-            </div>
-         </div>
-      </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 `}>
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center sticky top-0 z-40 shadow-md">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
@@ -2881,660 +2854,14 @@ export default function NutritionDashboard() {
 
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
         {activeTab === 'today' && (
-          <div className="w-full max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            
-            {/* EN-TÊTE MON JOUR */}
-            <div className={`flex flex-col md:flex-row md:items-center justify-between pb-4 border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'} gap-4`}>
-               <div>
-                  <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-3`}>
-                     <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" /> Mon Journal
-                  </h2>
-                  <p className="text-zinc-500 font-bold text-xs mt-1 uppercase tracking-widest">Suivi nutritionnel du {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-               </div>
-            </div>
-
-            {/* SÉLECTEUR DE MODE & ACTIONS */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-               <div className="bg-white border border-zinc-200 p-2 rounded-2xl flex items-center shadow-sm w-full md:w-auto">
-                 <button onClick={() => handleTrackingModeChange('guided')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'guided' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
-                    <Utensils size={16}/> Mode Guidé
-                 </button>
-                 <button onClick={() => handleTrackingModeChange('flexible')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'flexible' ? 'bg-black text-[#00E5FF] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
-                    <Compass size={16}/> Mode Libre
-                 </button>
-               </div>
-               
-               <button onClick={() => setShowRedoDiagModal(true)} className="bg-zinc-100 text-black border border-zinc-200 px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-zinc-200 transition-colors shadow-sm flex items-center gap-2">
-                 <RefreshCcw size={14}/> Refaire mon Diagnostic
-               </button>
-            </div>
-            
-            <div className="bg-blue-50 border border-blue-100 text-blue-800 p-4 rounded-xl text-sm font-medium">
-               <p><strong>{trackingMode === 'guided' ? 'Mode Guidé (Menu Strict) :' : 'Mode Libre (Flexible) :'}</strong> {trackingMode === 'guided' ? "Idéal pour les 14 premiers jours. Suivez le menu généré à la lettre pour des résultats rapides." : "Vous êtes libre de composer vos repas ! Ajoutez ce que vous mangez via la barre de recherche."}</p>
-            </div>
-
-        {/* MESSAGE D'ONBOARDING */}
-        {welcomeMessage && (
-           <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-4 shadow-sm relative">
-              <button onClick={() => { setWelcomeMessage(null); localStorage.removeItem('onyx_nutrition_welcome'); }} className="absolute top-4 right-4 text-blue-400 hover:text-blue-600"><X size={16}/></button>
-              <div className="bg-blue-600 text-white p-2 rounded-full shrink-0"><MessageCircle size={20}/></div>
-              <div className="pr-6">
-                 <h3 className="font-black text-blue-800 uppercase text-sm mb-1">Message de ton Coach</h3>
-                 <p className="text-blue-900 font-medium text-sm leading-relaxed">{welcomeMessage}</p>
-              </div>
-           </div>
+          <BentoDashboardView
+              user={user}
+              greetingText={greetingText}
+              greetingSubtext={greetingSubtext}
+              jongomaXP={jongomaXP}
+              clientProfile={clientProfile}
+          />
         )}
-
-            {/* JAUGES DU JOUR */}
-            <div className={`w-full p-8 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center relative overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
-               
-               <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter flex items-center justify-center gap-3 mb-6`}><Activity className="text-[#39FF14]"/> Synthèse Journalière</h2>
-               
-               {/* JAUGE CENTRALE (CALORIES) */}
-               {calorieGoal > 0 && (
-               <div className="relative w-48 h-48 mx-auto mb-8">
-                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" className="stroke-zinc-800" strokeWidth="6" fill="transparent" />
-                      <motion.circle 
-                         cx="50" cy="50" r="40" 
-                         className="stroke-[#39FF14] text-[#39FF14]" strokeWidth="6" fill="transparent" 
-                         strokeDasharray={2 * Math.PI * 40} 
-                         strokeDashoffset={(2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40))}
-                         initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
-                         animate={{ strokeDashoffset: (2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40)) }}
-                         transition={{ duration: 1.5, ease: "easeOut" }}
-                         strokeLinecap="round"
-                      />
-                   </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                     {isExpertMode ? (
-                         <>
-                             <span className="text-4xl font-black">{remainingCalories}</span>
-                             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Kcal Restantes</span>
-                         </>
-                     ) : (
-                         <>
-                             <PartyPopper size={32} className="text-[#39FF14]" />
-                             <span className="text-sm font-black uppercase tracking-widest mt-2">Objectif du Jour</span>
-                         </>
-                     )}
-                  </div>
-               </div>)}
-
-               {/* MINI-JAUGES MACROS & PIE CHART */}
-               <div className="grid md:grid-cols-2 gap-8 items-center max-w-md mx-auto mt-6">
-                  <div className="space-y-4">
-                     <div className="text-left">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
-                           <div className="flex items-center gap-2">
-                              <img src={CARBS_ICON} alt="Glucides" className="w-6 h-6 rounded-full shadow-sm object-cover" />
-                              <span className="text-zinc-500">Glucides</span>
-                           </div>
-                           {isExpertMode && <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>}
-                        </div>
-                        <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
-                           <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/targetCarbs)*100, 100)}%` }}></div>
-                        </div>
-                     </div>
-                     <div className="text-left">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
-                           <div className="flex items-center gap-2">
-                              <img src={PROTEINS_ICON} alt="Protéines" className="w-6 h-6 rounded-full shadow-sm object-cover" />
-                              <span className="text-zinc-500">Protéines</span>
-                           </div>
-                           {isExpertMode && <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>}
-                        </div>
-                        <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
-                           <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/targetProtein)*100, 100)}%` }}></div>
-                        </div>
-                     </div>
-                     <div className="text-left">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
-                           <div className="flex items-center gap-2">
-                              <img src={FATS_ICON} alt="Lipides" className="w-6 h-6 rounded-full shadow-sm object-cover" />
-                              <span className="text-zinc-500">Lipides</span>
-                           </div>
-                           {isExpertMode && <span className="text-zinc-400">{fats} / {fatsGoal}g</span>}
-                        </div>
-                        <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
-                           <div className="bg-blue-400 h-full" style={{ width: `${Math.min((fats/targetFats)*100, 100)}%` }}></div>
-                        </div>
-                     </div>
-                  </div>
-                  <div className="h-32 flex justify-center items-center">
-                     {isExpertMode ? (
-                        carbs === 0 && proteins === 0 && fats === 0 ? (
-                           <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest text-center leading-relaxed">Aucune donnée<br/>Aujourd'hui</p>
-                        ) : (
-                           <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                  <Pie
-                                      data={[
-                                          { name: 'Protéines', value: proteins * 4, fill: '#39FF14' },
-                                          { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' },
-                                          { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' },
-                                      ].filter(d => d.value > 0)}
-                                      cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={5} dataKey="value" stroke="none"
-                                  >
-                                      {[{ name: 'Protéines', value: proteins * 4, fill: '#39FF14' }, { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' }, { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' }].filter(d => d.value > 0).map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                                      ))}
-                                  </Pie>
-                                  <RechartsTooltip formatter={(value: any) => [`${Math.round(value)} kcal`, 'Énergie']} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '10px' }} />
-                              </PieChart>
-                           </ResponsiveContainer>
-                        )
-                     ) : (
-                         <div className="text-center">
-                             <Utensils size={24} className="text-zinc-400 mx-auto mb-2"/>
-                             <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Mode Simplifié</p>
-                         </div>
-                     )}
-                  </div>
-               </div>
-            </div>
-
-            {/* SUIVI DE L'EAU & HUMEUR */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 w-full">
-               <div className={`w-full p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
-                  <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-4 shadow-sm object-cover" alt="Eau" />
-                  <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
-                  <p className="text-xs font-bold text-zinc-500 mb-1">{waterGlasses} / 8 verres (Env. 2 Litres)</p>
-                  <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">L'eau draine les toxines et accélère ton métabolisme ! 💧</p>
-                  <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full p-1.5 shadow-inner mb-2">
-                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-black text-xl text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors shadow-sm">-</button>
-                     <div className="w-20 text-center flex flex-col">
-                        <span className="font-black text-blue-600 text-xl leading-none">{waterGlasses}</span>
-                        <span className="text-[8px] font-black uppercase text-blue-400 tracking-widest">Verres</span>
-                     </div>
-                     <button onClick={() => handleUpdateWater(1)} className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-black text-xl text-white hover:bg-blue-600 transition-colors shadow-sm">+</button>
-                  </div>
-                  {waterGlasses >= 8 && (
-                     <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30">
-                        <Award size={14}/> +5 XP (Hydratation Max)
-                     </div>
-                  )}
-               </div>
-
-               <div className={`w-full p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
-                  <h3 className="font-black text-lg uppercase mb-4">Mon Humeur & Notes</h3>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                     {[{e:'😃',l:'Enjoué'}, {e:'🤩',l:'Motivé'}, {e:'🧘‍♀️',l:'Zen'}, {e:'🤔',l:'Pensif'}, {e:'😴',l:'Fatigué'}, {e:'😫',l:'Épuisé'}, {e:'😢',l:'Triste'}, {e:'😠',l:'Enervé'}, {e:'🤢',l:'Barbouillé'}, {e:'😭',l:'Critique'}].map(m => {
-                        const isSelected = moods.includes(m.l);
-                        return (
-                        <button key={m.l} onClick={() => { setMoods([m.l]); }} className={`w-16 h-20 rounded-2xl text-3xl flex items-center justify-center transition-all shadow-sm ${isSelected ? 'border-2 border-[#39FF14] bg-[#39FF14]/10 scale-110' : (theme === 'dark' ? 'border border-zinc-700 bg-zinc-800 opacity-60 hover:opacity-100' : 'border border-zinc-100 bg-zinc-50 opacity-60 hover:opacity-100 grayscale hover:grayscale-0')}`} title={m.l}>
-                           {m.e}
-                        </button>
-                     )})}
-                  </div>
-                  <textarea value={moodNotes} onChange={e => setMoodNotes(e.target.value)} placeholder="Comment vous sentez-vous aujourd'hui ? (Optionnel)" className={`w-full border rounded-xl p-4 text-sm outline-none focus:border-[#39FF14] min-h-[80px] custom-scrollbar resize-none ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500' : 'bg-zinc-50 border-zinc-200 text-black placeholder-zinc-400'}`} />
-                  <button onClick={handleSaveMoodNotes} disabled={isSaving} className="mt-3 w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50"><Save size={14}/> {isSaving ? 'En cours...' : 'Enregistrer Notes'}</button>
-               </div>
-            </div>
-
-            {/* GRAPHIQUE ÉVOLUTION POIDS (MON JOUR) */}
-            {Array.isArray(weightLogs) && weightLogs.length > 0 && (
-               <div className={`w-full p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
-                  <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><Scale className="text-[#39FF14]"/> Évolution de mon poids</h3>
-                  <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={weightLogs.filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime()))}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
-                        <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
-                        <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
-                        <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                        <Line type="monotone" dataKey="weight" stroke="#39FF14" strokeWidth={3} dot={{ r: 4, fill: '#000', stroke: '#39FF14', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-               </div>
-            )}
-
-            {/* CORPS : LES REPAS */}
-            <div className="grid md:grid-cols-2 gap-4">
-                {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map((mealType) => {
-                    const generatedMeal = todayPlan?.meals ? todayPlan.meals[mealType] : null;
-                    const baseCalories = generatedMeal ? (generatedMeal.calories || generatedMeal.kcal || generatedMeal.energy || 0) : 0;
-                    const plannedMeal = generatedMeal ? {
-                        type: mealType,
-                        time: mealType === 'Petit-déjeuner' ? '08:00' : mealType === 'Déjeuner' ? '13:30' : mealType === 'Collation' ? '16:00' : '19:30',
-                        meal: generatedMeal.nom,
-                        cals: baseCalories || "—",
-                        proteins: generatedMeal.proteins !== undefined ? generatedMeal.proteins : (baseCalories ? Math.round((baseCalories * 0.2) / 4) : 0),
-                        carbs: generatedMeal.carbs !== undefined ? generatedMeal.carbs : (baseCalories ? Math.round((baseCalories * 0.5) / 4) : 0),
-                        fats: generatedMeal.fats !== undefined ? generatedMeal.fats : (baseCalories ? Math.round((baseCalories * 0.3) / 9) : 0),
-                        ux_unit: (generatedMeal as any).ux_unit || "1 portion",
-                        recipe: generatedMeal.recipe || `Ingrédients : ${generatedMeal.ingredients?.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ') || ''}`
-                    } : null;
-                    
-                    const safeConsumedMeals = Array.isArray(consumedMeals) ? consumedMeals : [];
-                    const itemsForThisMeal = safeConsumedMeals.filter(m => m.type === mealType);
-                    
-                    return (
-                       <div key={mealType} className={`w-full bg-white rounded-[2rem] p-4 md:p-6 mb-6 flex flex-col gap-4 shadow-sm border border-zinc-100 ${theme === 'dark' ? 'bg-zinc-900 shadow-xl border-zinc-800' : ''}`}>
-                          <div className="flex justify-between items-center mb-3">
-                             <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
-                             {trackingMode === 'guided' && plannedMeal && (
-                                <span className="text-xs font-bold text-zinc-500 flex items-center gap-1"><Clock size={12}/> {plannedMeal.time}</span>
-                             )}
-                          </div>
-                          
-                          <div className="flex-1">
-                             {itemsForThisMeal.length > 0 && (
-                                <div className="space-y-2 mb-3">
-                                   {itemsForThisMeal.map((item, i) => (
-                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-2xl ${theme === 'dark' ? 'bg-zinc-800/80' : 'bg-zinc-50'} group shadow-sm hover:shadow-md transition-shadow`}>
-                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-sm overflow-hidden shrink-0">
-                                               {item.photo_url ? <img src={item.photo_url} className="w-full h-full object-cover" alt="Plat" /> : '🍲'}
-                                            </div>
-                                            <div>
-                                               <p className={`font-black text-xs sm:text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
-                                               <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
-                                                  {isExpertMode ? (
-                                                    <>
-                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.cals} kcal</span>
-                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.prots}g prot</span>
-                                                    </>
-                                                  ) : (
-                                                    <span className="flex items-center gap-1 text-zinc-600">{item.ux_unit || "1 portion"}</span>
-                                                  )}
-                                               </p>
-                                            </div>
-                                         </div>
-                                         <button onClick={() => deleteMealLog(item)} className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                                            <Trash2 size={16}/>
-                                         </button>
-                                      </div>
-                                   ))}
-                                </div>
-                             )}
-
-                           {plannedMeal && itemsForThisMeal.length === 0 && (
-                                <div className={`p-3 sm:p-4 rounded-2xl transition-all group mb-3 shadow-inner ${theme === 'dark' ? 'bg-zinc-800/50 hover:bg-[#39FF14]/5' : 'bg-zinc-50 hover:bg-[#39FF14]/5'}`}>
-                                 <div className="flex justify-between items-start mb-2">
-                                    <p className={`font-black text-sm sm:text-base ${theme === 'dark' ? 'text-white' : 'text-black'} leading-tight`}>{plannedMeal.meal}</p>
-                                    {trackingMode === 'flexible' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0">Suggestion Sama Menu</span>}
-                                 </div>
-                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] sm:text-xs font-bold text-zinc-500">
-                                     {isExpertMode ? (
-                                        <>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.cals || Math.round(((plannedMeal.carbs || 0) * 4) + ((plannedMeal.proteins || 0) * 4) + ((plannedMeal.fats || 0) * 9))} kcal</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
-                                        </>
-                                     ) : (
-                                        <span className="flex items-center gap-1 text-zinc-600">{plannedMeal.ux_unit || "1 portion"}</span>
-                                     )}
-                                  </div>
-                                 <div className="mt-3 flex gap-2 items-center">
-                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats, { ux_unit: plannedMeal.ux_unit }); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
-                                   </div>
-                                </div>
-                             )}
-                          </div>
-
-                          {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
-                             <div onClick={() => handleMealClick(mealType, plannedMeal, 'flexible')} className={`mt-2 flex flex-col items-center justify-center py-3 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
-                                <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-1.5 text-zinc-400">
-                                   <Plus size={14} />
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat ou produit" : "Recherche un plat ou un produit à ajouter à ma journée"}</span>
-                             </div>
-                          )}
-                       </div>
-                    );
-                })}
-            </div>
-
-            {/* NOUVEAU : VITRINE BOUTIQUE INTÉGRÉE */}
-            <div className="mt-12 pt-12 border-t-2 border-dashed border-zinc-200 dark:border-zinc-800">
-               <div className="text-center mb-12">
-                  <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
-                     <ShoppingBag size={14}/> Boutique Recommandée
-                  </div>
-                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white`}>
-                     Accélérez vos <span className="text-[#39FF14]">résultats.</span>
-                  </h2>
-                  <p className="text-zinc-500 font-bold text-base max-w-2xl mx-auto">Nos super-aliments et accessoires pour faciliter votre rééquilibrage.</p>
-               </div>
-
-               <div className="overflow-hidden mb-8" ref={emblaShopRef}>
-                  <div className="flex -ml-4">
-                      {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => p.badge === 'Best Seller' || p.rating >= 4.8).slice(0, 5).map((p: any, idx: number) => (
-                         <div key={idx} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] min-w-0 pl-4">
-                             <div className={`border rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col h-full ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-                                 <div className="aspect-square rounded-[2rem] bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-6 relative cursor-pointer" onClick={() => openProductModal(p)}>
-                                    <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                    {p.badge && <span className="absolute top-4 right-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge}</span>}
-                                    {p.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
-                                 </div>
-                                 <div className="flex-1">
-                                    <h3 className="font-black text-lg uppercase tracking-tighter text-black dark:text-white mb-2 line-clamp-1">{p.nom}</h3>
-                                    <div className="flex flex-col gap-1 mb-6">
-                                       <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard.toLocaleString()} F</p>
-                                       <p className="text-2xl font-black text-black dark:text-white">
-                                          {p.prix_premium.toLocaleString()} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
-                                       </p>
-                                    </div>
-                                 </div>
-                                 <button onClick={() => addToCart(p)} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
-                                    <Plus size={16}/> Ajouter au Panier
-                                 </button>
-                             </div>
-                         </div>
-                      ))}
-                  </div>
-               </div>
-
-               <div className="mt-12 text-center">
-                  <button onClick={() => setActiveTab('shop')} className="inline-flex items-center gap-3 bg-white text-black border-2 border-black px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-black hover:text-white transition-all shadow-lg">
-                     Voir toute la boutique <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg" alt="Boutique" className="w-6 h-6 rounded-lg object-cover" />
-                  </button>
-               </div>
-            </div>
-
-            {/* BOUTON BILAN FIN DE JOURNÉE */}
-            <button onClick={() => setShowDailyReport(true)} className="w-full bg-black text-[#39FF14] py-6 rounded-[2rem] font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-transform shadow-2xl flex items-center justify-center gap-3">
-               <motion.img 
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                  src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781603729/A_cute__highly_detailed_3D_202606152350_wyn4ds.jpg" 
-                  alt="Bilan" 
-                  className="w-8 h-8 rounded-xl object-cover" 
-               /> Bilan de fin de journée
-            </button>
-
-            {/* MODALE BILAN DE FIN DE JOURNÉE */}
-            {showDailyReport && (
-               <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowDailyReport(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                  <div className="bg-white p-8 sm:p-10 rounded-3xl max-w-lg w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto">
-                     <button onClick={() => setShowDailyReport(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
-                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-2`}>Bilan Quotidien</h2>
-                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">Soyez honnête avec vous-même !</p>
-
-                     <div className="space-y-4">
-                        <label className={`flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all ${reportData.followedMenu ? 'bg-[#39FF14]/10 border-[#39FF14]' : 'bg-zinc-50 border-zinc-200 hover:border-black'}`}>
-                           <div>
-                              <p className="font-black text-sm uppercase">J'ai suivi le menu du jour</p>
-                              <p className="text-xs text-zinc-500 font-medium mt-1">À 80% ou plus.</p>
-                           </div>
-                           <input type="checkbox" checked={reportData.followedMenu} onChange={e => setReportData({...reportData, followedMenu: e.target.checked})} className="w-6 h-6 accent-black cursor-pointer" />
-                        </label>
-
-                        <label className={`flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all ${reportData.drankWater ? 'bg-blue-50 border-blue-500' : 'bg-zinc-50 border-zinc-200 hover:border-black'}`}>
-                           <div>
-                              <p className="font-black text-sm uppercase">J'ai bu mon eau</p>
-                              <p className="text-xs text-zinc-500 font-medium mt-1">Au moins 6 verres dans la journée.</p>
-                           </div>
-                           <input type="checkbox" checked={reportData.drankWater} onChange={e => setReportData({...reportData, drankWater: e.target.checked})} className="w-6 h-6 accent-blue-600 cursor-pointer" />
-                        </label>
-
-                        <label className={`flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all ${reportData.cravedRice ? 'bg-red-50 border-red-500' : 'bg-zinc-50 border-zinc-200 hover:border-black'}`}>
-                           <div>
-                              <p className="font-black text-sm uppercase">J'ai craqué sur le riz/sucre</p>
-                              <p className="text-xs text-zinc-500 font-medium mt-1">J'ai dépassé mes portions recommandées.</p>
-                           </div>
-                           <input type="checkbox" checked={reportData.cravedRice} onChange={e => setReportData({...reportData, cravedRice: e.target.checked})} className="w-6 h-6 accent-red-600 cursor-pointer" />
-                        </label>
-                     </div>
-
-                     <button onClick={submitDailyReport} disabled={isSubmittingReport} className="w-full mt-8 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 disabled:opacity-50">
-                        {isSubmittingReport ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle size={20} />} {isSubmittingReport ? 'Validation...' : 'Valider ma journée'}
-                     </button>
-                  </div>
-               </div>
-            )}
-
-            {/* MODALE REPAS (LOGGING) */}
-            {selectedMealModal && (
-               <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setSelectedMealModal(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                  <div className="bg-white p-8 sm:p-10 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto">
-                     <button onClick={() => setSelectedMealModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
-                     <input type="file" accept="image/*" capture="environment" ref={mealPhotoInputRef} className="hidden" onChange={handleUploadMealPhoto} />
-                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-2`}>{selectedMealModal.type}</h2>
-                     
-                     {selectedMealModal.mode === 'guided' && selectedMealModal.meal ? (
-                         <>
-                             <div className="flex justify-between items-start mb-6">
-                                <p className="text-sm font-bold text-zinc-500">{selectedMealModal.meal.meal}</p>
-                                <button onClick={() => toggleFavorite(selectedMealModal.meal)} className={`p-2 rounded-full transition-colors ${favoriteMeals.some(f => (f.meal || f.nom) === selectedMealModal.meal.meal) ? 'bg-red-50 text-red-500' : 'bg-zinc-100 text-zinc-400 hover:text-red-500'}`}>
-                                   <HeartPulse size={18} className={favoriteMeals.some(f => (f.meal || f.nom) === selectedMealModal.meal.meal) ? "fill-current" : ""} />
-                                </button>
-                             </div>
-                             <div className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 mb-6">
-                                <h4 className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Recette / Consignes</h4>
-                                <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.recipe}</p>
-                             </div>
-                             {isExpertMode && (
-                                <div className="grid grid-cols-4 gap-2 mb-8 text-center">
-                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
-                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
-                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
-                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
-                                </div>
-                             )}
-                             {selectedMealModal.meal.bienfaits && (
-                                <div className="bg-[#39FF14]/10 p-4 rounded-2xl border border-[#39FF14]/30 mb-6 animate-in slide-in-from-bottom-4 duration-500">
-                                   <h4 className="font-black text-xs uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-2">
-                                      <Sparkles size={14}/> L'atout Santé
-                                   </h4>
-                                   <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.bienfaits}</p>
-                                </div>
-                             )}
-                             <div className="mb-6">
-                                <p className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Ajouter une photo (Optionnel)</p>
-                                <div className="flex items-center gap-4">
-                                   {selectedMealPhoto ? (
-                                       <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 shrink-0">
-                                          <img src={selectedMealPhoto} className="w-full h-full object-cover" />
-                                          <button onClick={() => setSelectedMealPhoto(null)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12}/></button>
-                                       </div>
-                                   ) : (
-                                       <button onClick={() => mealPhotoInputRef.current?.click()} className="w-full py-4 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors">
-                                           {uploadingImage ? <Loader2 size={16} className="animate-spin"/> : <Camera size={16}/>}
-                                           Prendre en photo mon plat
-                                       </button>
-                                   )}
-                                </div>
-                             </div>
-                             <button onClick={() => confirmMealLog(selectedMealModal.type, selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats, { ux_unit: selectedMealModal.meal.ux_unit })} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
-                                <CheckCircle size={20} /> J'ai mangé ça !
-                             </button>
-                         </>
-                     ) : (
-                         <>
-                             <div className="flex gap-2 mb-6">
-                                 <div className="relative flex-1">
-                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
-                                     <input 
-                                        type="text" 
-                                        placeholder="Rechercher un plat ou produit..." 
-                                        value={foodSearchQuery}
-                                        onChange={e => { setFoodSearchQuery(e.target.value); setSelectedFoodDB(null); setIsScanning(false); }}
-                                        className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black"
-                                     />
-                                 </div>
-                                 <button onClick={() => setIsScanning(!isScanning)} className={`px-5 rounded-2xl flex items-center justify-center transition-colors ${isScanning ? 'bg-[#39FF14] text-black' : 'bg-black text-white hover:bg-zinc-800'}`} title="Scanner un produit">
-                                     <ScanLine size={20} />
-                                 </button>
-                                 <button onClick={() => photoInputRef.current?.click()} disabled={isPhotoScanning} className={`px-5 rounded-2xl flex items-center justify-center transition-colors ${isPhotoScanning ? 'bg-[#39FF14] text-black' : 'bg-black text-white hover:bg-zinc-800'}`} title="Évaluer avec une photo (IA)">
-                                     {isPhotoScanning ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-                                 </button>
-                                 <input type="file" accept="image/*" capture="environment" ref={photoInputRef} className="hidden" onChange={handlePhotoUpload} />
-                             </div>
-                             
-                             {isScanning && (
-                                 <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 mb-6 flex flex-col gap-3 animate-in fade-in">
-                                     <p className="text-xs font-bold text-blue-800 flex items-center gap-2"><ScanLine size={16}/> Scanner via OpenFoodFacts</p>
-                                     <input type="text" placeholder="Entrez le code-barres (ex: 3017620422003)" value={barcodeInput} onChange={e => setBarcodeInput(e.target.value)} className="w-full p-3 border border-blue-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 bg-white"/>
-                                     <button onClick={handleScanProduct} className="bg-blue-600 text-white py-3 rounded-xl font-black uppercase text-xs hover:bg-blue-700 transition-colors">Chercher le produit</button>
-                                 </div>
-                             )}
-                             
-                             {!selectedFoodDB && foodSearchQuery && (
-                                <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border border-zinc-100 rounded-xl p-2">
-                                   {(() => {
-                                      const localMatches = [...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))]
-                                         .filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase()));
-                                      const combinedResults = [...localMatches, ...offResults];
-                                      return combinedResults.map((item, index) => (
-                                      <div key={item.id || index} onClick={() => { setSelectedFoodDB(item); setFoodQuantity(1); setFoodUnit("portion"); }} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
-                                         <div>
-                                            <p className="font-bold text-sm">{item.nom}</p>
-                                            <p className="text-[10px] text-zinc-500 uppercase font-black">{item.isRecipe ? item.type : item.categorie}</p>
-                                         </div>
-                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{item.isRecipe ? item.calories : item.valeurs_pour_100g?.calories} kcal</span>
-                                      </div>
-                                      ));
-                                   })()}
-                                   {isSearchingOFF && (
-                                      <p className="text-xs text-zinc-400 text-center p-4 font-bold flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin"/> Recherche étendue en cours...</p>
-                                   )}
-                                   {!isSearchingOFF && [...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))].filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && offResults.length === 0 && (
-                                      <p className="text-xs text-zinc-400 text-center p-4 font-bold">Aucun résultat trouvé. Essayez autre chose.</p>
-                                   )}
-                                </div>
-                             )}
-
-                             {selectedFoodDB && (
-                                <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-6 animate-in fade-in">
-                                   <div className="flex justify-between items-start mb-4">
-                                      <h4 className="font-black text-lg">{selectedFoodDB.nom}</h4>
-                                      <div className="flex gap-2 items-center">
-                                         <button onClick={() => toggleFavorite(selectedFoodDB)} className={`p-2 rounded-full transition-colors ${favoriteMeals.some(f => (f.meal || f.nom) === selectedFoodDB.nom) ? 'bg-red-50 text-red-500' : 'bg-zinc-100 text-zinc-400 hover:text-red-500'}`}>
-                                            <HeartPulse size={16} className={favoriteMeals.some(f => (f.meal || f.nom) === selectedFoodDB.nom) ? "fill-current" : ""} />
-                                         </button>
-                                         <button onClick={() => setSelectedFoodDB(null)} className="text-xs font-bold text-zinc-400 hover:text-black">Changer</button>
-                                      </div>
-                                   </div>
-                                   
-                                   <div className="flex flex-col gap-2 mb-6">
-                                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Unité & Quantité</label>
-                                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                                         <select value={foodUnit} onChange={e => setFoodUnit(e.target.value)} className="w-full sm:w-auto bg-zinc-100 p-3 rounded-xl font-bold text-sm outline-none cursor-pointer flex-1">
-                                            <option value="portion">Portion / Assiette</option>
-                                            <option value="bol_commun">Bol Commun (Partagé)</option>
-                                            <option value="louche">Louche / Cuillère</option>
-                                            <option value="gramme">Grammes (Précis)</option>
-                                         </select>
-                                         <div className="flex items-center gap-3 bg-zinc-100 p-2 rounded-xl w-full sm:w-auto justify-center">
-                                            <button onClick={() => setFoodQuantity(Math.max(0.5, foodQuantity - (foodUnit === 'gramme' ? 50 : 0.5)))} className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black">-</button>
-                                            <span className="w-12 text-center font-black text-lg">{foodQuantity}</span>
-                                            <button onClick={() => setFoodQuantity(foodQuantity + (foodUnit === 'gramme' ? 50 : 0.5))} className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black">+</button>
-                                         </div>
-                                      </div>
-                                   </div>
-
-                                   {(() => {
-                                       let factor = 1;
-                                       if (selectedFoodDB.isFood) {
-                                           if (foodUnit === "gramme") factor = foodQuantity / 100;
-                                           else if (foodUnit === "portion") factor = (selectedFoodDB.portion_standard_grammes * foodQuantity) / 100;
-                                           else if (foodUnit === "louche") factor = (150 * foodQuantity) / 100;
-                                           else if (foodUnit === "bol_commun") factor = (350 * foodQuantity) / 100;
-                                       } else {
-                                           if (foodUnit === "portion") factor = foodQuantity;
-                                           else if (foodUnit === "louche") factor = foodQuantity * 0.3;
-                                           else if (foodUnit === "bol_commun") factor = foodQuantity * 1.2;
-                                           else if (foodUnit === "gramme") factor = foodQuantity / 400;
-                                       }
-                                       const calcCals = Math.round((selectedFoodDB.valeurs_pour_100g?.calories || selectedFoodDB.calories) * factor);
-                                       const calcGluc = Math.round((selectedFoodDB.valeurs_pour_100g?.glucides || selectedFoodDB.carbs) * factor);
-                                       const calcProt = Math.round((selectedFoodDB.valeurs_pour_100g?.proteines || selectedFoodDB.proteins) * factor);
-                                       const calcLip = Math.round((selectedFoodDB.valeurs_pour_100g?.lipides || selectedFoodDB.fats) * factor);
-                                       return (
-                                          <>{isExpertMode && (
-                                             <div className="grid grid-cols-4 gap-2 text-center">
-                                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{calcCals}</p></div>
-                                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{calcGluc}g</p></div>
-                                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{calcProt}g</p></div>
-                                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{calcLip}g</p></div>
-                                             </div>
-                                          )}
-                                             {selectedFoodDB.message_coach_ia && (
-                                                <div className="mt-4 bg-[#39FF14]/10 p-4 rounded-xl border border-[#39FF14]/30 animate-in slide-in-from-bottom-2 duration-300">
-                                                   <h4 className="font-black text-xs uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-2"><Sparkles size={14}/> Note du Coach IA</h4>
-                                                   <p className="text-xs font-medium text-zinc-700">{selectedFoodDB.message_coach_ia}</p>
-                                                </div>
-                                             )}
-                                             <div className="mt-4">
-                                                <p className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Ajouter une photo (Optionnel)</p>
-                                                <div className="flex items-center gap-4">
-                                                   {selectedMealPhoto ? (
-                                                       <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 shrink-0">
-                                                          <img src={selectedMealPhoto} className="w-full h-full object-cover" />
-                                                          <button onClick={() => setSelectedMealPhoto(null)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12}/></button>
-                                                       </div>
-                                                   ) : (
-                                                       <button onClick={() => mealPhotoInputRef.current?.click()} className="w-full py-4 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors">
-                                                           {uploadingImage ? <Loader2 size={16} className="animate-spin"/> : <Camera size={16}/>}
-                                                           Prendre en photo mon plat
-                                                       </button>
-                                                   )}
-                                                </div>
-                                             </div>
-                                             <button onClick={() => confirmMealLog(selectedMealModal.type, selectedFoodDB.nom, calcCals, calcProt, calcGluc, calcLip, selectedFoodDB)} className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all mt-6 ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
-                                                <CheckCircle size={20} /> Ajouter au tracker
-                                             </button>
-
-                                             {/* SWAP SANTÉ / L'Alternative Woyof */}
-                                             {(() => {
-                                                if (!selectedFoodDB.is_from_off && !selectedFoodDB.flags_ia?.ultra_transforme) return null;
-                                                
-                                                const lowerName = selectedFoodDB.nom.toLowerCase();
-                                                let altProduct = null;
-                                                const allProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(c => c.produits || []);
-                                                
-                                                if (lowerName.includes('riz') || lowerName.includes('pâtes') || lowerName.includes('pain') || lowerName.includes('blé')) {
-                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('fonio'));
-                                                } else if (lowerName.includes('bouillon') || lowerName.includes('cube') || lowerName.includes('maggi') || lowerName.includes('sel')) {
-                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('soumbala') || p.nom.toLowerCase().includes('nététou'));
-                                                } else if (lowerName.includes('chocolat') || lowerName.includes('tartiner') || lowerName.includes('confiture') || lowerName.includes('sucre')) {
-                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('arachide') || p.nom.toLowerCase().includes('cajou'));
-                                                } else if (lowerName.includes('thé') || lowerName.includes('infusion') || lowerName.includes('jus')) {
-                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('bissap') || p.nom.toLowerCase().includes('ataya') || p.nom.toLowerCase().includes('djar'));
-                                                }
-
-                                                if (!altProduct) return null;
-
-                                                return (
-                                                    <div className="mt-6 bg-[#39FF14]/10 p-5 rounded-3xl border-2 border-[#39FF14]/30 animate-in slide-in-from-bottom-2 flex flex-col gap-3 shadow-inner">
-                                                       <div className="flex items-start gap-3">
-                                                           <div className="bg-[#39FF14] text-black p-2.5 rounded-2xl shrink-0 shadow-md"><Sparkles size={24}/></div>
-                                                           <div>
-                                                               <p className="font-black text-sm uppercase text-[#39FF14] tracking-widest">L'Alternative Woyof 🌱</p>
-                                                               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-1 leading-relaxed">Au lieu de consommer ce produit industriel, pourquoi ne pas essayer une alternative locale, saine et à index glycémique bas ?</p>
-                                                           </div>
-                                                       </div>
-                                                       <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl flex items-center gap-4 border border-transparent cursor-pointer hover:border-[#39FF14] hover:shadow-lg transition-all" onClick={() => { setSelectedMealModal(null); setSelectedFoodDB(null); openProductModal(altProduct); setActiveTab('shop'); }}>
-                                                           <img src={altProduct.image_url} alt={altProduct.nom} className="w-14 h-14 rounded-xl object-cover shadow-sm" />
-                                                           <div className="flex-1">
-                                                               <p className="font-black text-sm text-black dark:text-white uppercase">{altProduct.nom}</p>
-                                                               <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">{altProduct.prix_premium} F</p>
-                                                           </div>
-                                                           <button className="bg-black text-[#39FF14] p-3 rounded-xl hover:scale-105 transition-transform"><ShoppingCart size={18}/></button>
-                                                       </div>
-                                                    </div>
-                                                );
-                                             })()}
-                                          </>
-                                       )
-                                   })()}
-                                </div>
-                             )}
-                         </>
-                     )}
-                  </div>
-               </div>
-            )}
-
-          </div>
-        )}
-
-        {/* VUE MINUTE DOC */}
         {activeTab === 'minute-doc' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
              <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6">
