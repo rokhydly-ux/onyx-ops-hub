@@ -15,7 +15,7 @@ export default function NutritionDiagnostic() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     name: "",
     phone: "",
     pin: "",
