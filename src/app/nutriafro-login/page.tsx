@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowRight, Lock, User, Stethoscope } from 'lucide-react';
+import { ArrowRight, Lock, User, Stethoscope, X } from 'lucide-react';
 
 export default function NutriAfroLogin() {
     const [identifier, setIdentifier] = useState('');
@@ -9,6 +9,7 @@ export default function NutriAfroLogin() {
     const [rememberMe, setRememberMe] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showBubble, setShowBubble] = useState(true);
 
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -66,11 +67,26 @@ export default function NutriAfroLogin() {
                 <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] p-8 relative">
 
                     {/* IMAGE FONDATRICE (En bas à droite du formulaire) */}
-                    <img
-                        src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png"
-                        alt="Coach Rokhy"
-                        className="absolute -bottom-10 -right-12 w-40 md:w-48 z-20 drop-shadow-2xl animate-[bounce_7s_ease-in-out_infinite]"
-                    />
+                    <div className="absolute -bottom-10 -right-12 w-40 md:w-48 z-20 pointer-events-auto">
+                        {showBubble && (
+                            <div className="absolute -top-20 -left-28 sm:-left-36 w-56 bg-zinc-900/95 border border-white/10 text-white text-xs p-3.5 rounded-2xl shadow-2xl backdrop-blur-md animate-fade-in relative z-50">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBubble(false)}
+                                    className="absolute top-2 right-2 text-zinc-400 hover:text-white transition-colors p-1"
+                                >
+                                    <X size={14} />
+                                </button>
+                                <p className="pr-4 leading-relaxed font-medium">Tu veux perdre du poids ou prendre de la masse en mangeant sunu plats locaux yi ? Fais le test.</p>
+                                <div className="absolute bottom-[-6px] right-8 w-3 h-3 bg-zinc-900 border-r border-b border-white/10 rotate-45"></div>
+                            </div>
+                        )}
+                        <img
+                            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png"
+                            alt="Coach Rokhy"
+                            className="w-full h-auto drop-shadow-2xl"
+                        />
+                    </div>
 
                     <div className="flex justify-center mb-6">
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-14 object-contain" />
@@ -124,11 +140,35 @@ export default function NutriAfroLogin() {
                         </button>
                     </div>
 
-                    <div className="mt-6 pt-6 border-t border-white/10 text-center relative z-30">
-                        <p className="text-zinc-500 text-xs mb-3">Nouveau membre de l'équipe ?</p>
-                        <a href="/" className="w-full bg-white/5 border border-white/10 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-white hover:text-black transition-all flex justify-center items-center gap-2">
-                            <Stethoscope size={14}/> Démarrer le diagnostic gratuit
-                        </a>
+                    {/* SÉLECTION D'OBJECTIF DIRECTE (ANTI-FRICTION) */}
+                    <div className="mt-6 pt-6 border-t border-white/10 relative z-30">
+                        <p className="text-zinc-500 text-xs text-center mb-4 uppercase font-bold tracking-widest">Quel est ton objectif ?</p>
+
+                        <div className="grid grid-cols-3 gap-2">
+                            {/* Choix 1 : Perte de poids */}
+                            <a
+                                href="/diagnostic?goal=perte"
+                                className="group bg-white/5 border border-white/10 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 hover:bg-[#39FF14]/5 hover:shadow-[0_0_15px_rgba(57,255,20,0.15)] cursor-pointer"
+                            >
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Perdre<br/>du Poids</span>
+                            </a>
+
+                            {/* Choix 2 : Prise de masse */}
+                            <a
+                                href="/diagnostic?goal=prise"
+                                className="group bg-white/5 border border-white/10 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 hover:bg-[#39FF14]/5 hover:shadow-[0_0_15px_rgba(57,255,20,0.15)] cursor-pointer"
+                            >
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Prendre<br/>de la Masse</span>
+                            </a>
+
+                            {/* Choix 3 : Maintien */}
+                            <a
+                                href="/diagnostic?goal=maintien"
+                                className="group bg-white/5 border border-white/10 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 hover:bg-[#39FF14]/5 hover:shadow-[0_0_15px_rgba(57,255,20,0.15)] cursor-pointer"
+                            >
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Maintenir<br/>la Forme</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
