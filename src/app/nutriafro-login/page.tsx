@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { ArrowRight, Lock, User, X } from 'lucide-react';
+import DiagnosticModal from '@/components/DiagnosticModal';
 
 export default function NutriAfroLogin() {
     const [identifier, setIdentifier] = useState('');
@@ -10,6 +11,9 @@ export default function NutriAfroLogin() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showBubble, setShowBubble] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedGoal, setSelectedGoal] = useState<string | undefined>(undefined);
+    const [showFaq, setShowFaq] = useState(false);
 
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -67,18 +71,14 @@ export default function NutriAfroLogin() {
                 <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] p-8 relative">
 
                     {/* IMAGE FONDATRICE (En bas à droite du formulaire) */}
-                    <div className="absolute -bottom-10 -right-12 w-40 md:w-48 z-20 pointer-events-auto">
+                    <div className="absolute -bottom-10 -right-12 w-40 md:w-48 z-50 pointer-events-auto">
                         {showBubble && (
-                            <div className="absolute -top-20 -left-28 sm:-left-36 w-56 bg-zinc-900/95 border border-white/10 text-white text-xs p-3.5 rounded-2xl shadow-2xl backdrop-blur-md animate-fade-in relative z-50">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowBubble(false)}
-                                    className="absolute top-2 right-2 text-zinc-400 hover:text-white transition-colors p-1"
-                                >
+                            <div className="absolute -top-32 -right-8 w-56 bg-zinc-900 border border-[#39FF14]/40 text-white text-xs p-4 rounded-2xl shadow-[0_0_25px_rgba(57,255,20,0.2)] z-[100] animate-fade-in">
+                                <button type="button" onClick={() => setShowBubble(false)} className="absolute top-2 right-2 text-zinc-400 hover:text-white p-1">
                                     <X size={14} />
                                 </button>
-                                <p className="pr-4 leading-relaxed font-medium">Tu veux perdre du poids ou prendre de la masse en mangeant sunu plats locaux yi ? Fais le test.</p>
-                                <div className="absolute bottom-[-6px] right-8 w-3 h-3 bg-zinc-900 border-r border-b border-white/10 rotate-45"></div>
+                                <p className="pr-2 leading-relaxed font-medium">Tu veux perdre du poids ou prendre de la masse en mangeant sunu plats locaux yi ? Fais le test.</p>
+                                <div className="absolute -bottom-2 left-8 w-4 h-4 bg-zinc-900 border-r border-b border-[#39FF14]/40 rotate-45"></div>
                             </div>
                         )}
                         <img
@@ -89,7 +89,7 @@ export default function NutriAfroLogin() {
                     </div>
 
                     <div className="flex justify-center mb-6">
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-14 object-contain" />
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="w-40 sm:w-48 h-auto object-contain drop-shadow-xl" />
                     </div>
                     <h1 className="text-2xl font-black text-white text-center uppercase tracking-wider mb-2">Bon retour !</h1>
                     <p className="text-zinc-400 text-sm text-center mb-6">Accédez à votre espace nutritionnel.</p>
@@ -146,28 +146,49 @@ export default function NutriAfroLogin() {
 
                         <div className="grid grid-cols-3 gap-2">
                             {/* Choix 1 : Perte de poids */}
-                            <a
-                                href="/diagnostic?goal=perte"
-                                className="group bg-white/5 border border-white/10 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 hover:bg-[#39FF14]/5 hover:shadow-[0_0_15px_rgba(57,255,20,0.15)] cursor-pointer"
+                            <button
+                                type="button"
+                                onClick={() => { setSelectedGoal('perte'); setIsModalOpen(true); }}
+                                className="group bg-[#39FF14]/10 border border-[#39FF14]/40 hover:bg-[#39FF14]/20 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(57,255,20,0.15)] hover:shadow-[0_0_25px_rgba(57,255,20,0.3)] cursor-pointer"
                             >
                                 <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Perdre<br/>du Poids</span>
-                            </a>
+                            </button>
 
                             {/* Choix 2 : Prise de masse */}
-                            <a
-                                href="/diagnostic?goal=prise"
-                                className="group bg-white/5 border border-white/10 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 hover:bg-[#39FF14]/5 hover:shadow-[0_0_15px_rgba(57,255,20,0.15)] cursor-pointer"
+                            <button
+                                type="button"
+                                onClick={() => { setSelectedGoal('prise'); setIsModalOpen(true); }}
+                                className="group bg-[#39FF14]/10 border border-[#39FF14]/40 hover:bg-[#39FF14]/20 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(57,255,20,0.15)] hover:shadow-[0_0_25px_rgba(57,255,20,0.3)] cursor-pointer"
                             >
                                 <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Prendre<br/>de la Masse</span>
-                            </a>
+                            </button>
 
                             {/* Choix 3 : Maintien */}
-                            <a
-                                href="/diagnostic?goal=maintien"
-                                className="group bg-white/5 border border-white/10 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 hover:bg-[#39FF14]/5 hover:shadow-[0_0_15px_rgba(57,255,20,0.15)] cursor-pointer"
+                            <button
+                                type="button"
+                                onClick={() => { setSelectedGoal('maintien'); setIsModalOpen(true); }}
+                                className="group bg-[#39FF14]/10 border border-[#39FF14]/40 hover:bg-[#39FF14]/20 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(57,255,20,0.15)] hover:shadow-[0_0_25px_rgba(57,255,20,0.3)] cursor-pointer"
                             >
                                 <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Maintenir<br/>la Forme</span>
-                            </a>
+                            </button>
+                        </div>
+
+                        <div className="mt-4 text-center relative z-40">
+                            <button
+                                type="button"
+                                onClick={() => setShowFaq(!showFaq)}
+                                className="text-[11px] text-zinc-400 hover:text-[#39FF14] transition-colors underline decoration-dashed underline-offset-4"
+                            >
+                                Comment fonctionne le bilan personnalisé ?
+                            </button>
+
+                            {showFaq && (
+                                <div className="mt-3 p-4 bg-black/60 border border-white/10 rounded-xl text-left text-xs text-zinc-300 space-y-2 backdrop-blur-md animate-fade-in mx-auto w-full max-w-xs shadow-xl">
+                                    <p><strong className="text-[#39FF14]">1.</strong> Tu choisis ton objectif physique.</p>
+                                    <p><strong className="text-[#39FF14]">2.</strong> Tu réponds à 4 questions rapides.</p>
+                                    <p><strong className="text-[#39FF14]">3.</strong> On calcule tes calories exactes adaptées à la gastronomie africaine !</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -178,6 +199,11 @@ export default function NutriAfroLogin() {
                 <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent z-10 pointer-events-none"></div>
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg" alt="Nutrition Cover" className="w-full h-full object-cover" />
             </div>
+            <DiagnosticModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                initialGoal={selectedGoal}
+            />
         </div>
     );
 }
