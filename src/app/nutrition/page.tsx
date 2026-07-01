@@ -1187,10 +1187,12 @@ export default function NutritionDashboard() {
 
       const scaleRecipe = (recipe: any, targetCals: number) => {
           if (!recipe) return null;
-          const ratio = targetCals / (recipe.calories || targetCals);
+          const originalCals = recipe.calories || recipe.kcal || recipe.energy || (recipe.nutrition && recipe.nutrition.calories) || targetCals;
+          const ratio = targetCals / originalCals;
           return {
               ...recipe,
               calories: Math.round(targetCals),
+              kcal: Math.round(targetCals),
               proteins: Math.round((recipe.proteins || 0) * ratio),
               carbs: Math.round((recipe.carbs || 0) * ratio),
               fats: Math.round((recipe.fats || 0) * ratio),
@@ -1254,7 +1256,8 @@ export default function NutritionDashboard() {
               const cSn = snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null;
               const cD = dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null;
               
-              const totalCals = (cBf?.calories || 0) + (cL?.calories || 0) + (cSn?.calories || 0) + (cD?.calories || 0);
+              const getCals = (r: any) => r?.calories || r?.kcal || r?.energy || (r?.nutrition && r?.nutrition?.calories) || 0;
+              const totalCals = getCals(cBf) + getCals(cL) + getCals(cSn) + getCals(cD);
               const diff = Math.abs(totalCals - targetDailyCals);
               
               if (diff < minDiff) {
@@ -1267,14 +1270,20 @@ export default function NutritionDashboard() {
           if (bestCombination?.isBc) bolCommunCount++;
           const { rawBf, rawL, rawSn, rawD } = bestCombination || {};
 
+          const safeMeal = (meal: any) => {
+              if (!meal) return meal;
+              const cals = meal.calories || meal.kcal || meal.energy || (meal.nutrition && meal.nutrition.calories) || 0;
+              return { ...meal, calories: cals, kcal: cals };
+          };
+
           const dayMeals: any = {
-              'Déjeuner': trackingMode === 'guided' ? scaleRecipe(rawL, mealTargets['Déjeuner']) : rawL,
-              'Collation': trackingMode === 'guided' ? scaleRecipe(rawSn, mealTargets['Collation']) : rawSn,
-              'Dîner': trackingMode === 'guided' ? scaleRecipe(rawD, mealTargets['Dîner']) : rawD
+              'Déjeuner': trackingMode === 'guided' ? scaleRecipe(rawL, mealTargets['Déjeuner']) : safeMeal(rawL),
+              'Collation': trackingMode === 'guided' ? scaleRecipe(rawSn, mealTargets['Collation']) : safeMeal(rawSn),
+              'Dîner': trackingMode === 'guided' ? scaleRecipe(rawD, mealTargets['Dîner']) : safeMeal(rawD)
           };
 
           if (!activeFastingMode) {
-              dayMeals['Petit-déjeuner'] = trackingMode === 'guided' ? scaleRecipe(rawBf, mealTargets['Petit-déjeuner']) : rawBf;
+              dayMeals['Petit-déjeuner'] = trackingMode === 'guided' ? scaleRecipe(rawBf, mealTargets['Petit-déjeuner']) : safeMeal(rawBf);
           }
 
           if (dayMeals['Petit-déjeuner']) recentMeals['Petit-déjeuner'].push(dayMeals['Petit-déjeuner'].id);
