@@ -2,7 +2,7 @@
 "use client";
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowRight, Lock, User, X, Sun, Moon, Play } from 'lucide-react';
+import { ArrowRight, Lock, User, X, Sun, Moon, Play, ArrowLeft } from 'lucide-react';
 import DiagnosticModal from '@/components/DiagnosticModal';
 
 export default function NutriAfroLogin() {
@@ -94,7 +94,10 @@ export default function NutriAfroLogin() {
                         />
                     </div>
 
-                    <div className="flex justify-center mb-2">
+                    <div className="flex justify-center mb-2 relative">
+                        <a href="/solutions/onyx-nutritionafricaine" className={`absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors ${isDarkMode ? 'text-zinc-400 hover:text-white hover:bg-white/10' : 'text-zinc-500 hover:text-black hover:bg-black/5'}`}>
+                            <ArrowLeft size={20} />
+                        </a>
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="w-28 sm:w-32 h-auto object-contain drop-shadow-xl mb-2" />
                     </div>
                     <h1 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-black'} text-center uppercase tracking-wider mb-2`}>Bon retour !</h1>
@@ -204,6 +207,63 @@ export default function NutriAfroLogin() {
             >
                 <div className={`absolute inset-0 bg-gradient-to-r z-10 pointer-events-none ${isDarkMode ? 'from-black via-black/50' : 'from-zinc-100 via-zinc-100/50'} to-transparent`}></div>
             </div>
+
+            {/* FOOTER ESPACE CLIENT (ADAPTED FOR LOGIN) */}
+            <div className="absolute bottom-0 w-full lg:w-2/3">
+                <footer className={`py-6 px-6 text-center border-t relative z-10 ${isDarkMode ? 'bg-black text-white border-white/10' : 'bg-zinc-100 text-black border-black/10'}`}>
+                    <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-left">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-8 w-auto object-contain opacity-80" />
+                            </div>
+                            <p className={`text-xs max-w-sm mb-4 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Ressources</h4>
+                            <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Articles</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Apprendre</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Newsletter</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Aide</h4>
+                            <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">FAQ</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Contact</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">À propos</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Politique de confidentialité</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Nous suivre</h4>
+                            <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Instagram</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">YouTube</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Pinterest</a></li>
+                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Facebook</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p className={`text-[10px] font-bold uppercase tracking-widest leading-relaxed ${isDarkMode ? 'text-zinc-600' : 'text-zinc-500'}`}>
+                            NutriAfro © 2026<br/>
+                            Onyx Ops Elite
+                        </p>
+                        <div className="flex gap-2">
+                            <a href="#" className="hover:opacity-80 transition-opacity">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-8" />
+                            </a>
+                            <a href="#" className="hover:opacity-80 transition-opacity">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-8" />
+                            </a>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+
             <DiagnosticModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -212,7 +272,7 @@ export default function NutriAfroLogin() {
 
             {/* VIDEO MODAL (IPHONE MOCKUP) */}
             {showVideoModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={(e) => { if (e.target === e.currentTarget) setShowVideoModal(false); }}>
                     <div className="relative w-full max-w-[320px] mx-auto">
 
                         {/* Bouton Fermer (En dehors de l'iPhone) */}
@@ -251,6 +311,15 @@ export default function NutriAfroLogin() {
                                 <div className="w-1/3 h-1 bg-white/50 rounded-full"></div>
                             </div>
                         </div>
+
+                        {/* Bouton FAIRE LE BILAN GRATUIT */}
+                        <button
+                            type="button"
+                            onClick={() => { setShowVideoModal(false); setIsModalOpen(true); }}
+                            className="mt-6 w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(57,255,20,0.4)]"
+                        >
+                            FAIRE LE BILAN GRATUIT
+                        </button>
                     </div>
                 </div>
             )}
