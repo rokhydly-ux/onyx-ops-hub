@@ -10,14 +10,16 @@ import { supabase } from "@/lib/supabaseClient";
 // Props required for the weaving
 interface BentoDashboardViewProps {
     user: any;
-    greetingText: string;
-    greetingSubtext: string;
+
+
     jongomaXP: number;
     clientProfile: any;
 }
 
-export default function BentoDashboardView({ user, greetingText, greetingSubtext, jongomaXP, clientProfile }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user,   jongomaXP, clientProfile }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
+    const currentHour = new Date().getHours();
+    const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
 
     const handleLogout = async () => {
         await supabase.auth.signOut();

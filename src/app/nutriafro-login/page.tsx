@@ -1,7 +1,8 @@
+
 "use client";
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowRight, Lock, User, X } from 'lucide-react';
+import { ArrowRight, Lock, User, X, Sun, Moon } from 'lucide-react';
 import DiagnosticModal from '@/components/DiagnosticModal';
 
 export default function NutriAfroLogin() {
@@ -14,7 +15,7 @@ export default function NutriAfroLogin() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState<string | undefined>(undefined);
     const [showFaq, setShowFaq] = useState(false);
-
+    const [isDarkMode, setIsDarkMode] = useState(true);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +41,16 @@ export default function NutriAfroLogin() {
     };
 
     return (
-        <div className="min-h-screen bg-black flex flex-col lg:flex-row overflow-hidden font-sans relative">
+        <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-zinc-100'} flex flex-col lg:flex-row overflow-hidden font-sans relative transition-colors duration-500`}>
+
+            {/* TOGGLE SOMBRE / CLAIR */}
+            <button
+                type="button"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`absolute top-6 right-6 z-50 p-3 rounded-full border backdrop-blur-md transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-black/5 border-black/10 text-black hover:bg-black/10'}`}
+            >
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
 
             {/* ÉLÉMENTS FLOTTANTS (PARALLAX BACKGROUND) */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -50,16 +60,10 @@ export default function NutriAfroLogin() {
                     alt="Tomate"
                     className="absolute top-10 left-10 w-24 md:w-32 opacity-80 blur-[1px] animate-[bounce_6s_ease-in-out_infinite]"
                 />
-                {/* Mangue (En bas au milieu) */}
-                <img
-                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782918952/MANGO_lo6yxx.png"
-                    alt="Mangue"
-                    className="absolute bottom-32 left-[45%] lg:left-[48%] w-28 md:w-40 opacity-70 blur-[1px] animate-[bounce_8s_ease-in-out_infinite_reverse]"
-                />
             </div>
 
             {/* MOITIÉ GAUCHE : Formulaire Glassmorphism */}
-            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 min-h-screen lg:min-h-0">
+            <div className="w-full lg:w-2/3 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 min-h-screen lg:min-h-0">
 
                 {/* Image Mobile Uniquement */}
                 <div className="lg:hidden absolute inset-0 w-full h-full opacity-30 z-[-1]">
@@ -68,10 +72,12 @@ export default function NutriAfroLogin() {
                 </div>
 
                 {/* LA CARTE GLASSMORPHISM */}
-                <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] p-8 relative">
+                <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] py-6 px-8 relative">
 
                     {/* IMAGE FONDATRICE (En bas à droite du formulaire) */}
-                    <div className="absolute -bottom-10 -right-12 w-40 md:w-48 z-50 pointer-events-auto">
+                    <div className="absolute -bottom-10 -right-24 md:-right-32 w-40 md:w-48 z-50 pointer-events-auto">
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782918952/MANGO_lo6yxx.png" alt="Mangue" className="absolute bottom-[80%] -right-10 w-20 md:w-24 opacity-80 blur-[1px] animate-[bounce_8s_ease-in-out_infinite_reverse] z-10" />
+
                         {showBubble && (
                             <div className="absolute -top-32 -right-8 w-56 bg-zinc-900 border border-[#39FF14]/40 text-white text-xs p-4 rounded-2xl shadow-[0_0_25px_rgba(57,255,20,0.2)] z-[100] animate-fade-in">
                                 <button type="button" onClick={() => setShowBubble(false)} className="absolute top-2 right-2 text-zinc-400 hover:text-white p-1">
@@ -88,15 +94,15 @@ export default function NutriAfroLogin() {
                         />
                     </div>
 
-                    <div className="flex justify-center mb-6">
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="w-40 sm:w-48 h-auto object-contain drop-shadow-xl" />
+                    <div className="flex justify-center mb-2">
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="w-28 sm:w-32 h-auto object-contain drop-shadow-xl mb-2" />
                     </div>
                     <h1 className="text-2xl font-black text-white text-center uppercase tracking-wider mb-2">Bon retour !</h1>
                     <p className="text-zinc-400 text-sm text-center mb-6">Accédez à votre espace nutritionnel.</p>
 
                     {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl mb-6 text-center">{error}</div>}
 
-                    <form onSubmit={handleLogin} className="space-y-4 relative z-30">
+                    <form onSubmit={handleLogin} className="space-y-3 relative z-30">
                         <div className="relative">
                             <User size={16} className="absolute top-4 left-4 text-zinc-400" />
                             <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email ou N° WhatsApp" required className="w-full bg-black/40 border border-white/10 text-white rounded-2xl py-4 pl-12 pr-4 focus:border-[#39FF14] focus:bg-black/60 outline-none transition-all placeholder:text-zinc-600" />
@@ -151,7 +157,7 @@ export default function NutriAfroLogin() {
                                 onClick={() => { setSelectedGoal('perte'); setIsModalOpen(true); }}
                                 className="group bg-[#39FF14]/10 border border-[#39FF14]/40 hover:bg-[#39FF14]/20 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(57,255,20,0.15)] hover:shadow-[0_0_25px_rgba(57,255,20,0.3)] cursor-pointer"
                             >
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Perdre<br/>du Poids</span>
+                                <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-center px-0.5 sm:px-1 leading-tight">Perdre<br/>du Poids</span>
                             </button>
 
                             {/* Choix 2 : Prise de masse */}
@@ -160,7 +166,7 @@ export default function NutriAfroLogin() {
                                 onClick={() => { setSelectedGoal('prise'); setIsModalOpen(true); }}
                                 className="group bg-[#39FF14]/10 border border-[#39FF14]/40 hover:bg-[#39FF14]/20 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(57,255,20,0.15)] hover:shadow-[0_0_25px_rgba(57,255,20,0.3)] cursor-pointer"
                             >
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Prendre<br/>de la Masse</span>
+                                <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-center px-0.5 sm:px-1 leading-tight">Prendre<br/>de la Masse</span>
                             </button>
 
                             {/* Choix 3 : Maintien */}
@@ -169,7 +175,7 @@ export default function NutriAfroLogin() {
                                 onClick={() => { setSelectedGoal('maintien'); setIsModalOpen(true); }}
                                 className="group bg-[#39FF14]/10 border border-[#39FF14]/40 hover:bg-[#39FF14]/20 hover:border-[#39FF14] text-white py-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(57,255,20,0.15)] hover:shadow-[0_0_25px_rgba(57,255,20,0.3)] cursor-pointer"
                             >
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-center px-1">Maintenir<br/>la Forme</span>
+                                <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-center px-0.5 sm:px-1 leading-tight">Maintenir<br/>la Forme</span>
                             </button>
                         </div>
 
@@ -195,7 +201,7 @@ export default function NutriAfroLogin() {
             </div>
 
             {/* MOITIÉ DROITE : Image Cover Desktop */}
-            <div className="hidden lg:block w-1/2 relative h-screen">
+            <div className="hidden lg:block w-1/3 relative h-screen">
                 <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent z-10 pointer-events-none"></div>
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg" alt="Nutrition Cover" className="w-full h-full object-cover" />
             </div>

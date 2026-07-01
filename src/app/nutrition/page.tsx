@@ -2856,8 +2856,8 @@ export default function NutritionDashboard() {
         {activeTab === 'today' && (
           <BentoDashboardView
               user={user}
-              greetingText={greetingText}
-              greetingSubtext={greetingSubtext}
+
+
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
           />
