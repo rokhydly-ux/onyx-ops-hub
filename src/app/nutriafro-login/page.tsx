@@ -2,7 +2,7 @@
 "use client";
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowRight, Lock, User, X, Sun, Moon } from 'lucide-react';
+import { ArrowRight, Lock, User, X, Sun, Moon, Play } from 'lucide-react';
 import DiagnosticModal from '@/components/DiagnosticModal';
 
 export default function NutriAfroLogin() {
@@ -14,7 +14,7 @@ export default function NutriAfroLogin() {
     const [showBubble, setShowBubble] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState<string | undefined>(undefined);
-    const [showFaq, setShowFaq] = useState(false);
+    const [showVideoModal, setShowVideoModal] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -72,7 +72,7 @@ export default function NutriAfroLogin() {
                 </div>
 
                 {/* LA CARTE GLASSMORPHISM */}
-                <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] py-6 px-8 relative">
+                <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] py-4 px-8 relative">
 
                     {/* IMAGE FONDATRICE (En bas à droite du formulaire) */}
                     <div className="absolute -bottom-10 -right-24 md:-right-32 w-40 md:w-48 z-50 pointer-events-auto">
@@ -98,23 +98,23 @@ export default function NutriAfroLogin() {
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="w-28 sm:w-32 h-auto object-contain drop-shadow-xl mb-2" />
                     </div>
                     <h1 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-black'} text-center uppercase tracking-wider mb-2`}>Bon retour !</h1>
-                    <p className={`text-sm text-center mb-6 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>Accédez à votre espace nutritionnel.</p>
+                    <p className={`text-sm text-center mb-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>Accédez à votre espace nutritionnel.</p>
 
-                    {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl mb-6 text-center">{error}</div>}
+                    {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2 rounded-xl mb-4 text-center">{error}</div>}
 
-                    <form onSubmit={handleLogin} className="space-y-3 relative z-30">
+                    <form onSubmit={handleLogin} className="space-y-2 relative z-30">
                         <div className="relative">
-                            <User size={16} className={`absolute top-4 left-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`} />
-                            <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email ou N° WhatsApp" required className={`w-full ${isDarkMode ? 'bg-black/40 border-white/10 text-white focus:bg-black/60 placeholder:text-zinc-600' : 'bg-white/40 border-black/10 text-black focus:bg-white/60 placeholder:text-zinc-500'} border rounded-2xl py-4 pl-12 pr-4 focus:border-[#39FF14] outline-none transition-all`} />
+                            <User size={16} className={`absolute top-3.5 left-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`} />
+                            <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email ou N° WhatsApp" required className={`w-full ${isDarkMode ? 'bg-black/40 border-white/10 text-white focus:bg-black/60 placeholder:text-zinc-600' : 'bg-white/40 border-black/10 text-black focus:bg-white/60 placeholder:text-zinc-500'} border rounded-2xl py-3 pl-12 pr-4 focus:border-[#39FF14] outline-none transition-all`} />
                         </div>
 
                         <div className="relative">
-                            <Lock size={16} className={`absolute top-4 left-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`} />
-                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" required className={`w-full ${isDarkMode ? 'bg-black/40 border-white/10 text-white focus:bg-black/60 placeholder:text-zinc-600' : 'bg-white/40 border-black/10 text-black focus:bg-white/60 placeholder:text-zinc-500'} border rounded-2xl py-4 pl-12 pr-4 focus:border-[#39FF14] outline-none transition-all`} />
+                            <Lock size={16} className={`absolute top-3.5 left-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`} />
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" required className={`w-full ${isDarkMode ? 'bg-black/40 border-white/10 text-white focus:bg-black/60 placeholder:text-zinc-600' : 'bg-white/40 border-black/10 text-black focus:bg-white/60 placeholder:text-zinc-500'} border rounded-2xl py-3 pl-12 pr-4 focus:border-[#39FF14] outline-none transition-all`} />
                         </div>
 
                         {/* Options : Remember Me & Forgot Password */}
-                        <div className="flex justify-between items-center px-1 py-2">
+                        <div className="flex justify-between items-center px-1 py-1">
                             <label className="flex items-center gap-2 cursor-pointer group">
                                 <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className={`w-4 h-4 rounded text-[#39FF14] focus:ring-[#39FF14] accent-[#39FF14] ${isDarkMode ? 'bg-black border-white/20 focus:ring-offset-black' : 'bg-white border-black/20 focus:ring-offset-white'}`} />
                                 <span className={`text-xs transition-colors ${isDarkMode ? 'text-zinc-400 group-hover:text-white' : 'text-zinc-600 group-hover:text-black'}`}>Rester connecté</span>
@@ -122,20 +122,20 @@ export default function NutriAfroLogin() {
                             <a href="#" className={`text-xs transition-colors hover:text-[#39FF14] ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>Mot de passe oublié ?</a>
                         </div>
 
-                        <button type="submit" disabled={loading} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(57,255,20,0.3)]">
+                        <button type="submit" disabled={loading} className="w-full bg-[#39FF14] text-black py-3 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(57,255,20,0.3)]">
                             {loading ? "Connexion..." : "Ouvrir mon Dashboard"} <ArrowRight size={16} />
                         </button>
                     </form>
 
-                    <div className="mt-6 relative z-30">
-                        <div className="flex items-center gap-4 mb-6">
+                    <div className="mt-4 relative z-30">
+                        <div className="flex items-center gap-4 mb-4">
                             <div className={`h-px flex-1 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'}`}></div>
                             <span className="text-zinc-600 text-xs uppercase font-bold tracking-widest">OU</span>
                             <div className={`h-px flex-1 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'}`}></div>
                         </div>
 
                         {/* Bouton Google */}
-                        <button type="button" className={`w-full border border-transparent py-3.5 rounded-2xl font-bold text-sm transition-colors flex justify-center items-center gap-3 ${isDarkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}>
+                        <button type="button" className={`w-full border border-transparent py-3 rounded-2xl font-bold text-sm transition-colors flex justify-center items-center gap-3 ${isDarkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}>
                             <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -147,8 +147,8 @@ export default function NutriAfroLogin() {
                     </div>
 
                     {/* SÉLECTION D'OBJECTIF DIRECTE (ANTI-FRICTION) */}
-                    <div className={`mt-6 pt-6 border-t relative z-30 ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
-                        <p className={`text-xs text-center mb-4 uppercase font-bold tracking-widest ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>Quel est ton objectif ?</p>
+                    <div className={`mt-4 pt-4 border-t relative z-30 ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
+                        <p className={`text-xs text-center mb-3 uppercase font-bold tracking-widest ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>Quel est ton objectif ?</p>
 
                         <div className="grid grid-cols-3 gap-2">
                             {/* Choix 1 : Perte de poids */}
@@ -182,34 +182,78 @@ export default function NutriAfroLogin() {
                         <div className="mt-4 text-center relative z-40">
                             <button
                                 type="button"
-                                onClick={() => setShowFaq(!showFaq)}
-                                className={`text-[11px] transition-colors underline decoration-dashed underline-offset-4 hover:text-[#39FF14] ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`}
+                                onClick={() => setShowVideoModal(true)}
+                                className={`mt-2 w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-xl transition-all group ${isDarkMode ? 'bg-white/5 border-white/10 hover:border-[#39FF14]' : 'bg-zinc-100 border-zinc-200 hover:border-[#39FF14]'}`}
                             >
-                                Comment fonctionne le bilan personnalisé ?
-                            </button>
-
-                            {showFaq && (
-                                <div className={`mt-3 p-4 border rounded-xl text-left text-xs space-y-2 backdrop-blur-md animate-fade-in mx-auto w-full max-w-xs shadow-xl ${isDarkMode ? 'bg-black/60 border-white/10 text-zinc-300' : 'bg-white/60 border-black/10 text-zinc-700'}`}>
-                                    <p><strong className="text-[#39FF14]">1.</strong> Tu choisis ton objectif physique.</p>
-                                    <p><strong className="text-[#39FF14]">2.</strong> Tu réponds à 4 questions rapides.</p>
-                                    <p><strong className="text-[#39FF14]">3.</strong> On calcule tes calories exactes adaptées à la gastronomie africaine !</p>
+                                <div className="bg-[#39FF14] text-black rounded-full p-2 group-hover:scale-110 transition-transform">
+                                    <Play size={16} className="ml-0.5" fill="currentColor" />
                                 </div>
-                            )}
+                                <span className={`text-sm font-medium transition-colors group-hover:text-[#39FF14] ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                                    Voir comment fonctionne le Bilan
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* MOITIÉ DROITE : Image Cover Desktop */}
-            <div className="hidden lg:block w-1/3 relative h-screen">
+            <div
+                className="hidden lg:block w-1/3 relative min-h-screen bg-cover bg-center bg-no-repeat bg-fixed"
+                style={{ backgroundImage: "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg')" }}
+            >
                 <div className={`absolute inset-0 bg-gradient-to-r z-10 pointer-events-none ${isDarkMode ? 'from-black via-black/50' : 'from-zinc-100 via-zinc-100/50'} to-transparent`}></div>
-                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg" alt="Nutrition Cover" className="w-full h-full object-cover" />
             </div>
             <DiagnosticModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 initialGoal={selectedGoal}
             />
+
+            {/* VIDEO MODAL (IPHONE MOCKUP) */}
+            {showVideoModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="relative w-full max-w-[320px] mx-auto">
+
+                        {/* Bouton Fermer (En dehors de l'iPhone) */}
+                        <button
+                            type="button"
+                            onClick={() => setShowVideoModal(false)}
+                            className="absolute -top-12 right-0 text-white hover:text-[#39FF14] p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        {/* iPhone Mockup Container */}
+                        <div className="relative w-[320px] h-[650px] bg-black border-[14px] border-zinc-900 rounded-[3rem] shadow-2xl mx-auto overflow-hidden ring-1 ring-white/10">
+
+                            {/* Dynamic Island / Notch */}
+                            <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-20">
+                                <div className="w-32 h-6 bg-black rounded-b-3xl"></div>
+                            </div>
+
+                            {/* Écran (Video Iframe) */}
+                            <div className="relative w-full h-full bg-zinc-900 pt-8 rounded-[2rem] overflow-hidden">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src="https://www.youtube.com/embed/q-BscsUflrw?autoplay=1"
+                                    title="Demo NutriAfro"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    className="rounded-[2rem] w-full h-full object-cover"
+                                ></iframe>
+                            </div>
+
+                            {/* Home Indicator (Barre en bas) */}
+                            <div className="absolute bottom-2 inset-x-0 h-1 flex justify-center z-20 pointer-events-none">
+                                <div className="w-1/3 h-1 bg-white/50 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
