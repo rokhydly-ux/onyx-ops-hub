@@ -3882,6 +3882,7 @@ export default function NutritionDashboard() {
                                  const isConsumed = isToday && consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
                                  const isBolCommun = clientProfile?.diagnostic_data?.lunch_context === 'maison_bol_commun' && mealType === 'Déjeuner';
 
+                                 console.log("Structure du repas :", recipe);
                                  return (
                                     <React.Fragment key={mealType}>
                                     <div className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
@@ -3890,7 +3891,7 @@ export default function NutritionDashboard() {
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
-                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories || recipe.kcal || (recipe.nutrition && recipe.nutrition.calories) || "—"} kcal` : (recipe.ux_unit || "1 portion")}</span>
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories || recipe.kcal || recipe.calorie || recipe.energy || (recipe.nutrition && recipe.nutrition.calories) || "—"} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
