@@ -1,8 +1,8 @@
 
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowRight, Lock, User, X, Sun, Moon, Play, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Lock, User, X, Sun, Moon, Play, ArrowLeft, Send } from 'lucide-react';
 import DiagnosticModal from '@/components/DiagnosticModal';
 
 export default function NutriAfroLogin() {
@@ -16,6 +16,32 @@ export default function NutriAfroLogin() {
     const [selectedGoal, setSelectedGoal] = useState<string | undefined>(undefined);
     const [showVideoModal, setShowVideoModal] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [showExitIntentModal, setShowExitIntentModal] = useState(false);
+    const [exitName, setExitName] = useState('');
+    const [exitPhone, setExitPhone] = useState('');
+
+    useEffect(() => {
+        const handleMouseLeave = (e: MouseEvent) => {
+            if (e.clientY <= 0 && !isModalOpen && !showVideoModal && !showExitIntentModal) {
+                setShowExitIntentModal(true);
+            }
+        };
+
+        document.addEventListener('mouseleave', handleMouseLeave);
+        return () => document.removeEventListener('mouseleave', handleMouseLeave);
+    }, [isModalOpen, showVideoModal, showExitIntentModal]);
+
+    const handleExitIntentSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            // Dummy submission to Supabase leads table
+            // await supabase.from('leads').insert([{ name: exitName, phone: exitPhone, source: 'exit_intent' }]);
+            console.log("Exit intent captured:", { exitName, exitPhone });
+            setShowExitIntentModal(false);
+        } catch (err) {
+            console.error("Error capturing exit intent", err);
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,10 +88,11 @@ export default function NutriAfroLogin() {
                 />
             </div>
 
-            {/* MOITIÉ GAUCHE : Formulaire Glassmorphism */}
-            <div className="w-full lg:w-2/3 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 min-h-screen lg:min-h-0">
+            {/* MOITIÉ GAUCHE : Formulaire Glassmorphism & Footer */}
+            <div className="w-full lg:w-2/3 flex flex-col relative z-10 min-h-screen">
 
-                {/* Image Mobile Uniquement */}
+                <div className="flex-grow flex flex-col justify-center items-center p-6 sm:p-12 relative">
+                    {/* Image Mobile Uniquement */}
                 <div className="lg:hidden absolute inset-0 w-full h-full opacity-30 z-[-1]">
                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg" alt="Fond Mobile" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
@@ -197,6 +224,63 @@ export default function NutriAfroLogin() {
                             </button>
                         </div>
                     </div>
+                    </div>
+                </div>
+
+                {/* FOOTER ESPACE CLIENT (ADAPTED FOR LOGIN) */}
+                <div className="w-full mt-auto">
+                    <footer className={`py-6 px-6 text-center border-t relative z-10 ${isDarkMode ? 'bg-black text-white border-white/10' : 'bg-zinc-100 text-black border-black/10'}`}>
+                        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-left">
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-8 w-auto object-contain opacity-80" />
+                                </div>
+                                <p className={`text-xs max-w-sm mb-4 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                    Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Ressources</h4>
+                                <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Articles</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Apprendre</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Newsletter</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Aide</h4>
+                                <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">FAQ</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Contact</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">À propos</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Politique de confidentialité</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Nous suivre</h4>
+                                <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Instagram</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">YouTube</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Pinterest</a></li>
+                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Facebook</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p className={`text-[10px] font-bold uppercase tracking-widest leading-relaxed ${isDarkMode ? 'text-zinc-600' : 'text-zinc-500'}`}>
+                                NutriAfro © 2026<br/>
+                                Onyx Ops Elite
+                            </p>
+                            <div className="flex gap-2">
+                                <a href="#" className="hover:opacity-80 transition-opacity">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-8" />
+                                </a>
+                                <a href="#" className="hover:opacity-80 transition-opacity">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-8" />
+                                </a>
+                            </div>
+                        </div>
+                    </footer>
                 </div>
             </div>
 
@@ -207,85 +291,28 @@ export default function NutriAfroLogin() {
             >
                 <div className={`absolute inset-0 bg-gradient-to-r z-10 pointer-events-none ${isDarkMode ? 'from-black via-black/50' : 'from-zinc-100 via-zinc-100/50'} to-transparent`}></div>
             </div>
-
-            {/* FOOTER ESPACE CLIENT (ADAPTED FOR LOGIN) */}
-            <div className="absolute bottom-0 w-full lg:w-2/3">
-                <footer className={`py-6 px-6 text-center border-t relative z-10 ${isDarkMode ? 'bg-black text-white border-white/10' : 'bg-zinc-100 text-black border-black/10'}`}>
-                    <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-left">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-8 w-auto object-contain opacity-80" />
-                            </div>
-                            <p className={`text-xs max-w-sm mb-4 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Ressources</h4>
-                            <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Articles</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Apprendre</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Newsletter</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Aide</h4>
-                            <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">FAQ</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Contact</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">À propos</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Politique de confidentialité</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Nous suivre</h4>
-                            <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Instagram</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">YouTube</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Pinterest</a></li>
-                                <li><a href="#" className="hover:text-[#39FF14] transition-colors">Facebook</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className={`text-[10px] font-bold uppercase tracking-widest leading-relaxed ${isDarkMode ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                            NutriAfro © 2026<br/>
-                            Onyx Ops Elite
-                        </p>
-                        <div className="flex gap-2">
-                            <a href="#" className="hover:opacity-80 transition-opacity">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-8" />
-                            </a>
-                            <a href="#" className="hover:opacity-80 transition-opacity">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-8" />
-                            </a>
-                        </div>
-                    </div>
-                </footer>
-            </div>
-
             <DiagnosticModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 initialGoal={selectedGoal}
             />
 
-            {/* VIDEO MODAL (IPHONE MOCKUP) */}
+            {/* VIDEO MODAL (SPLIT SCREEN) */}
             {showVideoModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={(e) => { if (e.target === e.currentTarget) setShowVideoModal(false); }}>
-                    <div className="relative w-full max-w-[320px] mx-auto">
+                    <div className="relative w-full max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8 bg-zinc-950 p-8 rounded-[3rem] border border-white/10 shadow-2xl">
 
-                        {/* Bouton Fermer (En dehors de l'iPhone) */}
+                        {/* Bouton Fermer */}
                         <button
                             type="button"
                             onClick={() => setShowVideoModal(false)}
-                            className="absolute -top-12 right-0 text-white hover:text-[#39FF14] p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                            className="absolute top-6 right-6 text-zinc-400 hover:text-[#39FF14] p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors z-20"
                         >
                             <X size={24} />
                         </button>
 
-                        {/* iPhone Mockup Container */}
-                        <div className="relative w-[320px] h-[650px] bg-black border-[14px] border-zinc-900 rounded-[3rem] shadow-2xl mx-auto overflow-hidden ring-1 ring-white/10">
+                        {/* Colonne Gauche: iPhone Mockup Container */}
+                        <div className="relative w-[320px] h-[650px] shrink-0 bg-black border-[14px] border-zinc-900 rounded-[3rem] shadow-2xl mx-auto overflow-hidden ring-1 ring-white/10">
 
                             {/* Dynamic Island / Notch */}
                             <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-20">
@@ -312,14 +339,88 @@ export default function NutriAfroLogin() {
                             </div>
                         </div>
 
-                        {/* Bouton FAIRE LE BILAN GRATUIT */}
+                        {/* Colonne Droite: Explication & Réassurance */}
+                        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
+                            <img
+                                src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg"
+                                alt="3D Icon"
+                                className="w-16 h-16 object-contain mb-6 rounded-2xl"
+                            />
+
+                            <h2 className="text-3xl font-black text-white uppercase tracking-wider mb-6">
+                                Comment ça marche ?
+                            </h2>
+
+                            <div className="space-y-4 mb-8 text-zinc-300 w-full max-w-sm">
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-4">
+                                    <span className="text-2xl font-black text-[#39FF14]">1</span>
+                                    <p className="text-sm font-medium">Définis ton objectif physique</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-4">
+                                    <span className="text-2xl font-black text-[#39FF14]">2</span>
+                                    <p className="text-sm font-medium">L'IA analyse tes besoins précis</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-4">
+                                    <span className="text-2xl font-black text-[#39FF14]">3</span>
+                                    <p className="text-sm font-medium">Reçois ton plan adapté à nos plats locaux</p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => { setShowVideoModal(false); setIsModalOpen(true); }}
+                                className="w-full max-w-sm bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(57,255,20,0.4)] animate-pulse"
+                            >
+                                GÉNÉRER MON PLAN SUR-MESURE
+                            </button>
+
+                            <p className="text-xs text-zinc-500 font-medium text-center md:text-left mt-4 max-w-sm">
+                                🛡️ Formulaire élaboré sous supervision médicale. Vos réponses permettent à notre algorithme de générer un plan alimentaire sain et 100% adapté à votre métabolisme.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EXIT INTENT MODAL */}
+            {showExitIntentModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={(e) => { if (e.target === e.currentTarget) setShowExitIntentModal(false); }}>
+                    <div className="relative w-full max-w-md bg-zinc-950 border border-white/10 p-8 rounded-[2rem] shadow-2xl text-center">
                         <button
                             type="button"
-                            onClick={() => { setShowVideoModal(false); setIsModalOpen(true); }}
-                            className="mt-6 w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(57,255,20,0.4)]"
+                            onClick={() => setShowExitIntentModal(false)}
+                            className="absolute top-4 right-4 text-zinc-400 hover:text-white p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
                         >
-                            FAIRE LE BILAN GRATUIT
+                            <X size={20} />
                         </button>
+
+                        <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-2">Attends ! Tu pars déjà ? 🥺</h2>
+                        <p className="text-zinc-400 text-sm mb-6">Ne rate pas l'occasion de perdre du poids tout en mangeant ton Thieb préféré. Laisse juste ton WhatsApp pour qu'un coach t'envoie un conseil gratuit personnalisé.</p>
+
+                        <form onSubmit={handleExitIntentSubmit} className="space-y-3">
+                            <input
+                                type="text"
+                                value={exitName}
+                                onChange={(e) => setExitName(e.target.value)}
+                                placeholder="Prénom"
+                                required
+                                className="w-full bg-black/40 border border-white/10 text-white rounded-xl py-3 px-4 focus:border-[#39FF14] outline-none transition-all placeholder:text-zinc-600"
+                            />
+                            <input
+                                type="tel"
+                                value={exitPhone}
+                                onChange={(e) => setExitPhone(e.target.value)}
+                                placeholder="Numéro WhatsApp"
+                                required
+                                className="w-full bg-black/40 border border-white/10 text-white rounded-xl py-3 px-4 focus:border-[#39FF14] outline-none transition-all placeholder:text-zinc-600"
+                            />
+                            <button
+                                type="submit"
+                                className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black uppercase text-sm tracking-widest hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(57,255,20,0.3)] mt-4"
+                            >
+                                Recevoir mon conseil gratuit <Send size={16} />
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}
