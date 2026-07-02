@@ -67,7 +67,7 @@ export default function NutriAfroLogin() {
     };
 
     return (
-        <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-zinc-100'} flex flex-col lg:flex-row overflow-hidden font-sans relative transition-colors duration-500`}>
+        <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${isDarkMode ? 'bg-black' : 'bg-zinc-100'} overflow-hidden relative`}>
 
             {/* TOGGLE SOMBRE / CLAIR */}
             <button
@@ -78,20 +78,22 @@ export default function NutriAfroLogin() {
                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {/* ÉLÉMENTS FLOTTANTS (PARALLAX BACKGROUND) */}
-            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                {/* Tomate (En haut à gauche) */}
-                <img
-                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782919475/tomates_nqeqjn.png"
-                    alt="Tomate"
-                    className="absolute top-10 left-10 w-24 md:w-32 opacity-80 blur-[1px] animate-[bounce_6s_ease-in-out_infinite]"
-                />
-            </div>
+            {/* CONTENU PRINCIPAL COUPE EN DEUX */}
+            <main className="flex-grow flex flex-col lg:flex-row w-full relative z-10">
 
-            {/* MOITIÉ GAUCHE : Formulaire Glassmorphism & Footer */}
-            <div className="w-full lg:w-2/3 flex flex-col relative z-10 min-h-screen">
+                {/* ÉLÉMENTS FLOTTANTS (PARALLAX BACKGROUND) */}
+                <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                    {/* Tomate (En haut à gauche) */}
+                    <img
+                        src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782919475/tomates_nqeqjn.png"
+                        alt="Tomate"
+                        className="absolute top-10 left-10 w-24 md:w-32 opacity-80 blur-[1px] animate-[bounce_6s_ease-in-out_infinite]"
+                    />
+                </div>
 
-                <div className="flex-grow flex flex-col justify-center items-center p-6 sm:p-12 relative">
+                {/* COLONNE GAUCHE : Formulaire Glassmorphism */}
+                <div className="w-full lg:w-1/2 flex items-center justify-center relative p-4 lg:p-12 min-h-screen lg:min-h-0">
+
                     {/* Image Mobile Uniquement */}
                 <div className="lg:hidden absolute inset-0 w-full h-full opacity-30 z-[-1]">
                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg" alt="Fond Mobile" className="w-full h-full object-cover" />
@@ -224,73 +226,72 @@ export default function NutriAfroLogin() {
                             </button>
                         </div>
                     </div>
+                </div>
+                </div>
+
+                {/* COLONNE DROITE : Image Cover Desktop */}
+                <div
+                    className="hidden lg:block w-1/2 relative bg-zinc-900 bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg')" }}
+                >
+                    <div className={`absolute inset-0 bg-gradient-to-r z-10 pointer-events-none ${isDarkMode ? 'from-black via-black/50' : 'from-zinc-100 via-zinc-100/50'} to-transparent`}></div>
+                </div>
+
+            </main>
+
+            {/* FOOTER TOUT EN BAS (En dehors du main) */}
+            <footer className={`w-full py-6 px-6 text-center border-t relative z-10 ${isDarkMode ? 'bg-black text-white border-white/10' : 'bg-zinc-100 text-black border-black/10'}`}>
+                <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-left">
+                    <div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-8 w-auto object-contain opacity-80" />
+                        </div>
+                        <p className={`text-xs max-w-sm mb-4 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                            Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Ressources</h4>
+                        <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Articles</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Apprendre</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Newsletter</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Aide</h4>
+                        <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">FAQ</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Contact</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">À propos</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Politique de confidentialité</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Nous suivre</h4>
+                        <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Instagram</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">YouTube</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Pinterest</a></li>
+                            <li><a href="#" className="hover:text-[#39FF14] transition-colors">Facebook</a></li>
+                        </ul>
                     </div>
                 </div>
-
-                {/* FOOTER ESPACE CLIENT (ADAPTED FOR LOGIN) */}
-                <div className="w-full mt-auto">
-                    <footer className={`py-6 px-6 text-center border-t relative z-10 ${isDarkMode ? 'bg-black text-white border-white/10' : 'bg-zinc-100 text-black border-black/10'}`}>
-                        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-left">
-                            <div>
-                                <div className="flex items-center gap-3 mb-4">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-8 w-auto object-contain opacity-80" />
-                                </div>
-                                <p className={`text-xs max-w-sm mb-4 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                    Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
-                                </p>
-                            </div>
-                            <div>
-                                <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Ressources</h4>
-                                <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Articles</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Apprendre</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Newsletter</a></li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Aide</h4>
-                                <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">FAQ</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Contact</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">À propos</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Politique de confidentialité</a></li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h4 className={`font-black uppercase text-xs tracking-widest mb-4 ${isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>Nous suivre</h4>
-                                <ul className={`space-y-3 text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Instagram</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">YouTube</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Pinterest</a></li>
-                                    <li><a href="#" className="hover:text-[#39FF14] transition-colors">Facebook</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                            <p className={`text-[10px] font-bold uppercase tracking-widest leading-relaxed ${isDarkMode ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                                NutriAfro © 2026<br/>
-                                Onyx Ops Elite
-                            </p>
-                            <div className="flex gap-2">
-                                <a href="#" className="hover:opacity-80 transition-opacity">
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-8" />
-                                </a>
-                                <a href="#" className="hover:opacity-80 transition-opacity">
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-8" />
-                                </a>
-                            </div>
-                        </div>
-                    </footer>
+                <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className={`text-[10px] font-bold uppercase tracking-widest leading-relaxed ${isDarkMode ? 'text-zinc-600' : 'text-zinc-500'}`}>
+                        NutriAfro © 2026<br/>
+                        Onyx Ops Elite
+                    </p>
+                    <div className="flex gap-2">
+                        <a href="#" className="hover:opacity-80 transition-opacity">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-8" />
+                        </a>
+                        <a href="#" className="hover:opacity-80 transition-opacity">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-8" />
+                        </a>
+                    </div>
                 </div>
-            </div>
-
-            {/* MOITIÉ DROITE : Image Cover Desktop */}
-            <div
-                className="hidden lg:block w-1/3 relative min-h-screen bg-cover bg-center bg-no-repeat bg-fixed"
-                style={{ backgroundImage: "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg')" }}
-            >
-                <div className={`absolute inset-0 bg-gradient-to-r z-10 pointer-events-none ${isDarkMode ? 'from-black via-black/50' : 'from-zinc-100 via-zinc-100/50'} to-transparent`}></div>
-            </div>
+            </footer>
             <DiagnosticModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
