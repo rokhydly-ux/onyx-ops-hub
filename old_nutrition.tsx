@@ -8,7 +8,7 @@ import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 
 import { supabase } from "@/lib/supabaseClient";
-import { 
+import {
   ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
 , PartyPopper } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
@@ -182,18 +182,18 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
                 const validStandaloneProducts = products.filter((p: any) => {
                     const cat = p.categorie_nom?.toLowerCase() || '';
                     const nom = p.nom?.toLowerCase() || '';
-                    
+
                     // RÈGLE 2 : Exclusion Totale (Non-Alimentaire, Packs & Condiments purs isolés)
                     if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
                     if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
                     if (nom.includes('pâte') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
-                    
+
                     // Exclusion stricte des ingrédients seuls (graines, feuilles, céréales)
                     const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'graines', 'feuille', 'feuilles', 'farine', 'couscous', 'thiéré', 'arraw', 'poudre', 'kinkeliba', 'bissap', 'moringa', 'djar'];
                     if (exclNames.some(e => nom === e || nom.startsWith(e + ' '))) {
                         if (!nom.includes('salade') && !nom.includes('poulet') && !nom.includes('viande') && !nom.includes('poisson')) return false;
                     }
-                    
+
                     return true;
                 });
 
@@ -263,10 +263,10 @@ const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: a
         <div className="relative w-24 h-24 mb-2">
            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r={radius} className="stroke-zinc-200" strokeWidth="8" fill="transparent" />
-              <motion.circle 
-                 cx="50" cy="50" r={radius} 
-                 className={colorClass} strokeWidth="8" fill="transparent" 
-                 strokeDasharray={circumference} 
+              <motion.circle
+                 cx="50" cy="50" r={radius}
+                 className={colorClass} strokeWidth="8" fill="transparent"
+                 strokeDasharray={circumference}
                  initial={{ strokeDashoffset: circumference }}
                  animate={{ strokeDashoffset: offset }}
                  transition={{ duration: 1.5, ease: "easeOut" }}
@@ -302,7 +302,7 @@ export default function NutritionDashboard() {
   const [loading, setLoading] = useState(true);
   const [daysLeft, setDaysLeft] = useState(0);
   const [theme, setTheme] = useState<'light'|'dark'>('light');
-  
+
   // Nouveaux états de l'application Nutrition
   const [activeTab, setActiveTab] = useState<any>('dashboard');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
@@ -315,7 +315,7 @@ export default function NutritionDashboard() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPhotoScanning, setIsPhotoScanning] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Jauges quotidiennes
   const [calories, setCalories] = useState(0);
   const [waterGlasses, setWaterGlasses] = useState(0);
@@ -323,7 +323,7 @@ export default function NutritionDashboard() {
   const [proteins, setProteins] = useState(0);
   const [carbs, setCarbs] = useState(0);
   const [fats, setFats] = useState(0);
-  
+
   // Bilan
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [reportData, setReportData] = useState<any>({ followedMenu: false, cravedRice: false, drankWater: false });
@@ -334,7 +334,7 @@ export default function NutritionDashboard() {
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
   const [selectedMealPhoto, setSelectedMealPhoto] = useState<string | null>(null);
   const mealPhotoInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
   const [offResults, setOffResults] = useState<any[]>([]);
@@ -357,12 +357,12 @@ export default function NutritionDashboard() {
   const [thiernoMessages, setThiernoMessages] = useState<any[]>([
     { sender: 'bot', text: "Bonjour ! Je suis le Dr. Thierno. As-tu des questions sur la nutrition, tes portions ou comment adapter tes plats locaux (Mix Sénégalo-Moderne) ?" }
   ]);
-  
+
   // Voice Integration Coach Thierno
   const [isThiernoVoiceEnabled, setIsThiernoVoiceEnabled] = useState(false);
   const thiernoVoiceRef = useRef(false);
   const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   useEffect(() => {
     thiernoChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thiernoMessages, isThiernoChatOpen]);
@@ -389,7 +389,7 @@ export default function NutritionDashboard() {
     setTimeout(() => {
         let botResponse = "C'est une très bonne question. N'oublie pas de consulter notre boutique pour découvrir nos super-aliments (Fonio, Moringa, Soumbala) qui t'aideront à atteindre ton objectif plus vite !";
         const lowerReply = reply.toLowerCase();
-        
+
         if (lowerReply.includes('riz') || lowerReply.includes('thieb')) {
             botResponse = "Le riz brisé a un index glycémique élevé. Je te recommande fortement notre Fonio Premium disponible dans la boutique. Il est parfait pour remplacer le riz tout en gardant le ventre plat !";
         } else if (lowerReply.includes('sucre') || lowerReply.includes('fatigue') || lowerReply.includes('boost')) {
@@ -401,7 +401,7 @@ export default function NutritionDashboard() {
         } else if (lowerReply.includes('faim') || lowerReply.includes('snack') || lowerReply.includes('arachide') || lowerReply.includes('cajou')) {
             botResponse = "En cas de petite faim, évite les biscuits industriels. Nos Noix de Cajou Grillées sont le snack sain idéal pour te caler jusqu'au prochain repas !";
         }
-        
+
         setThiernoMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
         speakText(botResponse);
     }, 1000);
@@ -480,7 +480,7 @@ export default function NutritionDashboard() {
   const [fatsGoal, setFatsGoal] = useState(0);
   const [isFastingMode, setIsFastingMode] = useState(false);
   const [isExpertMode, setIsExpertMode] = useState(false);
-  
+
   // Smart Planner (Générateur)
   const [weeklyGeneratedMenu, setWeeklyGeneratedMenu] = useState<any[]>([]);
   const [showGroceryList, setShowGroceryList] = useState(false);
@@ -759,14 +759,14 @@ export default function NutritionDashboard() {
           setClientProfile(activeProfile);
           const trialEnds = activeProfile.expiration_date ? new Date(activeProfile.expiration_date).getTime() : (new Date(activeProfile.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
           const now = new Date().getTime();
-          
+
           if (window.innerWidth < 1024) setIsSidebarOpen(false);
 
           let diffDays = 0;
           if (!isNaN(trialEnds)) {
               diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
           }
-          
+
           if (activeProfile.plan_type === 'premium') {
              diffDays = 999;
           }
@@ -782,7 +782,7 @@ export default function NutritionDashboard() {
 
           if (logsData) {
             setDailyLogs(logsData);
-            
+
             const todayLog = logsData.find(log => log.log_date === todayStr);
             if (todayLog) {
               setCalories(todayLog.calories_consumed || 0);
@@ -819,9 +819,9 @@ export default function NutritionDashboard() {
             .maybeSingle();
 
           if (nutritionData) {
-             setClientProfile(prev => ({ 
-                ...prev, 
-                diagnostic_data: nutritionData.diagnostic_data, 
+             setClientProfile(prev => ({
+                ...prev,
+                diagnostic_data: nutritionData.diagnostic_data,
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
@@ -837,10 +837,10 @@ export default function NutritionDashboard() {
                  setWeeklyGeneratedMenu(nutritionData.weekly_menu);
              }
           }
-          
+
           // Récupérer le poids
           const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
-          
+
           let fetchedLogs = wLogs || [];
           const diagCurrentWeight = nutritionData?.diagnostic_data?.currentWeight;
 
@@ -851,7 +851,7 @@ export default function NutritionDashboard() {
                  fetchedLogs = [{ log_date: initialDate, weight: initialWeight }];
               }
           }
-          
+
           setWeightLogs(fetchedLogs);
           if (fetchedLogs.length > 0) {
               setCurrentWeightInput(fetchedLogs[fetchedLogs.length - 1].weight);
@@ -860,7 +860,7 @@ export default function NutritionDashboard() {
           } else {
               setCurrentWeightInput(0);
           }
-          
+
           if (nutritionData) {
               setFavoriteMeals(nutritionData.favorite_meals || []);
               setPdfHistory(nutritionData.pdf_history || []);
@@ -953,7 +953,7 @@ export default function NutritionDashboard() {
           setMoods(newLog.report_data?.moods || []);
           setMoodNotes(newLog.report_data?.moodNotes || '');
         }
-        
+
         setDailyLogs(prev => {
           const filtered = prev.filter(l => l.log_date !== newLog.log_date);
           return [...filtered, newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
@@ -969,7 +969,7 @@ export default function NutritionDashboard() {
   const updateXP = async (amount: number, reason: string) => {
       const newXP = jongomaXP + amount;
       let leveledUp = false;
-      
+
       // Vérification des déblocages de badges pour que le coach IA (Rokhy) réagisse
       if (jongomaXP < 500 && newXP >= 500) {
           leveledUp = true;
@@ -1017,7 +1017,7 @@ export default function NutritionDashboard() {
       .select('jongoma_xp, client:clients(id, full_name, avatar_url)')
       .order('jongoma_xp', { ascending: false, nullsFirst: false })
       .limit(10);
-      
+
     if (data && data.length > 0) {
         const formattedData = data.map(d => ({
             id: (d.client as any)?.id,
@@ -1025,7 +1025,7 @@ export default function NutritionDashboard() {
             avatar_url: (d.client as any)?.avatar_url,
             xp: d.jongoma_xp || 0
         })).filter(d => d.id);
-        
+
         if (clientProfile && !formattedData.some(d => d.id === clientProfile.id)) {
            formattedData.push({
                id: clientProfile.id,
@@ -1058,7 +1058,7 @@ export default function NutritionDashboard() {
     const checkReminder = () => {
       const now = new Date();
       const hasLoggedToday = dailyLogs.some(log => log.log_date === todayStr && log.report_data);
-      
+
       if (now.getHours() >= 20 && !hasLoggedToday) {
         setShowReminder(true);
       } else {
@@ -1138,7 +1138,7 @@ export default function NutritionDashboard() {
       } catch(e) {
           currentRecipes = DEFAULT_RECIPES;
       }
-      
+
       // RÈGLES DES CONDIMENTS (Exclusion stricte des produits non-complets)
       currentRecipes = currentRecipes.filter(r => {
           const cat = r.categorie?.toLowerCase() || '';
@@ -1152,7 +1152,7 @@ export default function NutritionDashboard() {
       let newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-      
+
       // FILTRAGE ALLERGIES (RULE 5)
       const allergies = clientProfile?.diagnostic_data?.allergies?.toLowerCase() || '';
       let safeRecipes = currentRecipes;
@@ -1210,7 +1210,7 @@ export default function NutritionDashboard() {
           'Collation': [],
           'Dîner': []
       };
-      
+
       days.forEach(day => {
           const getAvailable = (type: string) => {
               let available = safeRecipes.filter(r => r.type === type && !recentMeals[type].slice(-2).includes(r.id));
@@ -1251,16 +1251,16 @@ export default function NutritionDashboard() {
               } else {
                   lunchCandidate = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
               }
-              
+
               const cBf = breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null;
               const cL = lunchCandidate || null;
               const cSn = snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null;
               const cD = dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null;
-              
+
               const getCals = (r: any) => r?.calories || r?.kcal || r?.energy || (r?.nutrition && r?.nutrition?.calories) || 0;
               const totalCals = getCals(cBf) + getCals(cL) + getCals(cSn) + getCals(cD);
               const diff = Math.abs(totalCals - targetDailyCals);
-              
+
               if (diff < minDiff) {
                   minDiff = diff;
                   bestCombination = { rawBf: cBf, rawL: cL, rawSn: cSn, rawD: cD, isBc: cL?.is_bol_commun };
@@ -1314,7 +1314,7 @@ export default function NutritionDashboard() {
       } catch(e) {
           currentRecipes = DEFAULT_RECIPES;
       }
-      
+
       currentRecipes = currentRecipes.filter(r => {
           const cat = r.categorie?.toLowerCase() || '';
           const nom = r.nom?.toLowerCase() || '';
@@ -1344,22 +1344,22 @@ export default function NutritionDashboard() {
       const nextDayRecipeId = dayIndex < 6 ? weeklyGeneratedMenu[dayIndex + 1].meals[mealType]?.id : null;
 
       let alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId && r.id !== prevDayRecipeId && r.id !== nextDayRecipeId);
-      
+
       if (alternatives.length === 0) {
            alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId);
       }
 
       if (alternatives.length > 0) {
           let newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
-          
+
           if (trackingMode === 'guided') {
               const targetDailyCals = calorieGoal || 0;
               const mealTargets: Record<string, number> = isFastingMode ? {
                  'Déjeuner': targetDailyCals * 0.45,
                  'Collation': targetDailyCals * 0.20,
                  'Dîner': targetDailyCals * 0.35
-              } : { 
-                 'Petit-déjeuner': targetDailyCals * 0.25, 'Déjeuner': targetDailyCals * 0.40, 'Collation': targetDailyCals * 0.10, 'Dîner': targetDailyCals * 0.25 
+              } : {
+                 'Petit-déjeuner': targetDailyCals * 0.25, 'Déjeuner': targetDailyCals * 0.40, 'Collation': targetDailyCals * 0.10, 'Dîner': targetDailyCals * 0.25
               };
               const ratio = mealTargets[mealType] / (newRecipe.calories || mealTargets[mealType]);
               newRecipe = {
@@ -1521,7 +1521,7 @@ export default function NutritionDashboard() {
                   carbs_goal: results.carbs,
                   protein_goal: results.protein,
                   fats_goal: results.fats,
-                  diagnostic_data: { 
+                  diagnostic_data: {
                       ...cleanDiagData,
                       bmr: results.bmr,
                       tdee: results.tdee
@@ -1543,7 +1543,7 @@ export default function NutritionDashboard() {
               alert("Succès");
               setShowRedoDiagModal(false);
           }
-          
+
       } catch (err: any) {
           alert("Erreur lors de l'enregistrement du diagnostic: " + err.message);
       } finally {
@@ -1564,9 +1564,9 @@ export default function NutritionDashboard() {
                   let finalRayon = ing.rayon || 'Glucides & Laitages';
                   if (ing.rayon === 'Boutique Onyx' || ing.rayon === 'Marché local') finalRayon = 'Produits Locaux / Épices';
                   if (ing.rayon === 'Boucherie / Pêche') finalRayon = 'Protéines Fraîches';
-                  
+
                   if (!list[finalRayon]) list[finalRayon] = {};
-                  
+
                   const isStaple = stapleIngredients.some(staple => ing.nom.toLowerCase().includes(staple));
                   const finalQuantity = isStaple ? ing.quantite * cookingMultiplier : ing.quantite;
 
@@ -1628,10 +1628,10 @@ export default function NutritionDashboard() {
           doc.setFontSize(12);
           doc.setTextColor(100, 100, 100);
           doc.text(`Semaine du ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
-          
+
           let y = 45;
           const list = getGroceryList();
-          
+
           Object.entries(list).forEach(([rayon, items]: any) => {
               const activeItems = Object.entries(items).filter(([nom]) => !excludedIngredients.includes(nom));
               if (activeItems.length === 0) return;
@@ -1654,7 +1654,7 @@ export default function NutritionDashboard() {
 
           const pdfBlob = doc.output('blob');
           const fileName = `Liste_Courses_${clientProfile.id}_${Date.now()}.pdf`;
-          
+
           const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
           if (uploadError) throw uploadError;
 
@@ -1681,10 +1681,10 @@ export default function NutritionDashboard() {
       doc.setFontSize(12);
       doc.setTextColor(100, 100, 100);
       doc.text(`Semaine du ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
-      
+
       let y = 45;
       const list = getGroceryList();
-      
+
       Object.entries(list).forEach(([rayon, items]: any) => {
           const activeItems = Object.entries(items).filter(([nom]) => !excludedIngredients.includes(nom));
           if (activeItems.length === 0) return;
@@ -1705,7 +1705,7 @@ export default function NutritionDashboard() {
           y += 10;
       });
       doc.save(`Liste_Courses_Onyx_${new Date().toISOString().split('T')[0]}.pdf`);
-      
+
       const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: null }, ...pdfHistory];
       setPdfHistory(newHistory);
       if (clientProfile) {
@@ -1719,9 +1719,9 @@ export default function NutritionDashboard() {
     if (!clientProfile) return;
     const newAmount = Math.max(0, Math.min(waterGlasses + delta, 8));
     if (newAmount === waterGlasses) return; // Pas de changement
-    
+
     setWaterGlasses(newAmount);
-    
+
     if (waterGlasses === 7 && newAmount === 8) {
         updateXP(5, "Objectif d'eau quotidien atteint !");
     }
@@ -1737,7 +1737,7 @@ export default function NutritionDashboard() {
     }
 
     const todayLog = dailyLogs.find(l => l.log_date === todayStr);
-    
+
     await supabase.from('nutrition_daily_logs').upsert({
       ...(todayLog?.id ? { id: todayLog.id } : {}),
       client_id: clientProfile.id,
@@ -1750,14 +1750,14 @@ export default function NutritionDashboard() {
       fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
     }, { onConflict: 'client_id, log_date' });
-    
+
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
       const existing = prev.find(l => l.log_date === todayStr) || {};
       return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins, carbs_consumed: carbs, fats_consumed: fats }];
     });
   };
-  
+
   const handleMealClick = async (mealType: string, plannedMeal: any, forceMode?: string) => {
       setFoodSearchQuery("");
       setSelectedFoodDB(null);
@@ -1765,7 +1765,7 @@ export default function NutritionDashboard() {
       setFoodUnit("portion");
       setSelectedMealPhoto(null);
       setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: forceMode || trackingMode });
-      
+
       // Log analytics (Incrémenter le compteur de vues de la recette)
       if (plannedMeal && plannedMeal.meal) {
          try {
@@ -1793,7 +1793,7 @@ export default function NutritionDashboard() {
       const newProts = proteins + protsRounded;
       const newCarbs = carbs + carbsRounded;
       const newFats = fats + fatsRounded;
-      
+
       const newConsumedItem = {
          id: Date.now(),
          type: mealType,
@@ -1814,7 +1814,7 @@ export default function NutritionDashboard() {
       setCarbs(newCarbs);
       setFats(newFats);
       setConsumedMeals(updatedConsumedMeals);
-      
+
       if (updatedConsumedMeals.length === 3 && consumedMeals.length === 2) {
           updateXP(10, "3 repas logués aujourd'hui !");
       }
@@ -1829,7 +1829,7 @@ export default function NutritionDashboard() {
       }
 
       setSelectedMealModal(null);
-      
+
       // Sauvegarde des produits OpenFoodFacts validés dans la DB locale Onyx (Auto-apprentissage)
       if (foodObj?.is_from_off) {
          const newFoodDB = {
@@ -1897,7 +1897,7 @@ export default function NutritionDashboard() {
 
   const deleteMealLog = async (itemToDelete: any) => {
       const updatedConsumedMeals = consumedMeals.filter(m => m.id !== itemToDelete.id);
-      
+
       const newCals = Math.max(0, calories - itemToDelete.cals);
       const newProts = Math.max(0, proteins - itemToDelete.prots);
       const newCarbs = Math.max(0, carbs - itemToDelete.carbs);
@@ -1985,7 +1985,7 @@ export default function NutritionDashboard() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      
+
       setIsPhotoScanning(true);
       setToastMessage("Analyse du plat en cours par l'IA... 📸");
 
@@ -2002,13 +2002,13 @@ export default function NutritionDashboard() {
           }
 
           // --- APPEL RÉEL À L'EDGE FUNCTION SUPABASE ---
-          const formData = new FormData(); 
+          const formData = new FormData();
           formData.append('image', file);
 
           const { data, error } = await supabase.functions.invoke('analyze-food-vision', {
               body: formData,
           });
-          
+
           if (error || data.error) throw new Error(error?.message || data.error);
 
           const aiResult = {
@@ -2017,12 +2017,12 @@ export default function NutritionDashboard() {
               categorie: "Analyse IA",
               portion_standard_nom: "1 portion",
               portion_standard_grammes: 350,
-              valeurs_pour_100g: { 
-                 calories: data.calories || 0, 
-                 proteines: data.proteines || 0, 
-                 glucides: data.glucides || 0, 
-                 lipides: data.lipides || 0, 
-                 fibres: 0 
+              valeurs_pour_100g: {
+                 calories: data.calories || 0,
+                 proteines: data.proteines || 0,
+                 glucides: data.glucides || 0,
+                 lipides: data.lipides || 0,
+                 fibres: 0
               },
               isFood: true,
               image_url: publicUrl,
@@ -2057,7 +2057,7 @@ export default function NutritionDashboard() {
          if (wantsToLose && newWeightVal <= targetW) isGoalReached = true;
          if (!wantsToLose && newWeightVal >= targetW) isGoalReached = true;
       }
-      
+
       if (isGoalReached) {
           setShowConfetti('weight');
           setTimeout(() => setShowConfetti(false), 8000);
@@ -2072,7 +2072,7 @@ export default function NutritionDashboard() {
           const filtered = prev.filter(log => log.log_date !== todayStr);
           return [...filtered, newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
       });
-      
+
       if (clientProfile) {
           const payload = {
             client_id: clientProfile.id,
@@ -2087,9 +2087,9 @@ export default function NutritionDashboard() {
               return;
           }
 
-          const updatedDiagData = { 
-              ...(clientProfile.diagnostic_data || {}), 
-              currentWeight: newWeight.toString() 
+          const updatedDiagData = {
+              ...(clientProfile.diagnostic_data || {}),
+              currentWeight: newWeight.toString()
           };
           await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
           setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
@@ -2180,7 +2180,7 @@ export default function NutritionDashboard() {
   const submitDailyReport = async () => {
     if (!clientProfile) return;
     setIsSubmittingReport(true);
-    
+
     // Valeurs simulées du menu respecté pour l'exemple
     let currentCals = calories;
     let currentProts = proteins;
@@ -2330,13 +2330,13 @@ export default function NutritionDashboard() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
   }
-  
+
   const toggleFavorite = async (meal: any) => {
       const mealName = meal.meal || meal.nom;
       const exists = favoriteMeals.find(f => (f.meal || f.nom) === mealName);
       let newFavs;
       let increment = 0;
-      
+
       if (exists) {
           newFavs = favoriteMeals.filter(f => (f.meal || f.nom) !== mealName);
           increment = -1;
@@ -2345,13 +2345,13 @@ export default function NutritionDashboard() {
           increment = 1;
       }
       setFavoriteMeals(newFavs);
-      
+
       setAllRecipesDB(prev => prev.map(r => r.nom === mealName ? { ...r, likes: Math.max(0, (r.likes || 0) + increment) } : r));
 
       if (clientProfile) {
           await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('client_id', clientProfile.id);
       }
-      
+
       // Mise à jour du compteur global de likes en base de données
       if (meal.id && !String(meal.id).startsWith('def_') && !String(meal.id).startsWith('gen_')) {
           const { data: rec } = await supabase.from('nutrition_recipes').select('likes').eq('id', meal.id).maybeSingle();
@@ -2365,7 +2365,7 @@ export default function NutritionDashboard() {
   const targetCarbs = carbsGoal || 150;
   const targetProtein = proteinGoal || 80;
   const targetFats = fatsGoal || 50;
-  
+
   const remainingCalories = Math.max(0, targetCalories - calories);
   const lvlInfo = getJongomaLevel(jongomaXP);
 
@@ -2387,7 +2387,7 @@ export default function NutritionDashboard() {
   const missingDiagGender = !clientProfile?.diagnostic_data?.gender;
   const missingDiagAge = !clientProfile?.diagnostic_data?.age;
   const missingDiagBirthDate = !clientProfile?.diagnostic_data?.birthDate;
-  
+
   // Active le point rouge (dot) sur l'historique si l'utilisateur a débloqué au moins le premier badge (500 XP) mais qu'il ne se trouve pas actuellement sur cet onglet.
   const hasUnseenBadges = jongomaXP >= 500 && activeTab !== 'history';
 
@@ -2420,7 +2420,7 @@ export default function NutritionDashboard() {
     setTimeout(() => setIsCartBouncing(false), 400);
     setToastMessage(`Ajouté au panier : ${product.nom}`);
     setTimeout(() => setToastMessage(null), 3000);
-    
+
     // Effet sonore (Pop)
     const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3");
     audio.volume = 0.5;
@@ -2475,7 +2475,7 @@ export default function NutritionDashboard() {
 
     const discountPct = isShopPromoApplied && appliedPromoData ? appliedPromoData.discount_pct : 0;
     const discountMultiplier = 1 - (discountPct / 100);
-    
+
     const originalTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
     const discountAmount = Math.round(originalTotal * (discountPct / 100));
     const total = Math.round(originalTotal * discountMultiplier);
@@ -2496,7 +2496,7 @@ export default function NutritionDashboard() {
           discount_amount: discountAmount,
           address: deliveryAddress
        }).select();
-       
+
        if (error) {
            console.error("Erreur commande:", error);
            alert("Oups, impossible de sauvegarder la commande dans l'historique. Erreur : " + error.message);
@@ -2522,7 +2522,7 @@ export default function NutritionDashboard() {
   const handleReorder = (order: any) => {
      let updatedCart = [...shopCart];
      const itemsToAdd = order.items || [];
-     
+
      itemsToAdd.forEach((item: any) => {
         const fullProduct = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).find((p: any) => p.id === item.id) || item;
         const existing = updatedCart.find(c => c.id === item.id);
@@ -2532,7 +2532,7 @@ export default function NutritionDashboard() {
            updatedCart.push({ ...fullProduct, quantity: item.quantity || 1, finalPrice: item.finalPrice || item.price || fullProduct.prix_standard });
         }
      });
-     
+
      setShopCart(updatedCart);
      setShowCartModal(true);
      setToastMessage("Commande ajoutée au panier !");
@@ -2648,7 +2648,7 @@ export default function NutritionDashboard() {
           doc.setFontSize(16);
           doc.setTextColor(0, 0, 0);
           doc.text("Vos Nouveaux Objectifs", 14, 55);
-          
+
           doc.setFontSize(12);
           doc.text(`• Calories : ${calorieGoal} kcal/jour`, 20, 65);
           doc.text(`• Protéines : ${proteinGoal} g`, 20, 73);
@@ -2661,7 +2661,7 @@ export default function NutritionDashboard() {
               const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
               if (uploadError) throw uploadError;
               const { data: urlData } = supabase.storage.from('tontines').getPublicUrl(fileName);
-              
+
               const text = `Bonjour le coach ! 👋\nVoici mon nouveau bilan nutritionnel Onyx Nutrition 🍏 :\n\n${urlData.publicUrl}\n\nPouvons-nous en discuter pour adapter mon programme ?`;
               window.open(`https://wa.me/221785338417?text=${encodeURIComponent(text)}`, '_blank');
           } else {
@@ -2687,7 +2687,7 @@ export default function NutritionDashboard() {
           animation: gentle-pulse 4s ease-in-out infinite;
         }
       `}} />
-      
+
       {/* ANIMATION LUDIQUE DE CONFETTIS */}
       {showConfetti && (
         <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
@@ -2832,7 +2832,7 @@ export default function NutritionDashboard() {
               </h1>
               <p className="text-zinc-500 font-bold text-sm mt-1">{greetingSubtext}</p>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-4">
                <div className={`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
                   <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}`}>{lvlInfo.badge}</div>
@@ -3016,7 +3016,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'history' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            
+
             {/* BADGES ET GAMIFICATION */}
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                <div>
@@ -3059,12 +3059,12 @@ export default function NutritionDashboard() {
                   </div>
                </div>
             </div>
-            
+
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
                   <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7 jours
                </h2>
-               
+
                <div className="grid md:grid-cols-2 gap-8">
                   {/* GRAPHIQUE : Hydratation */}
                   <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
@@ -3152,137 +3152,16 @@ export default function NutritionDashboard() {
           </div>
         )}
 
-
         {activeTab === 'today' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <div className="flex items-center gap-4 mb-8">
-               <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" />
-               <div>
-                  <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Mon Jour</h2>
-                  <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
-                    Enregistrez vos repas, suivez votre eau et complétez votre bilan de la journée.
-                  </p>
-               </div>
-            </div>
+          <div className="space-y-12 animate-in fade-in slide-in-from-right-4">
 
-            {/* Switch Mode Guidé / Flexible */}
-            <div className="flex justify-center mb-8">
-               <div className="bg-zinc-100 p-1.5 rounded-full inline-flex relative shadow-inner">
-                  <button onClick={() => handleTrackingModeChange('guided')} className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'guided' ? 'bg-white text-black shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mode Guidé (Sama Menu)</button>
-                  <button onClick={() => handleTrackingModeChange('flexible')} className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'flexible' ? 'bg-white text-black shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mode Libre (Flexible)</button>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Repas du Jour */}
-                {(() => {
-                    const today = weeklyGeneratedMenu.find(d => d.day === formattedCurrentDay);
-                    if (!today) return <div className="col-span-full p-8 text-center text-zinc-500 font-bold bg-zinc-50 rounded-3xl border border-zinc-200">Aucun menu généré pour aujourd'hui. Veuillez générer votre Sama Menu.</div>;
-
-                    return (
-                        <div className="md:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95">
-                           <div className="absolute top-4 left-4 bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg">
-                              Aujourd'hui
-                           </div>
-
-                           <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
-                              <img src={today.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
-                                 <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
-                                 <p className="text-white font-bold text-lg leading-tight line-clamp-1">{today.meals?.['Déjeuner']?.nom || 'Repas'}</p>
-                              </div>
-                           </div>
-
-                           <div className="p-5 flex-1 flex flex-col gap-3">
-                              {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
-                                 const recipe = today.meals?.[mealType];
-                                 if(!recipe) return null;
-                                 const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
-
-                                 return (
-                                    <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
-                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
-                                          <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                          <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
-                                       </div>
-                                       <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.calories || recipe.kcal || recipe.calorie || recipe.energy || "—"} kcal</span>
-                                          {!isConsumed ? (
-                                             <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
-                                          ) : (
-                                             <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
-                                          )}
-                                       </div>
-                                    </div>
-                                 )
-                              })}
-                           </div>
-                        </div>
-                    )
-                })()}
-
-                {/* Tracking Eau & Bilan */}
-                <div className="space-y-6 flex flex-col">
-                    <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
-                           <Droplet size={32}/>
-                        </div>
-                        <h3 className="font-black text-lg uppercase tracking-tighter text-black mb-1">Objectif Eau</h3>
-                        <p className="text-zinc-500 font-bold text-xs mb-6">{waterGlasses} / 8 verres (1.5L)</p>
-
-                        <div className="flex gap-2 flex-wrap justify-center mb-6">
-                            {Array.from({length: 8}, (_, i) => (
-                                <button key={i} onClick={() => handleUpdateWater(i + 1 - waterGlasses)} className={`w-8 h-10 rounded-lg transition-colors ${i < waterGlasses ? 'bg-blue-500' : 'bg-zinc-100 hover:bg-blue-100'}`}></button>
-                            ))}
-                        </div>
-                        <button onClick={() => handleUpdateWater(1)} className="w-full bg-black text-[#39FF14] py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">
-                           + Ajouter un verre
-                        </button>
-                    </div>
-
-                    <div className="bg-[#39FF14] p-6 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center mt-auto cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => setShowDailyReport(true)}>
-                        <CheckCircle size={32} className="text-black mb-3"/>
-                        <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">Bilan de la journée</h3>
-                        <p className="text-black/70 font-bold text-xs">Clôturez votre journée pour gagner de l'XP et adapter le menu de demain.</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Suggestions Boutique */}
-            <div className="bg-zinc-950 rounded-[2rem] p-8 mt-12 relative overflow-hidden">
-               <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#39FF14]/20 rounded-full blur-3xl pointer-events-none"></div>
-               <h3 className="text-xl font-black uppercase text-white mb-6 flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> Pour booster vos résultats</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {crossSellProducts.map((p: any) => (
-                     <div key={p.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 group cursor-pointer" onClick={() => setActiveTab('shop')}>
-                        <img src={p.image_url} className="w-16 h-16 rounded-xl object-cover" />
-                        <div>
-                           <p className="text-sm font-bold text-white group-hover:text-[#39FF14] transition-colors">{p.nom}</p>
-                           <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{p.prix_standard} FCFA</p>
-                        </div>
-                     </div>
-                  ))}
-               </div>
-            </div>
-
-            <div className="flex justify-center mt-8">
-                <button onClick={() => setShowRedoDiagModal(true)} className="bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2">
-                   <Settings size={14}/> Refaire mon diagnostic
-                </button>
-            </div>
-          </div>
-        )}
-
-
-        {activeTab === 'week' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
             {/* SECTION SMART PLANNER (Générateur) */}
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                   <div className="flex items-center gap-4">
                      <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" />
                      <div>
-                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Sama Menu</h2>
+                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Mon Jour</h2>
                         <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
                           Votre programme quotidien visuel. Suivez ces recommandations sans tracas. Loguez vos plats ici.
                         </p>
@@ -3325,7 +3204,7 @@ export default function NutritionDashboard() {
                            <div className={`absolute top-4 left-4 ${isToday ? 'bg-[#39FF14] text-black' : 'bg-black text-white'} px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg`}>
                               {dayPlan.day} {isToday && '(Auj.)'}
                            </div>
-                           
+
                            <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
                               <img src={dayPlan.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
@@ -3334,7 +3213,7 @@ export default function NutritionDashboard() {
                                  {dayPlan.meals?.['Déjeuner']?.is_boutique && <span className="absolute top-4 right-4 bg-[#39FF14] text-black px-2 py-1 rounded text-[9px] font-black uppercase shadow-md">Boutique</span>}
                               </div>
                            </div>
-                           
+
                            <div className="p-5 flex-1 flex flex-col gap-3">
                               {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                                  const recipe = dayPlan.meals?.[mealType];
@@ -3418,11 +3297,11 @@ export default function NutritionDashboard() {
 
                <div className="grid md:grid-cols-2 gap-6">
                   {weeklyMenus.map((menu: any, idx: number) => (
-                     <motion.div 
+                     <motion.div
                        initial={{ opacity: 0, y: 20 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: idx * 0.1 }}
-                       key={menu.week} 
+                       key={menu.week}
                        className={`relative border-2 rounded-[2rem] p-8 transition-all overflow-hidden ${menu.status === 'unlocked' ? 'bg-white border-zinc-200 hover:border-black shadow-sm' : 'bg-zinc-100 border-dashed border-zinc-300'}`}
                      >
                         {menu.status === 'locked' && (
@@ -3434,7 +3313,7 @@ export default function NutritionDashboard() {
                               <p className="text-xs font-bold text-zinc-500 mb-6">Passez au plan Premium pour débloquer la suite de votre programme.</p>
                            </div>
                         )}
-                        
+
                         <div className="flex justify-between items-start mb-6">
                            <div>
                               <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-3 ${menu.status === 'unlocked' ? 'bg-[#39FF14]/20 text-green-700' : 'bg-zinc-200 text-zinc-500'}`}>
@@ -3444,9 +3323,9 @@ export default function NutritionDashboard() {
                            </div>
                            {menu.status === 'unlocked' && <CheckCircle className="text-[#39FF14]" size={24} />}
                         </div>
-                        
+
                         <p className="text-sm font-medium text-zinc-600 mb-6">{menu.desc}</p>
-                        
+
                         {menu.status === 'unlocked' && (
                            <div className="bg-zinc-50 border border-zinc-100 p-5 rounded-2xl">
                               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 border-b border-zinc-200 pb-2">Aperçu du menu</p>
@@ -3494,7 +3373,7 @@ export default function NutritionDashboard() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Package className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Mes Commandes</h2>
-                
+
                 <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl mb-8">
                    <h3 className="font-black text-sm uppercase mb-4">Mes Coordonnées de livraison</h3>
                    <div className="flex flex-col sm:flex-row items-end gap-4">
@@ -3554,7 +3433,7 @@ export default function NutritionDashboard() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
-                
+
                 <form onSubmit={handleSaveProfile} className="space-y-6 max-w-xl">
                    <div className="flex items-center gap-6 mb-8">
                       <img src={profileForm.avatar_url || "https://ui-avatars.com/api/?name=" + (profileForm.full_name || "M")} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" onClick={handleChangeAvatar} title="Changer l'avatar par URL" />
@@ -3729,23 +3608,23 @@ export default function NutritionDashboard() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
-                
+
                 <div className="relative mb-6">
                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                   <input 
-                      type="text" 
-                      placeholder="Rechercher une recette ou macro (ex: Thieboudienne, 300 kcal, 20g)..." 
+                   <input
+                      type="text"
+                      placeholder="Rechercher une recette ou macro (ex: Thieboudienne, 300 kcal, 20g)..."
                       value={favoriteSearchQuery}
                       onChange={e => setFavoriteSearchQuery(e.target.value)}
                       className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-colors"
                    />
                 </div>
-                
+
                 <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide w-full gap-4 pb-6 mb-4 custom-scrollbar">
                    {RECIPE_FILTERS.map(filter => (
-                      <button 
-                         key={filter.id} 
-                         onClick={() => setRecipeFilter(filter.id)} 
+                      <button
+                         key={filter.id}
+                         onClick={() => setRecipeFilter(filter.id)}
                          className={`shrink-0 px-5 py-2.5 rounded-[2rem] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 border-2 ${recipeFilter === filter.id ? 'bg-black text-[#39FF14] border-black shadow-xl scale-105 opacity-100' : 'bg-zinc-50 text-zinc-500 border-zinc-200 opacity-60 hover:opacity-100 hover:bg-zinc-100 hover:scale-105'}`}
                       >
                          {filter.icon && <img src={filter.icon} alt={filter.label} className="w-8 h-8 rounded-full object-cover shadow-sm" />}
@@ -3760,8 +3639,8 @@ export default function NutritionDashboard() {
                       let filteredRecipes = allRecipesDB.filter(r => {
                          const query = favoriteSearchQuery.toLowerCase();
                          const numericQuery = query.replace(/\D/g, '');
-                         const matchSearch = r.nom?.toLowerCase().includes(query) || 
-                                             (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) || 
+                         const matchSearch = r.nom?.toLowerCase().includes(query) ||
+                                             (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) ||
                                              (numericQuery !== "" && r.proteins?.toString().includes(numericQuery));
                          if (!matchSearch) return false;
                          if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
@@ -3772,24 +3651,24 @@ export default function NutritionDashboard() {
                          if (recipeFilter === 'Desserts') return r.type === 'Collation' || r.type === 'Petit-déjeuner';
                          return true;
                       });
-                      
+
                       if (recipeFilter === 'Populaire') {
                          filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
                       }
-                      
+
                       return filteredRecipes.map((fav, i) => {
                        const name = fav.nom;
                        const cals = fav.calories;
                        const prots = fav.proteins;
                        const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
                        const isTop10 = top10RecipeIds.includes(fav.id);
-                       
+
                        const tags = [];
                        if (prots >= 20) tags.push("Protéiné");
                        if (fav.carbs <= 30) tags.push("Low Carb");
                        if (cals <= 350) tags.push("Léger");
                        if (fav.fats <= 15) tags.push("Low Fat");
-                       
+
                        return (
                        <div key={fav.id || i} className="w-full flex flex-col bg-zinc-50 p-5 rounded-2xl border border-zinc-100 justify-between hover:border-[#39FF14] transition-colors group">
                            <div className="w-full">
@@ -3812,7 +3691,7 @@ export default function NutritionDashboard() {
                                            fav.budget_tier === 'Famille 15k' ? 'bg-orange-500 text-white' :
                                            'bg-purple-600 text-white'
                                        }`}>
-                                           {fav.budget_tier === 'Serré 8k' ? '💰 Serré' : 
+                                           {fav.budget_tier === 'Serré 8k' ? '💰 Serré' :
                                             fav.budget_tier === 'Famille 15k' ? '🥗 Famille' : '💎 Confort'}
                                        </span>
                                    )}
@@ -3882,8 +3761,8 @@ export default function NutritionDashboard() {
                     </div>
                     <div className={`absolute inset-0 grid grid-cols-8 grid-rows-4 z-10 transition-opacity duration-1000 ${scratchedBlocks.length > 16 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                         {Array.from({ length: 32 }).map((_, i) => (
-                           <div 
-                              key={i} 
+                           <div
+                              key={i}
                               onMouseEnter={() => {
                                  if (!scratchedBlocks.includes(i)) {
                                     setScratchedBlocks(prev => {
@@ -4057,7 +3936,7 @@ export default function NutritionDashboard() {
                        ) : (
                            <iframe src={getEmbedUrl(selectedProduct.video_url)} className="w-full aspect-video rounded-2xl shadow-xl" allowFullScreen></iframe>
                        )}
-                       
+
                        {(selectedProduct.gallery?.length > 0 || selectedProduct.video_url) && (
                            <div className="flex gap-2 mt-4 overflow-x-auto custom-scrollbar w-full pb-2">
                                <button onClick={() => { setProductMediaView('image'); setProductActiveImage(selectedProduct.image_url); }} className={`w-16 h-16 rounded-xl border-2 shrink-0 ${productMediaView === 'image' && (productActiveImage === selectedProduct.image_url || !productActiveImage) ? 'border-[#39FF14]' : 'border-transparent'}`}>
@@ -4108,7 +3987,7 @@ export default function NutritionDashboard() {
                                  </div>
                               </div>
                           </div>
-                          
+
                           {(() => {
                               const similarShopProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => p.categorie_nom === selectedProduct.categorie_nom && p.id !== selectedProduct.id && p.stock !== 0).slice(0, 3);
                               if (similarShopProducts.length > 0) {
@@ -4477,7 +4356,7 @@ export default function NutritionDashboard() {
                <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Classement Jongoma XP</h3>
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Les membres les plus assidues de ce mois</p>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                {/* PODIUM TOP 3 */}
                <div className="flex items-end justify-center gap-4 mb-10 pt-4">
@@ -4547,7 +4426,7 @@ export default function NutritionDashboard() {
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white p-6 sm:p-8 rounded-[2rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 max-h-[90vh] flex flex-col overflow-hidden">
             <button onClick={() => setShowRedoDiagModal(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-50"><X size={20}/></button>
-            
+
             <div className="overflow-y-auto custom-scrollbar flex-1 pb-4 pr-2 mt-4 sm:mt-0">
             <div className="flex items-center gap-4 mb-6 border-b border-zinc-100 pb-6">
               <div className="relative">
@@ -4586,8 +4465,8 @@ export default function NutritionDashboard() {
                <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
                   Retour au Hub
                </button>
-               <button disabled={!redoReason} onClick={() => { 
-                   setShowRedoDiagModal(false); 
+               <button disabled={!redoReason} onClick={() => {
+                   setShowRedoDiagModal(false);
                    if (clientProfile?.diagnostic_data) {
                        setDiagData(prev => ({...prev, ...clientProfile.diagnostic_data}));
                        if (clientProfile.diagnostic_data.gender === 'Femme') {
@@ -4596,7 +4475,7 @@ export default function NutritionDashboard() {
                            setDiagStep(2); // Les hommes passent l'étape 1 directement
                        }
                    } else {
-                       setDiagStep(1); 
+                       setDiagStep(1);
                    }
                }} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                   Continuer <ArrowRight size={14} className="inline ml-1"/>
@@ -5068,7 +4947,7 @@ export default function NutritionDashboard() {
                 <div className="text-center py-6 animate-in zoom-in">
                   <h3 className="text-2xl font-black uppercase mb-6 text-black">Votre Espace a été mis à jour !</h3>
                   <p className="text-zinc-600 font-medium mb-8">Les nouveaux menus ont été générés selon vos nouveaux paramètres, vous pouvez reprendre le suivi dès maintenant.</p>
-                  
+
                   <div className="flex flex-col gap-3 mt-4">
                      <button onClick={() => setDiagStep(0)} type="button" className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
                         Retourner au Tracker <ArrowRight size={18}/>
@@ -5092,7 +4971,7 @@ export default function NutritionDashboard() {
                <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Renouvellement Premium</h3>
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2">Paiement sécurisé via PayDunya</p>
             </div>
-            
+
             <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 mb-6">
                <div className="flex justify-between items-center mb-4">
                   <span className="font-bold text-sm">Abonnement Mensuel</span>
@@ -5168,7 +5047,7 @@ export default function NutritionDashboard() {
             </div>
          </div>
       )}
-      
+
       {/* FOOTER ESPACE CLIENT */}
       <footer className="bg-black text-white py-16 mt-20 border-t-4 border-[#39FF14]">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
@@ -5236,10 +5115,10 @@ export default function NutritionDashboard() {
       <AnimatePresence>
          {showCartModal && (
             <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex justify-end animate-in fade-in">
-               <motion.div 
-                 initial={{ x: '100%' }} 
-                 animate={{ x: 0 }} 
-                 exit={{ x: '100%' }} 
+               <motion.div
+                 initial={{ x: '100%' }}
+                 animate={{ x: 0 }}
+                 exit={{ x: '100%' }}
                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                  className={`w-full max-w-md h-full ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl relative`}
                >
@@ -5338,12 +5217,12 @@ export default function NutritionDashboard() {
                            <ShoppingCart size={16}/> Commander via WhatsApp
                         </button>
 
-                        <button 
+                        <button
                            onClick={async () => {
                                let shareMsg = `👋 Bonjour ! Je souhaite sauvegarder mon panier pour plus tard sur Onyx Nutrition :\n\n`;
                                shopCart.forEach(item => { shareMsg += `- ${item.nom} (x${item.quantity}) : ${((item.finalPrice || item.prix_premium || item.prix_standard || 0) * item.quantity).toLocaleString()} F\n`; });
                                shareMsg += `\n*Total provisoire : ${subTotal.toLocaleString()} F*\n\nPouvez-vous me garder ces articles au chaud ? 🙏`;
-                               
+
                                try {
                                    await supabase.from('leads').insert([{
                                        source: 'Panier Onyx Nutrition',
@@ -5361,8 +5240,8 @@ export default function NutritionDashboard() {
                            <MessageSquare size={16}/> M'envoyer mon panier (WhatsApp)
                         </button>
 
-                        <button 
-                           onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setShopCart([]); setIsShopPromoApplied(false); setAppliedPromoData(null); setShopPromoCode(""); setShowCartModal(false); } }} 
+                        <button
+                           onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setShopCart([]); setIsShopPromoApplied(false); setAppliedPromoData(null); setShopPromoCode(""); setShowCartModal(false); } }}
                            className="w-full bg-red-50 text-red-500 border border-red-100 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2 mt-3 shadow-sm"
                         >
                            <Trash2 size={14}/> Vider mon panier
@@ -5442,7 +5321,7 @@ export default function NutritionDashboard() {
                    <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
                 </div>
              </div>
-             
+
              <div className={`flex-1 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
                 {thiernoMessages.map((msg, i) => (
                    <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
@@ -5460,11 +5339,11 @@ export default function NutritionDashboard() {
              </div>
           </div>
         )}
-        
+
         {!isThiernoChatOpen && !isThiernoDismissed && (
            <div className="relative group animate-bounce flex items-center justify-center">
-             <button 
-               onClick={(e) => { e.stopPropagation(); setIsThiernoDismissed(true); }} 
+             <button
+               onClick={(e) => { e.stopPropagation(); setIsThiernoDismissed(true); }}
                className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
                aria-label="Fermer l'assistant"
              >
@@ -5497,4 +5376,4 @@ export default function NutritionDashboard() {
 
     </div>
   );
-} 
+}
