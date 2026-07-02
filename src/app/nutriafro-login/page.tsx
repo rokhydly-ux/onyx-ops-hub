@@ -91,6 +91,26 @@ export default function NutriAfroLogin() {
                     />
                 </div>
 
+                {/* IMAGE FONDATRICE (Au centre absolu du main) */}
+                <div className="hidden lg:block absolute bottom-10 left-1/2 -translate-x-1/2 w-40 md:w-48 z-[60] pointer-events-auto">
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782918952/MANGO_lo6yxx.png" alt="Mangue" className="absolute bottom-[80%] -right-10 w-20 md:w-24 opacity-80 blur-[1px] animate-[bounce_8s_ease-in-out_infinite_reverse] z-10" />
+
+                    {showBubble && (
+                        <div className="absolute bottom-full left-full ml-4 mb-2 min-w-[200px] bg-zinc-900 border border-[#39FF14]/40 text-white text-xs p-4 rounded-2xl shadow-[0_0_25px_rgba(57,255,20,0.2)] z-[100] animate-fade-in">
+                            <button type="button" onClick={() => setShowBubble(false)} className="absolute top-2 right-2 text-zinc-400 hover:text-white p-1">
+                                <X size={14} />
+                            </button>
+                            <p className="pr-2 leading-relaxed font-medium">Tu veux perdre du poids ou prendre de la masse en mangeant sunu plats locaux yi ? Fais le test.</p>
+                            <div className="absolute -bottom-2 left-8 w-4 h-4 bg-zinc-900 border-r border-b border-[#39FF14]/40 rotate-45"></div>
+                        </div>
+                    )}
+                    <img
+                        src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png"
+                        alt="Coach Rokhy"
+                        className="w-full h-auto drop-shadow-2xl animate-[bounce_7s_ease-in-out_infinite]"
+                    />
+                </div>
+
                 {/* COLONNE GAUCHE : Formulaire Glassmorphism */}
                 <div className="w-full lg:w-1/2 flex items-center justify-center relative p-4 lg:p-12 min-h-screen lg:min-h-0">
 
@@ -101,27 +121,7 @@ export default function NutriAfroLogin() {
                 </div>
 
                 {/* LA CARTE GLASSMORPHISM */}
-                <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] py-4 px-8 relative">
-
-                    {/* IMAGE FONDATRICE (En bas à droite du formulaire) */}
-                    <div className="absolute -bottom-10 -right-24 md:-right-32 w-40 md:w-48 z-50 pointer-events-auto">
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782918952/MANGO_lo6yxx.png" alt="Mangue" className="absolute bottom-[80%] -right-10 w-20 md:w-24 opacity-80 blur-[1px] animate-[bounce_8s_ease-in-out_infinite_reverse] z-10" />
-
-                        {showBubble && (
-                            <div className="absolute -top-32 -right-8 w-56 bg-zinc-900 border border-[#39FF14]/40 text-white text-xs p-4 rounded-2xl shadow-[0_0_25px_rgba(57,255,20,0.2)] z-[100] animate-fade-in">
-                                <button type="button" onClick={() => setShowBubble(false)} className="absolute top-2 right-2 text-zinc-400 hover:text-white p-1">
-                                    <X size={14} />
-                                </button>
-                                <p className="pr-2 leading-relaxed font-medium">Tu veux perdre du poids ou prendre de la masse en mangeant sunu plats locaux yi ? Fais le test.</p>
-                                <div className="absolute -bottom-2 left-8 w-4 h-4 bg-zinc-900 border-r border-b border-[#39FF14]/40 rotate-45"></div>
-                            </div>
-                        )}
-                        <img
-                            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png"
-                            alt="Coach Rokhy"
-                            className="w-full h-auto drop-shadow-2xl animate-[bounce_7s_ease-in-out_infinite]"
-                        />
-                    </div>
+                <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-[2.5rem] py-4 px-8 relative z-50">
 
                     <div className="flex justify-center mb-2 relative">
                         <a href="/solutions/onyx-nutritionafricaine" className={`absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors ${isDarkMode ? 'text-zinc-400 hover:text-white hover:bg-white/10' : 'text-zinc-500 hover:text-black hover:bg-black/5'}`}>
