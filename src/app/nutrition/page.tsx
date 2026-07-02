@@ -3,7 +3,7 @@ import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { TrendingUp, Dumbbell, Send, TrendingDown } from "lucide-react";
+import { TrendingUp, Dumbbell, Send, TrendingDown, Bookmark } from "lucide-react";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 
@@ -4363,46 +4363,51 @@ export default function NutritionDashboard() {
         )}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
+
         {activeTab === 'community' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
-                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><Heart className="text-red-500 bg-red-50 p-2 rounded-xl" size={40}/> Espace Communauté</h2>
-                     <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-2 shadow-sm border border-yellow-200">
-                        <Trophy size={16}/> Voir le Classement
-                     </button>
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Onyx Community</h2>
+                     <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
+                            <Search size={16} className="text-zinc-400" />
+                            <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
+                        </div>
+                     </div>
                  </div>
 
                  {/* Grille 3 Colonnes */}
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                     {/* Colonne Gauche : Profils & Groupes (3 cols) */}
-                     <div className="hidden lg:block lg:col-span-3 space-y-6">
-                         <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
-                             <div className="flex items-center gap-3 mb-4">
-                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-12 h-12 rounded-full border-2 border-[#39FF14]" alt="Moi" />
-                                 <div>
-                                     <p className="font-black text-sm text-black">{user?.full_name?.split(' ')[0] || 'Membre'}</p>
-                                     <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Niveau {lvlInfo.name}</p>
-                                 </div>
-                             </div>
-                             <div className="flex justify-between text-xs font-bold text-zinc-600 border-t border-zinc-200 pt-3">
-                                 <span>Score XP</span>
-                                 <span className="text-black">{jongomaXP}</span>
+                     {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
+                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
+                             <div className="space-y-4">
+                                 {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
+                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                         <div className="flex items-center gap-3">
+                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
+                                             <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                         </div>
+                                         <Heart size={14} className="text-red-500 fill-red-500" />
+                                     </div>
+                                 ))}
                              </div>
                          </div>
 
-                         <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
-                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3">Groupes Populaires</p>
-                             <div className="space-y-3">
-                                 <div className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 p-2 rounded-xl transition-colors">
-                                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black">#</div>
-                                     <p className="text-xs font-bold text-black">Perte de poids</p>
-                                 </div>
-                                 <div className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 p-2 rounded-xl transition-colors">
-                                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black">#</div>
-                                     <p className="text-xs font-bold text-black">Recettes locales</p>
-                                 </div>
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
+                             <div className="space-y-4">
+                                 {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
+                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                         <div className="flex items-center gap-3">
+                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
+                                             <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                         </div>
+                                         <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
+                                     </div>
+                                 ))}
                              </div>
                          </div>
                      </div>
@@ -4410,95 +4415,170 @@ export default function NutritionDashboard() {
                      {/* Colonne Centrale : Feed (6 cols) */}
                      <div className="col-span-1 lg:col-span-6 space-y-6">
                         {/* Zone de Création */}
-                        <div className="bg-white border-2 border-zinc-100 p-4 rounded-2xl shadow-sm focus-within:border-[#39FF14]/50 transition-colors">
+                        <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm focus-within:border-[#39FF14]/50 transition-colors">
                            {newPostImage && (
-                               <div className="relative w-32 h-32 mb-3 rounded-xl overflow-hidden border border-zinc-200">
+                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200">
                                   <img src={newPostImage} className="w-full h-full object-cover" />
-                                  <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
+                                  <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={14}/></button>
                                </div>
                            )}
-                           <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre assiette, une astuce ou une question..." className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px] placeholder:text-zinc-400" />
-                           <div className="flex justify-between items-center mt-2 pt-3 border-t border-zinc-100">
-                              <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer bg-zinc-50 rounded-full">
-                                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                                 {uploadingImage ? <Activity size={18} className="animate-spin" /> : <Camera size={18}/>}
-                              </label>
-                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-[#39FF14] text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#32e012] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Publier</button>
+                           <div className="flex items-start gap-4">
+                               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 mt-1" alt="Moi" />
+                               <div className="flex-1">
+                                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre dernier repas ou un accomplissement sportif..." className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[60px] placeholder:text-zinc-400 mt-2" />
+                               </div>
+                           </div>
+                           <div className="flex justify-between items-center mt-2 pt-4 border-t border-zinc-100">
+                              <div className="flex gap-2">
+                                  <label className="text-zinc-500 hover:text-black transition-colors p-2 cursor-pointer bg-zinc-50 hover:bg-zinc-100 rounded-xl flex items-center gap-2">
+                                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                                     {uploadingImage ? <Activity size={16} className="animate-spin" /> : <Camera size={16}/>}
+                                     <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">Photo</span>
+                                  </label>
+                              </div>
+                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-black text-[#39FF14] px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed">Publier</button>
                            </div>
                         </div>
 
                         {/* Le Feed */}
                         <div className="space-y-6">
                            {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.map((post, idx) => (
-                              <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-5 shadow-sm">
+                              <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex flex-col group">
                                  <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-zinc-100 text-black rounded-full flex items-center justify-center font-black text-lg border border-zinc-200">{post.client?.charAt(0) || 'M'}</div>
+                                        <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-xl shadow-inner">{post.client?.charAt(0) || 'M'}</div>
                                         <div>
-                                            <p className="font-bold text-sm text-black">{post.client || 'Membre'}</p>
-                                            <p className="text-[10px] text-zinc-400 font-bold">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
+                                            <p className="font-black text-sm text-black flex items-center gap-1">{post.client || 'Membre'} <CheckCircle size={12} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
+                                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
                                         </div>
                                      </div>
-                                     <MoreHorizontal size={16} className="text-zinc-400 cursor-pointer" />
+                                     <MoreHorizontal size={18} className="text-zinc-400 cursor-pointer hover:text-black transition-colors" />
                                  </div>
 
-                                 <p className="text-sm font-medium text-zinc-700 mb-4 whitespace-pre-wrap">{post.content || post.texte}</p>
+                                 <p className="text-sm font-medium text-zinc-700 mb-4 whitespace-pre-wrap leading-relaxed">{post.content || post.texte}</p>
 
                                  {post.image_url && (
-                                     <div className="w-full aspect-square md:aspect-video rounded-2xl overflow-hidden mb-4 border border-zinc-100">
-                                         <img src={post.image_url} className="w-full h-full object-cover" alt="Post" />
+                                     <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 bg-zinc-50 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
+                                         <img src={post.image_url} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
                                      </div>
                                  )}
 
-                                 <div className="flex items-center gap-6 pt-3 border-t border-zinc-100">
-                                     <button className={`flex items-center gap-1.5 text-xs font-bold transition-colors text-zinc-500 hover:text-red-500`}>
-                                         <Heart size={16} />
-                                         {post.reactions?.top || post.reactions?.length || 0}
-                                     </button>
-                                     <button className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-black transition-colors">
-                                         <MessageSquare size={16}/> {post.comments?.length || 0}
+                                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+                                     <div className="flex items-center gap-6">
+                                         <button className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors text-zinc-400 hover:text-red-500`}>
+                                             <Heart size={16} />
+                                             {post.reactions?.top || post.reactions?.length || Math.floor(Math.random() * 50) + 1} Likes
+                                         </button>
+                                         <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+                                             <MessageSquare size={16}/> {post.comments?.length || Math.floor(Math.random() * 10)} Réponses
+                                         </button>
+                                     </div>
+                                     <button className="text-zinc-400 hover:text-black transition-colors">
+                                         <Bookmark size={18} />
                                      </button>
                                  </div>
                               </div>
                            )) : (
-                               <div className="text-center py-12 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-3xl bg-zinc-50">
+                               <div className="text-center py-16 px-6 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-[2rem] bg-white">
+                                   <Camera size={40} className="mx-auto mb-4 text-zinc-300"/>
                                    Soyez le premier à partager votre assiette ! 📸
                                </div>
                            )}
                         </div>
                      </div>
 
-                     {/* Colonne Droite : Suggestions & Stats (3 cols) */}
-                     <div className="hidden lg:block lg:col-span-3 space-y-6">
-                         <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-2xl p-5 relative overflow-hidden">
-                             <div className="absolute top-0 right-0 w-20 h-20 bg-[#39FF14]/20 rounded-full blur-xl pointer-events-none"></div>
-                             <p className="text-xs font-black uppercase tracking-widest text-[#39FF14] mb-2 flex items-center gap-1"><TrendingUp size={14}/> Top Astuce</p>
-                             <p className="text-sm font-bold text-black leading-relaxed relative z-10">
-                               "Boire un verre d'eau infusé au kinkéliba à jeun aide à préparer le système digestif."
-                             </p>
-                         </div>
+                     {/* Colonne Droite : Mini Profil & Notifications (3 cols) */}
+                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
 
-                         <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
-                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3">Membres Actifs</p>
-                             <div className="space-y-3">
-                                 {[1,2,3].map(i => (
-                                     <div key={i} className="flex items-center justify-between">
-                                         <div className="flex items-center gap-2">
-                                             <div className="w-8 h-8 rounded-full bg-zinc-200"></div>
-                                             <p className="text-xs font-bold text-black">Client {i}</p>
-                                         </div>
-                                         <button className="text-[10px] font-black text-[#39FF14] bg-black px-2 py-1 rounded-md">Suivre</button>
+                         {/* Mini Profile Card */}
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
+                             <div className="h-24 bg-gradient-to-r from-black to-zinc-800 w-full relative">
+                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                             </div>
+                             <div className="px-6 pb-6 relative flex flex-col items-center">
+                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-20 h-20 rounded-full border-4 border-white shadow-md -mt-10 mb-3 bg-zinc-100 object-cover" alt="Moi" />
+                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Onyx Plus</div>
+
+                                 <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
+                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {lvlInfo.name}</p>
+
+                                 <div className="grid grid-cols-3 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-6">
+                                     <div>
+                                         <p className="text-lg font-black text-black">{jongomaXP}</p>
+                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
                                      </div>
-                                 ))}
+                                     <div>
+                                         <p className="text-lg font-black text-black">1.2k</p>
+                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Followers</p>
+                                     </div>
+                                     <div>
+                                         <p className="text-lg font-black text-black">{(communityPosts.filter(p => p.client === user?.full_name).length) || 0}</p>
+                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Posts</p>
+                                     </div>
+                                 </div>
+
+                                 <button onClick={openLeaderboard} className="w-full bg-black text-[#39FF14] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-md">
+                                     Voir mon classement
+                                 </button>
                              </div>
                          </div>
+
+                         {/* Notifications / Reminders */}
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex-1">
+                             <div className="flex justify-between items-center mb-6">
+                                 <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Notifications</p>
+                                 <button className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest hover:text-black transition-colors">See All</button>
+                             </div>
+
+                             <div className="space-y-6">
+                                 <div className="flex items-start gap-4">
+                                     <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                                         <Droplet size={14}/>
+                                     </div>
+                                     <div className="flex-1">
+                                         <div className="flex justify-between items-start mb-1">
+                                             <p className="text-xs font-bold text-black">Time to hydrate!</p>
+                                             <p className="text-[9px] text-zinc-400">1h ago</p>
+                                         </div>
+                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il te manque encore {8 - waterGlasses} verres d'eau pour atteindre ton objectif du jour. Bois un verre maintenant !</p>
+                                     </div>
+                                 </div>
+
+                                 <div className="flex items-start gap-4">
+                                     <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
+                                         <Activity size={14}/>
+                                     </div>
+                                     <div className="flex-1">
+                                         <div className="flex justify-between items-start mb-1">
+                                             <p className="text-xs font-bold text-black">Workout Reminder</p>
+                                             <p className="text-[9px] text-zinc-400">2h ago</p>
+                                         </div>
+                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Tu as une session "Cardio Intense" prévue dans 30 minutes. Prépare tes baskets !</p>
+                                     </div>
+                                 </div>
+
+                                 <div className="flex items-start gap-4">
+                                     <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center shrink-0">
+                                         <Moon size={14}/>
+                                     </div>
+                                     <div className="flex-1">
+                                         <div className="flex justify-between items-start mb-1">
+                                             <p className="text-xs font-bold text-black">Sleep Reminder</p>
+                                             <p className="text-[9px] text-zinc-400">Hier</p>
+                                         </div>
+                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il est temps de se déconnecter des écrans pour un sommeil réparateur.</p>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+
                      </div>
                  </div>
-
-             </div>
           </div>
         )}
-      {/* MODALE LEADERBOARD */}
+
+
+{/* MODALE LEADERBOARD */}
       {showLeaderboard && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowLeaderboard(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white p-8 rounded-[3rem] max-w-2xl w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-yellow-400 animate-in zoom-in-95 my-auto max-h-[90vh] flex flex-col overflow-hidden">
