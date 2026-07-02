@@ -4206,62 +4206,142 @@ export default function NutritionDashboard() {
         )}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
-        {activeTab === 'community' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-3xl mx-auto">
-             <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14]" /> Le Mur des Assiettes</h2>
-                     <p className="text-zinc-500 text-sm font-bold">Partagez vos repas sains avec la communauté Premium Onyx.</p>
-                  </div>
-                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-1 shadow-sm border border-yellow-200 shrink-0">
-                     <Trophy size={14}/> Classement
-                  </button>
-                </div>
-                
-                <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl focus-within:border-black transition-colors">
-                   {newPostImage && (
-                       <div className="relative w-24 h-24 mb-3 rounded-xl overflow-hidden border border-zinc-200">
-                          <img src={newPostImage} className="w-full h-full object-cover" />
-                          <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
-                       </div>
-                   )}
-                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px]" />
-                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
-                      <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer">
-                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                         {uploadingImage ? <Activity size={20} className="animate-spin" /> : <ImageIcon size={20}/>}
-                      </label>
-                      <button onClick={handlePostCommunity} className="bg-black text-[#39FF14] px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Publier (+15 XP)</button>
-                   </div>
-                </div>
-             </div>
+        {activeTab === 'community' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><Heart className="text-red-500 bg-red-50 p-2 rounded-xl" size={40}/> Espace Communauté</h2>
+                     <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-2 shadow-sm border border-yellow-200">
+                        <Trophy size={16}/> Voir le Classement
+                     </button>
+                 </div>
 
-             <div className="space-y-6">
-                {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => (
-                   <div key={post.id || idx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
-                      <div className="flex items-center gap-3 mb-4">
-                         <div className="w-10 h-10 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black">{post.client?.charAt(0) || 'M'}</div>
-                         <div>
-                            <p className="font-bold text-sm text-black">{post.client}</p>
-                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
+                 {/* Grille 3 Colonnes */}
+                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                     {/* Colonne Gauche : Profils & Groupes (3 cols) */}
+                     <div className="hidden lg:block lg:col-span-3 space-y-6">
+                         <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                             <div className="flex items-center gap-3 mb-4">
+                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-12 h-12 rounded-full border-2 border-[#39FF14]" alt="Moi" />
+                                 <div>
+                                     <p className="font-black text-sm text-black">{user?.full_name?.split(' ')[0] || 'Membre'}</p>
+                                     <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Niveau {lvlInfo.name}</p>
+                                 </div>
+                             </div>
+                             <div className="flex justify-between text-xs font-bold text-zinc-600 border-t border-zinc-200 pt-3">
+                                 <span>Score XP</span>
+                                 <span className="text-black">{jongomaXP}</span>
+                             </div>
                          </div>
-                         {post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Premium</span>}
-                      </div>
-                      <p className="text-zinc-700 font-medium text-sm mb-4 leading-relaxed">{post.content}</p>
-                      {post.image_url && <img src={post.image_url} alt="Plat" className="w-full h-64 object-cover rounded-2xl mb-4 border border-zinc-100" />}
 
-                      <div className="flex items-center gap-2 pt-4 border-t border-zinc-100">
-                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🔥 Top {post.reactions?.top > 0 && `(${post.reactions.top})`}</button>
-                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-green-50 hover:text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🥗 Sain {post.reactions?.sain > 0 && `(${post.reactions.sain})`}</button>
-                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-blue-50 hover:text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">💪 Courage {post.reactions?.courage > 0 && `(${post.reactions.courage})`}</button>
-                      </div>
-                   </div>
-                ))}
+                         <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3">Groupes Populaires</p>
+                             <div className="space-y-3">
+                                 <div className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 p-2 rounded-xl transition-colors">
+                                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black">#</div>
+                                     <p className="text-xs font-bold text-black">Perte de poids</p>
+                                 </div>
+                                 <div className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 p-2 rounded-xl transition-colors">
+                                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black">#</div>
+                                     <p className="text-xs font-bold text-black">Recettes locales</p>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+
+                     {/* Colonne Centrale : Feed (6 cols) */}
+                     <div className="col-span-1 lg:col-span-6 space-y-6">
+                        {/* Zone de Création */}
+                        <div className="bg-white border-2 border-zinc-100 p-4 rounded-2xl shadow-sm focus-within:border-[#39FF14]/50 transition-colors">
+                           {newPostImage && (
+                               <div className="relative w-32 h-32 mb-3 rounded-xl overflow-hidden border border-zinc-200">
+                                  <img src={newPostImage} className="w-full h-full object-cover" />
+                                  <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
+                               </div>
+                           )}
+                           <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre assiette, une astuce ou une question..." className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px] placeholder:text-zinc-400" />
+                           <div className="flex justify-between items-center mt-2 pt-3 border-t border-zinc-100">
+                              <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer bg-zinc-50 rounded-full">
+                                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                                 {uploadingImage ? <Activity size={18} className="animate-spin" /> : <Camera size={18}/>}
+                              </label>
+                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-[#39FF14] text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#32e012] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Publier</button>
+                           </div>
+                        </div>
+
+                        {/* Le Feed */}
+                        <div className="space-y-6">
+                           {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.map((post, idx) => (
+                              <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-5 shadow-sm">
+                                 <div className="flex items-center justify-between mb-4">
+                                     <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-zinc-100 text-black rounded-full flex items-center justify-center font-black text-lg border border-zinc-200">{post.client?.charAt(0) || 'M'}</div>
+                                        <div>
+                                            <p className="font-bold text-sm text-black">{post.client || 'Membre'}</p>
+                                            <p className="text-[10px] text-zinc-400 font-bold">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
+                                        </div>
+                                     </div>
+                                     <MoreHorizontal size={16} className="text-zinc-400 cursor-pointer" />
+                                 </div>
+
+                                 <p className="text-sm font-medium text-zinc-700 mb-4 whitespace-pre-wrap">{post.content || post.texte}</p>
+
+                                 {post.image_url && (
+                                     <div className="w-full aspect-square md:aspect-video rounded-2xl overflow-hidden mb-4 border border-zinc-100">
+                                         <img src={post.image_url} className="w-full h-full object-cover" alt="Post" />
+                                     </div>
+                                 )}
+
+                                 <div className="flex items-center gap-6 pt-3 border-t border-zinc-100">
+                                     <button className={`flex items-center gap-1.5 text-xs font-bold transition-colors text-zinc-500 hover:text-red-500`}>
+                                         <Heart size={16} />
+                                         {post.reactions?.top || post.reactions?.length || 0}
+                                     </button>
+                                     <button className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-black transition-colors">
+                                         <MessageSquare size={16}/> {post.comments?.length || 0}
+                                     </button>
+                                 </div>
+                              </div>
+                           )) : (
+                               <div className="text-center py-12 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-3xl bg-zinc-50">
+                                   Soyez le premier à partager votre assiette ! 📸
+                               </div>
+                           )}
+                        </div>
+                     </div>
+
+                     {/* Colonne Droite : Suggestions & Stats (3 cols) */}
+                     <div className="hidden lg:block lg:col-span-3 space-y-6">
+                         <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-2xl p-5 relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-20 h-20 bg-[#39FF14]/20 rounded-full blur-xl pointer-events-none"></div>
+                             <p className="text-xs font-black uppercase tracking-widest text-[#39FF14] mb-2 flex items-center gap-1"><TrendingUp size={14}/> Top Astuce</p>
+                             <p className="text-sm font-bold text-black leading-relaxed relative z-10">
+                               "Boire un verre d'eau infusé au kinkéliba à jeun aide à préparer le système digestif."
+                             </p>
+                         </div>
+
+                         <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
+                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3">Membres Actifs</p>
+                             <div className="space-y-3">
+                                 {[1,2,3].map(i => (
+                                     <div key={i} className="flex items-center justify-between">
+                                         <div className="flex items-center gap-2">
+                                             <div className="w-8 h-8 rounded-full bg-zinc-200"></div>
+                                             <p className="text-xs font-bold text-black">Client {i}</p>
+                                         </div>
+                                         <button className="text-[10px] font-black text-[#39FF14] bg-black px-2 py-1 rounded-md">Suivre</button>
+                                     </div>
+                                 ))}
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+
              </div>
           </div>
         )}
-
       {/* MODALE LEADERBOARD */}
       {showLeaderboard && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowLeaderboard(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
