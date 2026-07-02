@@ -4206,7 +4206,6 @@ export default function NutritionDashboard() {
         )}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-3xl mx-auto">
         {activeTab === 'community' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
