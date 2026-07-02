@@ -2863,8 +2863,8 @@ export default function NutritionDashboard() {
           />
         )}
         {activeTab === 'minute-doc' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
-             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
                 <div>
                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center flex-wrap gap-3 mb-2`}>
@@ -2942,7 +2942,7 @@ export default function NutritionDashboard() {
         )}
 
         {activeTab === 'blog' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
              <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
                 <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
