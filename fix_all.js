@@ -1,44 +1,91 @@
-"use client";
+const fs = require('fs');
 
-import React, { useState } from 'react';
-import {
-    Activity, Droplet, Moon, Search, Bell, LogOut,
-    Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
-} from 'lucide-react';
-import { supabase } from "@/lib/supabaseClient";
+let pageContent = fs.readFileSync('src/app/nutrition/page.tsx', 'utf8');
 
-// Props required for the weaving
-interface BentoDashboardViewProps {
-    user: any;
+// 1. Remove the old black header and horizontal navigation
+const oldHeaderStartRegex = /<div className="lg:hidden p-4 bg-black flex justify-between items-center sticky top-0 z-40 shadow-md">/;
+const oldHeaderEndRegex = /<\/header>/;
 
-
-    jongomaXP: number;
-    clientProfile: any;
-    setActiveTab: (tab: string) => void;
-    handleMealClick?: (mealType: string, prefillRecipe: any, contextType: string) => void;
+let oldHeaderStartIdx = pageContent.search(oldHeaderStartRegex);
+if (oldHeaderStartIdx !== -1) {
+    let oldHeaderEndIdx = pageContent.indexOf('</header>', oldHeaderStartIdx);
+    if (oldHeaderEndIdx !== -1) {
+        pageContent = pageContent.substring(0, oldHeaderStartIdx) + pageContent.substring(oldHeaderEndIdx + 9);
+        console.log("Removed old black header from page.tsx");
+    }
 }
 
-export default function BentoDashboardView({ user,   jongomaXP, clientProfile, setActiveTab, handleMealClick }: BentoDashboardViewProps) {
-    const [coachInput, setCoachInput] = useState('');
-    const currentHour = new Date().getHours();
-    const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
+// 2. Change background to gradient
+pageContent = pageContent.replace(/<main className=\{`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 `\}>/, `<main className={\`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5\`}>`);
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/nutriafro-login';
-    };
 
-    return (
-        <div className="w-full max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 pb-20">
-            {/* Bannière de Bienvenue */}
-            <div className="mb-8">
-                <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white">
-                    {greetingText} <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span>.
-                </h1>
+// 3. Ensure the greeting and badges are right above BentoDashboardView
+// Let's replace `<div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">` with the new structure.
+const bentoContainerStart = `<div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">`;
+if (pageContent.includes(bentoContainerStart) && !pageContent.includes("<!-- GREETING INJECTED -->")) {
+    const greetingJSX = `
+        {activeTab === 'today' && (
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
+            <div>
+              {isOffline && (
+                 <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
+              )}
+              <h1 className={\`\${spaceGrotesk.className} text-[2.5rem] md:text-4xl font-black uppercase tracking-tighter text-black\`}>
+                {greetingText}, <span className="text-zinc-600">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+              </h1>
+              <p className="text-zinc-500 font-bold text-sm mt-1">{greetingSubtext}</p>
             </div>
 
-            {/* Grille Bento */}
+            <div className="flex flex-wrap items-center gap-4">
+               <div className={\`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border \${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300\`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
+                  <div className={\`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border \${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}\`}>{lvlInfo.badge}</div>
+                  <div>
+                     <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Niveau : <span className="text-zinc-800">{lvlInfo.name}</span></p>
+                     <p className="text-black text-xs font-black">{jongomaXP} XP</p>
+                  </div>
+               </div>
+               <div className="bg-white border border-zinc-200 p-2 pr-4 rounded-2xl flex items-center gap-3 shadow-sm cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setShowPaymentModal(true)}>
+                 <div className="bg-black border border-zinc-800 p-2.5 rounded-xl flex items-center justify-center">
+                    <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={20} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Abonnement</p>
+                    <p className="text-xs font-black text-black"><strong className={daysLeft > 0 ? "text-green-600" : "text-red-500"}>{daysLeft > 0 ? \`\${daysLeft} jours restants\` : 'Expiré'}</strong></p>
+                 </div>
+               </div>
+            </div>
+          </div>
+        )}
+`;
+    pageContent = pageContent.replace(bentoContainerStart, bentoContainerStart + "\n<!-- GREETING INJECTED -->\n" + greetingJSX);
+    console.log("Injected greeting and badges.");
+}
 
+// Ensure BentoDashboardView receives correct props
+pageContent = pageContent.replace(/<BentoDashboardView([\s\S]*?)clientProfile=\{clientProfile\}\s*\/>/g, (match, p1) => {
+    if (match.includes("setActiveTab")) return match;
+    return `<BentoDashboardView${p1}clientProfile={clientProfile}\n              setActiveTab={setActiveTab}\n              handleMealClick={handleMealClick}\n          />`;
+});
+
+
+fs.writeFileSync('src/app/nutrition/page.tsx', pageContent);
+
+// NOW BentoDashboardView.tsx
+let bentoContent = fs.readFileSync('src/components/dashboard/BentoDashboardView.tsx', 'utf8');
+// check if it has the updated props
+if (!bentoContent.includes("setActiveTab: (tab: string) => void;")) {
+    bentoContent = bentoContent.replace(/clientProfile: any;/, "clientProfile: any;\n    setActiveTab: (tab: string) => void;\n    handleMealClick?: (mealType: string, prefillRecipe: any, contextType: string) => void;");
+    bentoContent = bentoContent.replace(/clientProfile \}: BentoDashboardViewProps\)/, "clientProfile, setActiveTab, handleMealClick }: BentoDashboardViewProps)");
+}
+
+// Remove old bento items and replace with new
+const bentoGridStart = `<div className="grid grid-cols-1 lg:grid-cols-12 gap-6">`;
+if (bentoContent.includes(bentoGridStart) && !bentoContent.includes("{/* 1. Mon Jour")) {
+    const bentoGridIdx = bentoContent.indexOf(bentoGridStart);
+    bentoContent = bentoContent.substring(0, bentoGridIdx);
+
+    // Append the correct bento grid
+    const correctBentoGrid = `
             {/* Grille Bento */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
 
@@ -200,3 +247,8 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
         </div>
     );
 }
+`;
+    bentoContent += correctBentoGrid;
+    console.log("Replaced BentoDashboardView Grid.");
+}
+fs.writeFileSync('src/components/dashboard/BentoDashboardView.tsx', bentoContent);

@@ -2765,94 +2765,46 @@ export default function NutritionDashboard() {
 
 
       {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 `}>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5`}>
       {/* Header */}
-      <div className="lg:hidden p-4 bg-black flex justify-between items-center sticky top-0 z-40 shadow-md">
-         <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" alt="Logo" />
-         <button onClick={() => setShowCartModal(true)} className={`relative p-2 text-zinc-400 hover:text-white transition-all ${isCartBouncing ? 'scale-125 text-[#39FF14] drop-shadow-[0_0_10px_#39FF14]' : ''}`}>
-            <ShoppingCart size={24} />
-            {shopCart.length > 0 && (
-               <span className="absolute top-0 right-0 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black shadow-md">
-                  {shopCart.length}
-               </span>
-            )}
-         </button>
-      </div>
 
-      <header className="bg-black text-white px-6 py-8 border-b-4 border-[#39FF14] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
-        
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-             <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-800">
-               <ChevronLeft size={16}/> Retour au Hub
-             </button>
-             
-             <div className="flex items-center gap-3">
-                 <button onClick={() => setShowCartModal(true)} className={`relative flex items-center gap-2 hover:text-white transition-all bg-zinc-900 px-4 py-2 rounded-xl border ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'text-zinc-400 border-zinc-800'}`}>
-                    <ShoppingCart size={16} /> 
-                    <span className="text-xs font-black uppercase hidden sm:block">Panier</span>
-                    {shopCart.length > 0 && (
-                       <span className="absolute -top-2 -right-2 bg-[#39FF14] text-black w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-black animate-pulse shadow-md">
-                          {shopCart.length}
-                       </span>
-                    )}
-                 </button>
-                 <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
-                   {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} <span className="hidden sm:block">{theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}</span>
-                 </button>
-                 <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors ${isExpertMode ? 'text-[#39FF14] border-[#39FF14]' : 'text-zinc-400 border-zinc-800 hover:text-white'}`}>
-                    <Eye size={16}/>
-                    <span className="hidden sm:block">Kcal</span>
-                 </button>
-             </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+
+      <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
+{/* GREETING INJECTED */}
+
+        {activeTab === 'today' && (
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
             <div>
               {isOffline && (
                  <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
               )}
-              <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
-              <div className="flex items-center gap-4">
-                <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-20 h-20 rounded-full object-cover hidden md:block mr-4 border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)] bg-zinc-800" />
-                <div>
-                  <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
-                    {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
-                  </h1>
-                  <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mt-1">{greetingSubtext}</p>
-                </div>
-              </div>
+              <h1 className={`${spaceGrotesk.className} text-[2.5rem] md:text-4xl font-black uppercase tracking-tighter text-black`}>
+                {greetingText}, <span className="text-zinc-600">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+              </h1>
+              <p className="text-zinc-500 font-bold text-sm mt-1">{greetingSubtext}</p>
             </div>
             
-            {/* Bandeau Essai Gratuit */}
-            <div className="flex items-center gap-4">
-               <div className={`hidden sm:flex items-center gap-3 bg-zinc-900 p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-800 shadow-inner'} cursor-pointer hover:bg-zinc-800 transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
-                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-700'}`}>{lvlInfo.badge}</div>
+            <div className="flex flex-wrap items-center gap-4">
+               <div className={`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
+                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}`}>{lvlInfo.badge}</div>
                   <div>
-                     <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest">Niveau : {lvlInfo.name}</p>
-                     <p className="text-white text-xs font-bold">{jongomaXP} XP</p>
+                     <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Niveau : <span className="text-zinc-800">{lvlInfo.name}</span></p>
+                     <p className="text-black text-xs font-black">{jongomaXP} XP</p>
                   </div>
                </div>
-               <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-xl">
-                 <div className="flex items-center gap-4">
-                    <div className="bg-black border border-zinc-700 p-3 rounded-xl">
-                       <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Abonnement</p>
-                       <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours restants` : 'Expiré'}</strong></p>
-                    </div>
+               <div className="bg-white border border-zinc-200 p-2 pr-4 rounded-2xl flex items-center gap-3 shadow-sm cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setShowPaymentModal(true)}>
+                 <div className="bg-black border border-zinc-800 p-2.5 rounded-xl flex items-center justify-center">
+                    <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={20} />
                  </div>
-                 <button onClick={() => setShowPaymentModal(true)} className="w-full sm:w-auto bg-[#39FF14] text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-colors">Renouveler</button>
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Abonnement</p>
+                    <p className="text-xs font-black text-black"><strong className={daysLeft > 0 ? "text-green-600" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours restants` : 'Expiré'}</strong></p>
+                 </div>
                </div>
             </div>
           </div>
-        </div>
-      </header>
+        )}
 
-      <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
         {activeTab === 'today' && (
           <BentoDashboardView
               user={user}
@@ -2860,6 +2812,8 @@ export default function NutritionDashboard() {
 
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
+              setActiveTab={setActiveTab}
+              handleMealClick={handleMealClick}
           />
         )}
         {activeTab === 'minute-doc' && (
