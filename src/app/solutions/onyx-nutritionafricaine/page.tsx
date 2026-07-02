@@ -17,27 +17,39 @@ import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
 
-const TESTIMONIALS = [
+const SUCCESS_STORIES = [
   {
     name: "Aïssatou K.",
     role: "35 ans, Mère de famille, Dakar",
-    text: "Finie la fatigue de l'après-midi. Je mange avec mes enfants et le suivi WhatsApp me motive tous les jours !",
-    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg", // Placeholder, replace with actual image if available
-    stats: "-8 kg en 3 mois"
+    text: "Finie la fatigue de l'après-midi ! J'ai continué à manger le Thieb de ma belle-mère, j'ai juste appris à doser grâce à l'application. Résultat : j'ai retrouvé mon corps d'avant grossesse sans 'lekk niakh' ! Suniu thiossane amoul morom.",
+    imageBefore: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594196/redimensionner_en_format_16_9_202606272100_k2o5yh.jpg",
+    imageAfter: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
+    time: "3 mois",
+    weightBefore: "85 kg",
+    weightAfter: "73 kg",
+    lost: "-12 kg"
   },
   {
     name: "Penda DIOP",
     role: "56 ans, Retraitée, Saint-Louis",
-    text: "Mon médecin m'avait dit de faire attention au diabète et au sel. L'application m'a sauvé la vie en me montrant comment remplacer le cube Maggi par le Nététou brut.",
-    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111507_ukx5d4.jpg",
-    stats: "Profil Périménopause"
+    text: "Mon médecin m'avait dit de faire attention. Avec le coach de l'app, j'ai appris à remplacer les cubes industriels par le Nététou brut. Ma tension a baissé et j'ai fondu sans me priver de mes plats préférés.",
+    imageBefore: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111507_ukx5d4.jpg",
+    imageAfter: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111507_ukx5d4.jpg",
+    time: "4 mois",
+    weightBefore: "92 kg",
+    weightAfter: "78 kg",
+    lost: "-14 kg"
   },
   {
     name: "Amadou T.",
-    role: "62 ans, Cadre, Dakar",
-    text: "J'ai éliminé mon ventre de sédentaire en 2 mois au restaurant en apprenant à choisir les bonnes céréales. Ma tension est redevenue stable.",
-    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111512_f3zs3t.jpg",
-    stats: "Profil Tension & Ventre Plat"
+    role: "42 ans, Cadre, Dakar",
+    text: "J'ai éliminé mon ventre de sédentaire au bureau. Je commande toujours mes plats locaux à midi, mais je choisis les bonnes céréales comme le Fonio. C'est yomb (facile) et super efficace !",
+    imageBefore: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111512_f3zs3t.jpg",
+    imageAfter: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111512_f3zs3t.jpg",
+    time: "2 mois",
+    weightBefore: "98 kg",
+    weightAfter: "89 kg",
+    lost: "-9 kg"
   }
 ];
 
@@ -219,7 +231,7 @@ export default function NutritionAfricaineLanding() {
   const [tempCredentials, setTempCredentials] = useState({ phone: "", password: "" });
 
   // Carousel & FAQ State
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [activeStory, setActiveStory] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showFreeMenuModal, setShowFreeMenuModal] = useState(false);
   const [freeMenuData, setFreeMenuData] = useState({ name: '', contact: '' });
@@ -269,8 +281,7 @@ export default function NutritionAfricaineLanding() {
       fetchRecentRecipe();
   }, []);
 
-  const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
-  const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
+
 
   // FOMO Timer
   const [fomoTime, setFomoTime] = useState(900);
@@ -1084,6 +1095,81 @@ export default function NutritionAfricaineLanding() {
         </div>
       </section>
 
+      {/* NOUVELLE SECTION TÉMOIGNAGES : GALERIE AVANT/APRÈS */}
+      <section className="py-24 px-6 bg-zinc-50 border-t border-zinc-200 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Suniu Communauté <span className="text-black border-b-4 border-[#39FF14]">Témoigne.</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Ils ont transformé leur corps sans renier nos plats locaux.</p>
+          </div>
+
+          <div className="relative max-w-5xl mx-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeStory}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-2xl flex flex-col lg:flex-row gap-8 lg:gap-12 items-center"
+              >
+                {/* IMAGES AVANT / APRÈS */}
+                <div className="w-full lg:w-1/2 flex gap-4 relative">
+                  <div className="w-1/2 relative rounded-3xl overflow-hidden border-4 border-zinc-100 shadow-inner group">
+                    <div className="absolute top-4 left-4 bg-zinc-900 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest z-10">Avant</div>
+                    <img src={SUCCESS_STORIES[activeStory].imageBefore} alt="Avant" className="w-full h-[250px] sm:h-[350px] object-cover filter grayscale-[30%] group-hover:grayscale-0 transition-all duration-500" />
+                  </div>
+                  <div className="w-1/2 relative rounded-3xl overflow-hidden border-4 border-[#39FF14]/30 shadow-xl group">
+                    <div className="absolute top-4 left-4 bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest z-10 shadow-md">Après</div>
+                    <img src={SUCCESS_STORIES[activeStory].imageAfter} alt="Après" className="w-full h-[250px] sm:h-[350px] object-cover group-hover:scale-105 transition-transform duration-700" />
+                  </div>
+                </div>
+
+                {/* TEXTE & STATISTIQUES */}
+                <div className="w-full lg:w-1/2 flex flex-col justify-center text-left">
+                  <div className="text-[#39FF14] mb-4"><MessageSquare size={40} className="opacity-50" /></div>
+                  <p className="text-xl md:text-2xl text-zinc-700 font-medium italic leading-relaxed mb-8">
+                    "{SUCCESS_STORIES[activeStory].text}"
+                  </p>
+
+                  <div className="mb-8">
+                    <h4 className="font-black text-xl uppercase text-black">{SUCCESS_STORIES[activeStory].name}</h4>
+                    <p className="text-sm text-zinc-500 font-bold uppercase tracking-widest">{SUCCESS_STORIES[activeStory].role}</p>
+                  </div>
+
+                  {/* BOX STATS FAÇON FITNESS APP */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-zinc-50 border border-zinc-100 rounded-2xl">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-widest">Durée</p>
+                      <p className="font-black text-black text-lg">{SUCCESS_STORIES[activeStory].time}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-widest">Départ</p>
+                      <p className="font-black text-black text-lg">{SUCCESS_STORIES[activeStory].weightBefore}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-widest">Arrivée</p>
+                      <p className="font-black text-black text-lg">{SUCCESS_STORIES[activeStory].weightAfter}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-black text-[#39FF14] tracking-widest bg-black px-2 py-0.5 rounded inline-block mb-1">Perte</p>
+                      <p className="font-black text-black text-xl">{SUCCESS_STORIES[activeStory].lost}</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* NAVIGATION CONTROLS */}
+            <button onClick={() => setActiveStory((prev) => (prev - 1 + SUCCESS_STORIES.length) % SUCCESS_STORIES.length)} className="absolute top-1/2 -translate-y-1/2 -left-4 md:-left-6 bg-white border border-zinc-200 p-4 rounded-full shadow-xl hover:bg-black hover:text-[#39FF14] transition-all z-20"><ChevronLeft size={24}/></button>
+            <button onClick={() => setActiveStory((prev) => (prev + 1) % SUCCESS_STORIES.length)} className="absolute top-1/2 -translate-y-1/2 -right-4 md:-right-6 bg-white border border-zinc-200 p-4 rounded-full shadow-xl hover:bg-black hover:text-[#39FF14] transition-all z-20"><ChevronRight size={24}/></button>
+          </div>
+        </div>
+      </section>
+
+
       {/* 5. LA VITRINE DES TERROIRS (Section interactive & Auchan) - FUSION AVEC CALCULATEUR */}
       <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
@@ -1212,7 +1298,65 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
-      {/* 6. TARIFICATION (Original section 3, now section 6) */}
+
+      {/* NOUVELLE SECTION : SCAN IA & APP */}
+      <section className="py-24 px-6 bg-black text-white overflow-hidden relative">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
+          {/* IMAGE GAUCHE (Mockup App) */}
+          <div className="w-full md:w-1/2 relative">
+            <div className="absolute inset-0 bg-[#39FF14] blur-[100px] opacity-20 rounded-full"></div>
+            <img src="URL_DE_TON_IMAGE_IA_MAIN_IPHONE" alt="Application Scan IA" className="w-full max-w-md mx-auto relative z-10 animate-gentle-pulse" />
+          </div>
+
+          {/* TEXTE DROITE */}
+          <div className="w-full md:w-1/2">
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-[#39FF14]/50 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+              <Smartphone size={14}/> Disponible sur iOS & Android
+            </div>
+            <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
+              Li ngay lekk chaque jour, <span className="text-[#39FF14]">sans casse-tête.</span>
+            </h2>
+            <p className="text-zinc-300 font-bold text-lg mb-8">Maigrir en mangeant suniu plats locaux. Zéro pesée, zéro calcul, zéro "lekk niakh".</p>
+
+            <ul className="space-y-6 mb-10">
+              <li className="flex gap-4 items-start">
+                <div className="bg-[#39FF14] text-black p-2 rounded-xl shrink-0"><Sparkles size={20}/></div>
+                <div>
+                  <h4 className="font-black text-lg uppercase">Scan IA Révolutionnaire</h4>
+                  <p className="text-zinc-400 font-medium mt-1">Prenez votre bol en photo, l'intelligence artificielle calcule vos calories et macros instantanément.</p>
+                </div>
+              </li>
+              <li className="flex gap-4 items-start">
+                <div className="bg-[#39FF14] text-black p-2 rounded-xl shrink-0"><Utensils size={20}/></div>
+                <div>
+                  <h4 className="font-black text-lg uppercase">Le Bol Familial Validé</h4>
+                  <p className="text-zinc-400 font-medium mt-1">L'application vous dit exactement combien de cuillères prendre dans le plat commun pour fondre.</p>
+                </div>
+              </li>
+            </ul>
+
+            {/* BOUTONS APP STORES (Mockups) */}
+            <div className="flex flex-wrap gap-4">
+              <button className="bg-zinc-900 border border-zinc-800 hover:border-[#39FF14] hover:bg-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center gap-3 transition-all">
+                <Apple size={24} />
+                <div className="text-left">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Télécharger sur</p>
+                  <p className="text-sm font-black uppercase">App Store</p>
+                </div>
+              </button>
+              <button className="bg-zinc-900 border border-zinc-800 hover:border-[#39FF14] hover:bg-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center gap-3 transition-all">
+                <Smartphone size={24} className="text-[#39FF14]" />
+                <div className="text-left">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Disponible sur</p>
+                  <p className="text-sm font-black uppercase">Google Play</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+{/* 6. TARIFICATION (Original section 3, now section 6) */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
          <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
@@ -1282,48 +1426,7 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
-      {/* 7. LES PREUVES SOCIALES & NOUVEAUX PERSONNAGES SENIORS (Original section 5, now section 7) */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              Ils ont transformé leur corps <span className="text-black border-b-4 border-[#39FF14]">sans renier leur culture.</span>
-            </h2>
-            <p className="text-zinc-500 font-bold text-lg">Découvrez les parcours de nos membres.</p>
-          </div>
-          <div className="relative max-w-3xl mx-auto">
-            <div className="overflow-hidden relative min-h-[380px] sm:min-h-[320px]">
-              <AnimatePresence mode="wait">
-                <motion.div 
-                  key={activeTestimonial}
-                  initial={{ x: 200, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -200, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-                  className="absolute inset-0"
-                > 
-                  <div className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] flex flex-col items-center text-center h-full shadow-sm">
-                    <img src={TESTIMONIALS[activeTestimonial].image} alt={`Photo de ${TESTIMONIALS[activeTestimonial].name}`} className="w-24 h-24 rounded-full object-cover mb-6 border-4 border-white shadow-lg" />
-                    <p className="text-zinc-600 font-medium leading-relaxed mb-6 flex-1">"{TESTIMONIALS[activeTestimonial].text}" <br/><span className="text-black font-bold mt-2 block">{TESTIMONIALS[activeTestimonial].stats}</span></p>
-                    <div>
-                      <h4 className="font-black text-lg uppercase text-black">{TESTIMONIALS[activeTestimonial].name}</h4>
-                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{TESTIMONIALS[activeTestimonial].role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-            <button onClick={prevTestimonial} className="absolute top-1/2 -translate-y-1/2 -left-4 sm:-left-12 bg-white border border-zinc-200 p-3 rounded-full shadow-md hover:bg-black hover:text-[#39FF14] transition-all z-10"><ChevronLeft size={24}/></button>
-            <button onClick={nextTestimonial} className="absolute top-1/2 -translate-y-1/2 -right-4 sm:-right-12 bg-white border border-zinc-200 p-3 rounded-full shadow-md hover:bg-black hover:text-[#39FF14] transition-all z-10"><ChevronRight size={24}/></button>
-            
-            <div className="flex justify-center gap-2 mt-8">
-              {TESTIMONIALS.map((_, index) => (
-                <button key={index} onClick={() => setActiveTestimonial(index)} className={`w-3 h-3 rounded-full transition-all ${activeTestimonial === index ? 'bg-black scale-125' : 'bg-zinc-300 hover:bg-zinc-400'}`} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+
       {/* 8. CALCULATEUR DE CALORIES SIMPLIFIÉ (Original section "CALCULATEUR", now section 8) */}
       {/* This section is now combined with the "Trésors de nos Terroirs" concept */}
       <section className="py-24 px-6 bg-white">
