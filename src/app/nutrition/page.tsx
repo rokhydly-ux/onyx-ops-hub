@@ -3012,7 +3012,7 @@ export default function NutritionDashboard() {
         )}
 
         {activeTab === 'history' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
             
             {/* BADGES ET GAMIFICATION */}
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
@@ -4016,9 +4016,9 @@ export default function NutritionDashboard() {
 
         {/* VUE TRACKER DE POIDS */}
         {activeTab === 'weight' && (
-            <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
                 {/* Header de la section poids */}
-                <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-3xl border border-zinc-200 shadow-inner">
+                <div className="flex justify-between items-center bg-zinc-50 p-6 md:p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                     <div>
                         <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
                             <Scale size={20} className="text-black"/> Mon Poids
