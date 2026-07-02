@@ -304,7 +304,7 @@ export default function NutritionDashboard() {
   const [theme, setTheme] = useState<'light'|'dark'>('light');
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'fitness' | 'minute-doc' | 'community' | 'favorites' | 'coaching' | 'blog' | 'shop' | 'orders'>('week');
+  const [activeTab, setActiveTab] = useState<any>('dashboard');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
@@ -2719,7 +2719,7 @@ export default function NutritionDashboard() {
       {/* NOUVEAU HEADER GLASSMORPHISM */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => router.push('/hub')} />
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => setActiveTab('dashboard')} />
         </div>
 
         {/* MÉGA-MENU (Desktop) */}
@@ -2753,6 +2753,9 @@ export default function NutritionDashboard() {
                     <button onClick={() => setActiveTab('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
                     <button onClick={() => setActiveTab('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
                     <button onClick={() => setActiveTab('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
+                    <button onClick={() => setActiveTab('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
+                    <button onClick={() => setActiveTab('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
+
                 </div>
             </div>
 
@@ -2818,7 +2821,7 @@ export default function NutritionDashboard() {
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
 {/* GREETING INJECTED */}
 
-        {activeTab === 'today' && (
+        {activeTab === 'dashboard' && (
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
             <div>
               {isOffline && (
@@ -2851,7 +2854,7 @@ export default function NutritionDashboard() {
           </div>
         )}
 
-        {activeTab === 'today' && (
+        {activeTab === 'dashboard' && (
           <BentoDashboardView
               user={user}
 
@@ -3149,7 +3152,7 @@ export default function NutritionDashboard() {
           </div>
         )}
 
-        {activeTab === 'week' && (
+        {activeTab === 'today' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4">
             
             {/* SECTION SMART PLANNER (Générateur) */}
@@ -3158,7 +3161,7 @@ export default function NutritionDashboard() {
                   <div className="flex items-center gap-4">
                      <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" />
                      <div>
-                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Sama Menu</h2>
+                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Mon Jour</h2>
                         <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
                           Votre programme quotidien visuel. Suivez ces recommandations sans tracas. Loguez vos plats ici.
                         </p>
@@ -5046,32 +5049,66 @@ export default function NutritionDashboard() {
       )}
       
       {/* FOOTER ESPACE CLIENT */}
-      <footer className="bg-black text-white py-12 px-6 mt-20 text-center border-t border-zinc-800">
-         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 mb-8 text-left">
-            <div className="md:col-span-2">
-               <div className="flex items-center gap-3 mb-6">
-                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-12 w-auto object-contain opacity-80" />
-               </div>
-               <p className="text-zinc-500 text-sm max-w-sm mb-6">
-                  Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
-               </p>
-               <div className="flex items-center gap-4">
-                  <MessageCircle size={20} onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="text-zinc-400 hover:text-[#39FF14] cursor-pointer transition-colors"/>
-               </div>
-               
-            </div>
-            <div>
-               <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Liens Utiles</h4>
-               <ul className="space-y-4 text-sm text-zinc-500 font-bold">
-                  <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-[#39FF14] transition-colors">Haut de page</button></li>
-                  <li><button onClick={() => setActiveTab('shop')} className="hover:text-[#39FF14] transition-colors">Boutique</button></li>
-               </ul>
-            </div>
-         </div>
-         <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-relaxed border-t border-zinc-800 pt-8">
-            Onyx Hub - Nutrition<br/>
-            © 2026 Onyx Ops Elite
-         </p>
+      <footer className="bg-black text-white py-16 mt-20 border-t-4 border-[#39FF14]">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
+           <div className="md:col-span-2">
+              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro Logo" className="h-16 w-auto mb-6 object-contain" />
+              <p className="text-zinc-400 font-medium text-sm max-w-sm leading-relaxed mb-6">
+                 La première application nutritionnelle 100% adaptée aux réalités africaines. Atteignez vos objectifs sans abandonner vos plats locaux préférés.
+              </p>
+              <div className="flex gap-4">
+                 <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors text-zinc-400">
+                    <MessageCircle size={20}/>
+                 </button>
+                 <button onClick={() => window.open('https://instagram.com/onyx', '_blank')} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors text-zinc-400">
+                    <Camera size={20}/>
+                 </button>
+                 <button onClick={() => window.open('https://tiktok.com/@onyx', '_blank')} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors text-zinc-400">
+                    <Video size={20}/>
+                 </button>
+              </div>
+           </div>
+           <div>
+              <h4 className="font-black text-lg uppercase tracking-widest mb-6 flex items-center gap-2"><Compass className="text-[#39FF14]"/> Ressources</h4>
+              <ul className="space-y-4 text-zinc-400 font-bold text-sm">
+                 <li><button onClick={() => window.open('https://rokhydiallo.com', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Notre Méthode</button></li>
+                 <li><button onClick={() => window.open('https://rokhydiallo.com/boutique', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Boutique Onyx</button></li>
+                 <li><button onClick={() => window.open('https://rokhydiallo.com/contact', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Espace Coaching</button></li>
+              </ul>
+           </div>
+           <div>
+              <h4 className="font-black text-lg uppercase tracking-widest mb-6 flex items-center gap-2"><Settings className="text-[#39FF14]"/> Légal & Aide</h4>
+              <ul className="space-y-4 text-zinc-400 font-bold text-sm mb-8">
+                 <li><button className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> CGV / CGU</button></li>
+                 <li><button className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Politique de Confidentialité</button></li>
+                 <li><button className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Support Client (WhatsApp)</button></li>
+              </ul>
+
+              <div className="space-y-3">
+                 <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Disponible bientôt</p>
+                 <div className="flex gap-3">
+                    <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-2 opacity-50 grayscale cursor-not-allowed">
+                       <Apple size={20}/>
+                       <div>
+                          <p className="text-[8px] uppercase font-bold text-zinc-400">Download on</p>
+                          <p className="text-xs font-black">App Store</p>
+                       </div>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-2 opacity-50 grayscale cursor-not-allowed">
+                       <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Play_Arrow_logo.svg" className="w-5 h-5"/>
+                       <div>
+                          <p className="text-[8px] uppercase font-bold text-zinc-400">Get it on</p>
+                          <p className="text-xs font-black">Google Play</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4">
+           <p className="text-xs font-bold text-zinc-600">© {new Date().getFullYear()} Onyx Ops Elite. Tous droits réservés.</p>
+           <p className="text-[10px] font-black tracking-widest uppercase text-zinc-700 bg-zinc-900 px-3 py-1.5 rounded-full">Designed in Senegal 🇸🇳</p>
+        </div>
       </footer>
 
       {/* MODALE PANIER */}

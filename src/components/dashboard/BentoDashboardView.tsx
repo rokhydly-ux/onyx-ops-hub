@@ -196,6 +196,40 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                     </div>
                 </div>
 
+                {/* LIGNE 4 : Navigation Rapide */}
+                <div className="col-span-1 lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Galerie Recettes */}
+                    <div className="rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 relative group cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between h-40" onClick={() => setActiveTab('favorites')}>
+                        <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                        <div>
+                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Galerie Recettes</p>
+                            <p className="text-lg font-black text-black leading-tight">Découvre les nouveaux plats du mois</p>
+                        </div>
+                        <div className="flex gap-2">
+                           <div className="w-10 h-10 bg-zinc-200 rounded-xl overflow-hidden"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781223916/Ndambe_qeq2d8.jpg" className="w-full h-full object-cover"/></div>
+                           <div className="w-10 h-10 bg-zinc-200 rounded-xl overflow-hidden"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg" className="w-full h-full object-cover"/></div>
+                        </div>
+                    </div>
+
+                    {/* La Minute Doc */}
+                    <div className="rounded-[2rem] bg-zinc-900 border border-zinc-800 shadow-xl p-6 relative group cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between h-40" onClick={() => setActiveTab('minute-doc')}>
+                        <button className="absolute top-6 right-6 text-zinc-500 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                        <div>
+                            <p className="text-xs font-bold text-[#39FF14] uppercase tracking-widest mb-1">La Minute Doc</p>
+                            <p className="text-lg font-black text-white leading-tight">Conseils du Dr. Thierno en vidéo</p>
+                        </div>
+                    </div>
+
+                    {/* Fitness */}
+                    <div className="rounded-[2rem] bg-[#39FF14] border border-[#39FF14] shadow-sm p-6 relative group cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between h-40" onClick={() => setActiveTab('fitness')}>
+                        <button className="absolute top-6 right-6 text-black/50 group-hover:text-black transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                        <div>
+                            <p className="text-xs font-bold text-black/70 uppercase tracking-widest mb-1">Fitness & Sport</p>
+                            <p className="text-lg font-black text-black leading-tight">Ton programme sportif t'attend !</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     );
