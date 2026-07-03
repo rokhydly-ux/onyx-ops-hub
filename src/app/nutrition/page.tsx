@@ -2788,23 +2788,74 @@ export default function NutritionDashboard() {
           </div>
         </div>
 
-        {/* LIGNE 2 : LE FAMEUX MENU HORIZONTAL */}
-        <nav className="w-full overflow-x-auto scrollbar-hide flex items-center space-x-3 pb-2 px-2 custom-scrollbar">
-          {menuItems.map((item: any) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`whitespace-nowrap px-4 py-2 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 border ${activeTab === item.id ? 'bg-[#39FF14] text-black border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.3)]' : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-black border-zinc-200 shadow-sm'}`}
-            >
-              {/* Icône Home pour le Dashboard */}
-              {item.id === 'dashboard' && <Home size={14} className={activeTab === 'dashboard' ? 'text-black' : 'text-zinc-400'} />}
+        {/* LIGNE 2 : LE MÉGA-MENU (Dropdowns) */}
+        <nav className="w-full flex items-center justify-center gap-8 pb-2 px-4 hidden md:flex">
 
-              {/* Icônes 3D pour tous les autres onglets */}
-              {item.icon && <img src={item.icon} alt="" className="w-5 h-5 rounded-full object-cover shadow-sm" />}
-
-              {item.label}
+          {/* 1. MON ESPACE (Dropdown) */}
+          <div className="relative group">
+            <button className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-zinc-600 hover:text-black transition-colors py-2">
+              Mon Espace <ChevronDown size={14}/>
             </button>
-          ))}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col p-2 z-50">
+              <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <Home size={16} className="text-[#39FF14]"/> Accueil (Dashboard)
+              </button>
+              <button onClick={() => setActiveTab('today')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-full object-cover"/> Mon Jour
+              </button>
+              <button onClick={() => setActiveTab('history')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover"/> Historique
+              </button>
+              <button onClick={() => setActiveTab('profile')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <img src={MENU_ICONS.profile} className="w-5 h-5 rounded-full object-cover"/> Réglages
+              </button>
+            </div>
+          </div>
+
+          {/* 2. NUTRITION (Dropdown) */}
+          <div className="relative group">
+            <button className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-zinc-600 hover:text-black transition-colors py-2">
+              Nutrition <ChevronDown size={14}/>
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-zinc-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col p-2 z-50">
+              <button onClick={() => setActiveTab('week')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-full object-cover"/> Sama Menu
+              </button>
+              <button onClick={() => setActiveTab('favorites')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <BookOpen size={16} className="text-[#39FF14]"/> Galerie Recettes
+              </button>
+              <button onClick={() => setActiveTab('weight')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <Scale size={16} className="text-[#39FF14]"/> Mon Poids
+              </button>
+            </div>
+          </div>
+
+          {/* 3. RÉSEAU (Dropdown) */}
+          <div className="relative group">
+            <button className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-zinc-600 hover:text-black transition-colors py-2">
+              Réseau <ChevronDown size={14}/>
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-zinc-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col p-2 z-50">
+              <button onClick={() => setActiveTab('community')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <Heart size={16} className="text-[#39FF14]"/> Communauté
+              </button>
+              <button onClick={() => setActiveTab('blog')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <FileText size={16} className="text-[#39FF14]"/> Blog & Conseils
+              </button>
+              <button onClick={() => setActiveTab('coaching')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <Activity size={16} className="text-[#39FF14]"/> Coaching
+              </button>
+              <button onClick={() => setActiveTab('minute-doc')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
+                <Video size={16} className="text-[#39FF14]"/> La Minute Doc
+              </button>
+            </div>
+          </div>
+
+          {/* 4. BOUTIQUE (Lien Direct) */}
+          <button onClick={() => setActiveTab('shop')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200">
+            <img src={MENU_ICONS.shop} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Boutique
+          </button>
+
         </nav>
       </header>
 
