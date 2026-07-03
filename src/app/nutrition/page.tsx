@@ -3,7 +3,7 @@ import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { TrendingUp, Dumbbell, Send, TrendingDown, Bookmark } from "lucide-react";
+import { TrendingUp, Dumbbell, Send, TrendingDown, Bookmark, MoreHorizontal } from "lucide-react";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 
@@ -2759,14 +2759,9 @@ export default function NutritionDashboard() {
                 </div>
             </div>
 
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <ShoppingCart size={14}/> Boutique <ChevronDown size={12}/>
+<button onClick={() => setActiveTab('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
+                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt=""/> Boutique
                 </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('shop')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.shop} className="w-5 h-5 rounded" alt=""/> Shop</button>
-                </div>
-            </div>
         </div>
 
         {/* Actions Droite */}
@@ -4367,7 +4362,7 @@ export default function NutritionDashboard() {
         {activeTab === 'community' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Onyx Community</h2>
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
                      <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
                             <Search size={16} className="text-zinc-400" />
@@ -4497,7 +4492,7 @@ export default function NutritionDashboard() {
                              </div>
                              <div className="px-6 pb-6 relative flex flex-col items-center">
                                  <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-20 h-20 rounded-full border-4 border-white shadow-md -mt-10 mb-3 bg-zinc-100 object-cover" alt="Moi" />
-                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Onyx Plus</div>
+                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
 
                                  <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
                                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {lvlInfo.name}</p>
