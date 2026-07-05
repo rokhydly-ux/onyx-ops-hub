@@ -26,18 +26,18 @@ const CARBS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v178137573
 const CALS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375768/A_cute__highly_detailed_3D_202606131825_mxabkm.jpg";
 
 const MENU_ICONS = {
-  dashboard: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099228/Smart_home_icon_UI_UX_202607031719_w62euy.jpg",
+  dashboard: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_ytie6s.jpg",
   samaMenu: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg",
   monJour: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg",
   fitness: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg",
   shop: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg",
   profile: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg",
-  community: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783098237/8_v1l6ms.png",
+  favorites: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg",
+  community: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg",
+  weight: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg",
   minuteDoc: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg",
-  galerieRecettes: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg",
-  monPoids: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg",
   blog: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg",
-  coaching: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444564/A_cute__highly_detailed_3D_202606141342_yn2v23.jpg"
+  coaching: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540692/A_cute__highly_detailed_3D_202606151624_lzxhup.jpg"
 };
 
 const RECIPE_FILTERS = [
@@ -2400,9 +2400,9 @@ export default function NutritionDashboard() {
   const menuItems = [
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
-    { id: 'favorites', label: 'Galerie Recettes', icon: MENU_ICONS.galerieRecettes },
-    { id: 'community', label: 'Communauté', icon: MENU_ICONS.community },
-    { id: 'weight', label: 'Mon Poids', icon: MENU_ICONS.monPoids },
+    { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
+    { id: 'community', label: 'Communauté', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg" },
+    { id: 'weight', label: 'Mon Poids', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" },
     { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
     { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
     { id: 'shop', label: 'Boutique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg" },
@@ -2748,7 +2748,7 @@ export default function NutritionDashboard() {
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
                     <button onClick={() => setActiveTab('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt=""/> Sama Menu</button>
-                    <button onClick={() => setActiveTab('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.galerieRecettes} className="w-5 h-5 rounded" alt=""/> Galerie Recettes</button>
+                    <button onClick={() => setActiveTab('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
                 </div>
             </div>
 
@@ -2757,11 +2757,11 @@ export default function NutritionDashboard() {
                     <MessageSquare size={14}/> Réseau <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.community} className="w-5 h-5 rounded" alt=""/> Communauté</button>
+                    <button onClick={() => setActiveTab('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
                     <button onClick={() => setActiveTab('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
                     <button onClick={() => setActiveTab('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
                     <button onClick={() => setActiveTab('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
-                    <button onClick={() => setActiveTab('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.minuteDoc} className="w-5 h-5 rounded" alt=""/> La Minute Doc</button>
+                    <button onClick={() => setActiveTab('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
 
                 </div>
             </div>
@@ -2903,7 +2903,7 @@ export default function NutritionDashboard() {
               clientProfile={clientProfile}
               setActiveTab={setActiveTab}
               handleMealClick={handleMealClick}
-           waterGlasses={waterGlasses} handleUpdateWater={handleUpdateWater} />
+          />
         )}
 
 
@@ -2980,37 +2980,32 @@ export default function NutritionDashboard() {
                       </div>
                    </div>
                 </div>
-                {/* 2. Refaire mon diagnostic (Bas de colonne gauche) */}
-                <button
-                  onClick={() => setShowRedoDiagModal(true)}
-                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg h-48 w-full flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Refaire Diagnostic"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 backdrop-blur-[2px]"></div>
 
-                  <div className="relative z-10 flex flex-col items-center gap-3">
-                     <div className="bg-[#39FF14] text-black p-3 rounded-full animate-pulse shadow-[0_0_30px_rgba(57,255,20,0.6)]">
-                       <Target size={24} />
-                     </div>
-                     <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-white tracking-tighter drop-shadow-md`}>
-                       Refaire mon diagnostic
-                     </h3>
-                     <p className="text-zinc-300 font-bold text-[10px] uppercase tracking-widest text-center">
-                       Ajuster mes objectifs et mes mensurations
-                     </p>
-                  </div>
-                </button>
+                {/* 2. Eau et Bilan côte à côte */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Objectif Eau */}
+                    <div className="bg-white p-4 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
+                           <img src={WATER_ICON} className="w-8 h-8 object-contain mx-auto" />
+                        </div>
+                        <h3 className="font-black text-[10px] uppercase tracking-tighter text-black mb-1">Objectif Eau</h3>
+                        <p className="text-zinc-500 font-bold text-[9px] mb-4">{waterGlasses}/8 verres</p>
+                        <button onClick={() => handleUpdateWater(1)} className="w-full bg-black text-[#39FF14] py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">
+                           + 1 verre
+                        </button>
+                    </div>
 
+                    {/* Bilan de la journée */}
+                    <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform">
+                        <CheckCircle size={24} className="text-black mb-2"/>
+                        <h3 className="font-black text-xs uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
+                        <p className="text-black/70 font-bold text-[9px]">Clôturez pour gagner de l'XP.</p>
+                    </button>
+                </div>
               </div>
 
               {/* COLONNE DROITE (2/3) */}
               <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* 1. Le grand widget "Refaire mon diagnostic" au sommet */}
-
                 {/* 1. La liste des repas (Sama Menu ou Mode Libre) */}
                 {trackingMode === 'guided' ? (
                    (() => {
@@ -3086,72 +3081,31 @@ export default function NutritionDashboard() {
                      })}
                    </div>
                 )}
-                {/* 3. Section Bas Droite (Eau & Bilan) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
 
-                {/* Nouveau Widget Hydratation */}
-                <div className="bg-white rounded-[2rem] border border-zinc-200 p-6 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group">
+                {/* 2. Le grand widget "Refaire mon diagnostic" en dessous des repas */}
+                <button
+                  onClick={() => setShowRedoDiagModal(true)}
+                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg h-48 md:h-56 flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
+                >
+                  <img
+                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    alt="Refaire Diagnostic"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 backdrop-blur-[2px]"></div>
 
-                  {/* En-tête du Widget */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Objectif Eau</p>
-                      <h4 className="text-2xl font-black text-black">{waterGlasses} <span className="text-xs font-bold text-zinc-500">/ 8 bouteilles (1.5L)</span></h4>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-[#39FF14]/10 border border-[#39FF14]/30 flex items-center justify-center shadow-inner">
-                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png" alt="Eau" className="w-6 h-6 object-contain" />
-                    </div>
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                     <div className="bg-[#39FF14] text-black p-3 rounded-full animate-pulse shadow-[0_0_30px_rgba(57,255,20,0.6)]">
+                       <Target size={24} />
+                     </div>
+                     <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-white tracking-tighter drop-shadow-md`}>
+                       Refaire mon diagnostic
+                     </h3>
+                     <p className="text-zinc-300 font-bold text-[10px] uppercase tracking-widest text-center">
+                       Ajuster mes objectifs et mes mensurations
+                     </p>
                   </div>
-
-                  {/* Grille des 8 Petites Bouteilles Interactives */}
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 my-4 py-3 bg-zinc-50 rounded-2xl p-3 border border-zinc-100">
-                    {Array.from({ length: 8 }, (_, i) => {
-                      const isDrunk = i < waterGlasses;
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            // Si on clique sur la bouteille 3, ça règle le quota à 3 (ou désactive si on reclique dessus)
-                            const nextVal = i + 1 === waterGlasses ? i : i + 1;
-                            handleUpdateWater(nextVal - waterGlasses);
-                          }}
-                          className={`relative flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 ${
-                            isDrunk
-                              ? 'bg-[#39FF14]/20 border border-[#39FF14] scale-105 shadow-sm'
-                              : 'hover:bg-zinc-200/60 opacity-30 grayscale hover:opacity-60'
-                          }`}
-                          title={`Bouteille ${i + 1}`}
-                        >
-                          <img
-                            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png"
-                            alt="Bouteille"
-                            className={`w-7 h-8 object-contain transition-transform ${isDrunk ? 'animate-pulse drop-shadow-[0_0_8px_rgba(57,255,20,0.8)]' : ''}`}
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Astuce Santé Pertinente */}
-                  <div className="bg-black text-white p-3.5 rounded-xl flex items-center gap-3 mt-2 border border-zinc-800">
-                    <span className="text-lg shrink-0">💡</span>
-                    <p className="text-[10px] font-medium leading-relaxed text-zinc-300">
-                      <strong className="text-[#39FF14] uppercase font-black">Le saviez-vous ?</strong> Boire 500ml d'eau augmente le métabolisme de près de <span className="text-white font-bold">30%</span> dans l'heure qui suit !
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* Bilan de la journée */}
-                <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-6 rounded-[2rem] border border-black shadow-[0_0_25px_rgba(57,255,20,0.4)] flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform animate-gentle-pulse">
-                    <CheckCircle size={32} className="text-black mb-3"/>
-                    <h3 className="font-black text-lg uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
-                    <p className="text-black/70 font-bold text-xs">Clôturez pour gagner de l'XP et évaluer vos progrès.</p>
                 </button>
-                </div>
-
-
               </div>
             </div>
 
@@ -3452,215 +3406,6 @@ export default function NutritionDashboard() {
                          <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Vous n'avez pas encore passé de commande.</p>
                       </div>
                    )}
-                </div>
-             </div>
-          </div>
-        )}
-
-        {activeTab === 'blog' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
-             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
-                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
-             </div>
-
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {articles.map((article: any) => (
-                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
-                     {article.image_url && (
-                        <div className="overflow-hidden rounded-2xl mb-6">
-                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                     )}
-                     <div className="flex gap-2 mb-4">
-                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
-                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
-                     </div>
-                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
-                     <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
-                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
-                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
-                     </div>
-                  </div>
-               ))}
-               {articles.length === 0 && (
-                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
-                     Aucun article publié pour le moment.
-                  </div>
-               )}
-             </div>
-          </div>
-        )}
-
-        {activeTab === 'history' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
-
-            {/* BADGES ET GAMIFICATION */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-               <div>
-                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
-                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
-                  <div className="flex gap-2">
-                     {Array.from({length: 7}, (_, i) => {
-                        const d = new Date();
-                        d.setDate(d.getDate() - (6 - i));
-                        const dateStr = d.toISOString().split('T')[0];
-                        const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
-                        return (
-                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
-                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
-                           </div>
-                        );
-                     })}
-                  </div>
-               </div>
-               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
-                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
-                     <span className="text-2xl mb-2">🌱</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">💎</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">🌟</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <Award size={28} className="mb-2" />
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
-                  </div>
-               </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
-                  <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7 jours
-               </h2>
-
-               <div className="grid md:grid-cols-2 gap-8">
-                  {/* GRAPHIQUE : Hydratation */}
-                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
-                     <div className="flex items-end justify-between h-40 gap-2">
-                        {Array.from({length: 7}, (_, i) => {
-                           const d = new Date();
-                           d.setDate(d.getDate() - (6 - i));
-                           const dateStr = d.toISOString().split('T')[0];
-                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                           const count = log?.water_glasses || 0;
-                           const heightPct = Math.min((count / 8) * 100, 100);
-                           return (
-                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
-                                 <div className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400" style={{ height: `${heightPct}%`, minHeight: '4px' }}>
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                       {count} verres
-                                    </div>
-                                 </div>
-                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-
-                  {/* GRAPHIQUE : Calories */}
-                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> Calories Consommées</h3>
-                     <div className="flex items-end justify-between h-40 gap-2">
-                        {Array.from({length: 7}, (_, i) => {
-                           const d = new Date();
-                           d.setDate(d.getDate() - (6 - i));
-                           const dateStr = d.toISOString().split('T')[0];
-                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                           const count = log?.calories_consumed || 0;
-                           const target = calorieGoal;
-                           const heightPct = count > 0 ? Math.min((count / target) * 100, 100) : 0;
-                           return (
-                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
-                                 <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                       {count} kcal
-                                    </div>
-                                 </div>
-                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            {/* LISTE DES BILANS */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" /> Historique des Bilans</h2>
-                 <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
-                    <Download size={14}/> Exporter (PDF)
-                 </button>
-               </div>
-               <div className="space-y-4">
-                  {[...(Array.isArray(dailyLogs) ? dailyLogs : [])].filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime())).sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
-                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                           <p className="font-black text-sm text-black mb-1">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                           <div className="flex flex-wrap gap-2 mt-2">
-                              {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
-                              {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
-                              {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
-                        </div>
-                     </div>
-                  ))}
-                  {(!Array.isArray(dailyLogs) || dailyLogs.length === 0) && (
-                     <p className="text-sm text-zinc-500 font-medium italic">Aucun bilan enregistré pour le moment.</p>
-                  )}
-               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'coaching' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Activity className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Coaching Personnel</h2>
-                <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-8">
-                   <h3 className="font-black text-lg text-blue-800 mb-2">Besoin d'un accompagnement sur-mesure ?</h3>
-                   <p className="text-sm font-medium text-blue-700">Prenez rendez-vous avec l'un de nos experts en nutrition pour adapter votre programme, surmonter un blocage ou poser vos questions.</p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between hover:border-black transition-colors">
-                      <div>
-                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Clock size={20}/></div>
-                         <h4 className="font-black uppercase text-sm mb-2">Bilan 15 min (Gratuit)</h4>
-                         <p className="text-xs text-zinc-500 font-medium mb-4">Inclus dans votre abonnement Premium. Idéal pour un ajustement rapide de votre plan.</p>
-                      </div>
-                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver mon bilan gratuit de 15min avec un coach.', '_blank')} className="w-full bg-black text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Réserver</button>
-                   </div>
-
-                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden hover:border-[#39FF14] transition-colors">
-                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">Recommandé</div>
-                      <div>
-                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Target size={20}/></div>
-                         <h4 className="font-black uppercase text-sm mb-2">Consultation Complète (45 min)</h4>
-                         <p className="text-xs text-zinc-500 font-medium mb-4">Analyse approfondie, refonte du plan alimentaire et stratégies avancées.</p>
-                      </div>
-                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver une consultation complète de 45min (10.000F).', '_blank')} className="w-full bg-[#39FF14] text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Réserver (10.000 F)</button>
-                   </div>
                 </div>
              </div>
           </div>
@@ -4258,6 +4003,214 @@ export default function NutritionDashboard() {
         </AnimatePresence>
 
         {/* VUE TRACKER DE POIDS */}
+
+
+        {activeTab === 'history' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+
+            {/* BADGES ET GAMIFICATION */}
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+               <div>
+                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
+                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
+                  <div className="flex gap-2">
+                     {Array.from({length: 7}, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (6 - i));
+                        const dateStr = d.toISOString().split('T')[0];
+                        const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
+                        return (
+                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
+                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
+                           </div>
+                        );
+                     })}
+                  </div>
+               </div>
+               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
+                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
+                     <span className="text-2xl mb-2">🌱</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <span className="text-2xl mb-2">💎</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <span className="text-2xl mb-2">🌟</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <Award size={28} className="mb-2" />
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
+                  </div>
+               </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
+                  <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7 jours
+               </h2>
+
+               <div className="grid md:grid-cols-2 gap-8">
+                  {/* GRAPHIQUE : Hydratation */}
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
+                     <div className="flex items-end justify-between h-40 gap-2">
+                        {Array.from({length: 7}, (_, i) => {
+                           const d = new Date();
+                           d.setDate(d.getDate() - (6 - i));
+                           const dateStr = d.toISOString().split('T')[0];
+                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+                           const count = log?.water_glasses || 0;
+                           const heightPct = Math.min((count / 8) * 100, 100);
+                           return (
+                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                 <div className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400" style={{ height: `${heightPct}%`, minHeight: '4px' }}>
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                       {count} verres
+                                    </div>
+                                 </div>
+                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+
+                  {/* GRAPHIQUE : Calories */}
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Flame size={16}/> Calories Consommées</h3>
+                     <div className="flex items-end justify-between h-40 gap-2">
+                        {Array.from({length: 7}, (_, i) => {
+                           const d = new Date();
+                           d.setDate(d.getDate() - (6 - i));
+                           const dateStr = d.toISOString().split('T')[0];
+                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+                           const count = log?.calories_consumed || 0;
+                           const target = calorieGoal;
+                           const heightPct = count > 0 ? Math.min((count / target) * 100, 100) : 0;
+                           return (
+                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                 <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                       {count} kcal
+                                    </div>
+                                 </div>
+                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* LISTE DES BILANS */}
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" /> Historique des Bilans</h2>
+                 <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
+                    <Download size={14}/> Exporter (PDF)
+                 </button>
+               </div>
+               <div className="space-y-4">
+                  {[...(Array.isArray(dailyLogs) ? dailyLogs : [])].filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime())).sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
+                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                           <p className="font-black text-sm text-black mb-1">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                           <div className="flex flex-wrap gap-2 mt-2">
+                              {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
+                              {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
+                              {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
+                        </div>
+                     </div>
+                  ))}
+                  {(!Array.isArray(dailyLogs) || dailyLogs.length === 0) && (
+                     <p className="text-sm text-zinc-500 font-medium italic">Aucun bilan enregistré pour le moment.</p>
+                  )}
+               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'blog' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><img src={MENU_ICONS.blog} className="w-12 h-12 rounded-xl object-cover" alt="Blog" /> Blog & Conseils</h2>
+                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {articles.map((article: any) => (
+                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
+                     {article.image_url && (
+                        <div className="overflow-hidden rounded-2xl mb-6">
+                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                     )}
+                     <div className="flex gap-2 mb-4">
+                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
+                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                     </div>
+                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
+                     <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
+                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
+                     </div>
+                  </div>
+               ))}
+               {articles.length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
+                     Aucun article publié pour le moment.
+                  </div>
+               )}
+             </div>
+          </div>
+        )}
+
+        {activeTab === 'coaching' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Activity className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Coaching Personnel</h2>
+                <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-8">
+                   <h3 className="font-black text-lg text-blue-800 mb-2">Besoin d'un accompagnement sur-mesure ?</h3>
+                   <p className="text-sm font-medium text-blue-700">Prenez rendez-vous avec l'un de nos experts en nutrition pour adapter votre programme, surmonter un blocage ou poser vos questions.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between hover:border-black transition-colors">
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Clock size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Bilan 15 min (Gratuit)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Inclus dans votre abonnement Premium. Idéal pour un ajustement rapide de votre plan.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver mon bilan gratuit de 15min avec un coach.', '_blank')} className="w-full bg-black text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Réserver</button>
+                   </div>
+
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden hover:border-[#39FF14] transition-colors">
+                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">Recommandé</div>
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Target size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Consultation Complète (45 min)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Analyse approfondie, refonte du plan alimentaire et stratégies avancées.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver une consultation complète de 45min (10.000F).', '_blank')} className="w-full bg-[#39FF14] text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Réserver (10.000 F)</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
+
         {activeTab === 'weight' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
             <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
@@ -4455,7 +4408,7 @@ export default function NutritionDashboard() {
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
             <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.community} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Communauté" /> Club des Lekkologues</h2>
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
                      <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
                             <Search size={16} className="text-zinc-400" />
