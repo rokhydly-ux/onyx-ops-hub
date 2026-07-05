@@ -45,8 +45,9 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
 
                 {/* 1. Mon Jour (Validation repas) - prend plus d'espace */}
-                <div className="col-span-12 lg:col-span-6 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('history')}>
-                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                <div className="col-span-1 md:col-span-2 lg:col-span-7 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('history')}>
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
+                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Mon Jour</p>
                     </div>
@@ -90,8 +91,9 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                 </div>
 
                 {/* 2. Poids Actuel */}
-                <div className="col-span-12 lg:col-span-3 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[300px] group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('weight')}>
-                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[300px] group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('weight')}>
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
+                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div>
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Poids Actuel & Objectif</p>
                         <p className="text-5xl font-black text-black mb-1">{clientProfile?.diagnostic_data?.currentWeight || '--'} <span className="text-xl text-zinc-500">kg</span></p>
@@ -148,7 +150,8 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                 </div>
 
                 {/* 3. Coach IA (Rokhy) */}
-                <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col justify-between min-h-[300px] relative group" onClick={() => setActiveTab('coaching')}>
+                <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col justify-between min-h-[300px] relative overflow-hidden group" onClick={() => setActiveTab('coaching')}>
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540692/A_cute__highly_detailed_3D_202606151624_lzxhup.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
                     <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div className="flex items-center gap-3 mb-4 relative z-10">
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png" className="w-12 h-12 rounded-full object-cover bg-zinc-200 border-2 border-[#39FF14]" alt="Coach Rokhy" />
@@ -179,8 +182,9 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                 </div>
 
                 {/* 4. Sama Menu du Jour */}
-                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('week')}>
-                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('week')}>
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
+                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sama Menu</p>
                     </div>
@@ -211,8 +215,9 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                 </div>
 
                 {/* 5. Extrait Communauté */}
-                <div className="col-span-1 lg:col-span-3 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('community')}>
-                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                <div className="col-span-1 lg:col-span-3 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('community')}>
+                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
+                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-red-500 transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 shrink-0">Communauté</p>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
@@ -238,8 +243,9 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                 {/* LIGNE 4 : Navigation Rapide */}
                 <div className="col-span-1 lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Galerie Recettes */}
-                    <div className="rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 relative group cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between h-40" onClick={() => setActiveTab('favorites')}>
-                        <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                    <div className="rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between h-40" onClick={() => setActiveTab('favorites')}>
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
+                        <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                         <div>
                             <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Galerie Recettes</p>
                             <p className="text-lg font-black text-black leading-tight">Découvre les nouveaux plats du mois</p>
