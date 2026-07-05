@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabaseClient";
 
-export async function generateMetadata({ params }: { params: { shopSlug: string } }): Promise<Metadata> {
-  const { shopSlug } = params;
+export async function generateMetadata({ params }: { params: Promise<{ shopSlug: string }> }): Promise<Metadata> {
+  const { shopSlug } = await params;
 
   // 1. Récupérer les infos de la boutique depuis Supabase
   const { data: shop } = await supabase
