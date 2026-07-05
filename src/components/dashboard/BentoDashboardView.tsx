@@ -32,7 +32,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
         <div className="w-full max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 pb-20">
 
             {/* Grille Bento */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
 
                 {/* 1. Mon Jour (Validation repas) - prend plus d'espace */}
                 <div className="col-span-1 md:col-span-6 h-full rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('today')}>
@@ -101,13 +101,20 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 </div>
 
                 {/* 3. HYDRATATION */}
-                <div className="col-span-1 md:col-span-3 h-full rounded-[2rem] bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[300px]">
-                    <div>
+                <div className="col-span-1 md:col-span-3 h-full rounded-[2rem] border border-blue-100 shadow-sm p-6 relative overflow-hidden flex flex-col justify-between min-h-[300px] group">
+                    <img
+                        src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg"
+                        className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                        alt="Hydratation Background"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/80 to-transparent"></div>
+
+                    <div className="relative z-10">
                         <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                            <Droplet size={14} className="fill-blue-500"/> Hydratation
                         </p>
                         <p className="text-4xl font-black text-black mb-1">{waterGlasses} <span className="text-xl text-zinc-500">/ 8</span></p>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                        <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest max-w-[80%]">
                             {waterGlasses === 0 && "Il est temps de boire le premier verre !"}
                             {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça !"}
                             {waterGlasses >= 4 && waterGlasses < 8 && "Tu es à la moitié, bravo !"}
