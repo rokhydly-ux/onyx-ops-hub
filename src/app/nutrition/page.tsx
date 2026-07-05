@@ -1,17 +1,15 @@
 "use client";
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper} from 'lucide-react';
+
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { TrendingUp, Dumbbell, Send, TrendingDown, Bookmark, MoreHorizontal } from "lucide-react";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 
 import { supabase } from "@/lib/supabaseClient";
-import { 
-  ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
-, PartyPopper } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
+import {YAxis, ResponsiveContainer, AreaChart, PieChart, Pie, LineChart, XAxis, ReferenceLine, Cell, Bar, Line, BarChart, Tooltip as RechartsTooltip, CartesianGrid, Area} from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
@@ -359,6 +357,7 @@ export default function NutritionDashboard() {
   const [isThiernoChatOpen, setIsThiernoChatOpen] = useState(false);
   const [isThiernoDismissed, setIsThiernoDismissed] = useState(false);
   const [thiernoUserReply, setThiernoUserReply] = useState("");
+  const [coachingChatStep, setCoachingChatStep] = useState(0);
   const thiernoChatEndRef = useRef<HTMLDivElement>(null);
   const [thiernoMessages, setThiernoMessages] = useState<any[]>([
     { sender: 'bot', text: "Bonjour ! Je suis le Dr. Thierno. As-tu des questions sur la nutrition, tes portions ou comment adapter tes plats locaux (Mix Sénégalo-Moderne) ?" }
@@ -459,6 +458,7 @@ export default function NutritionDashboard() {
   const [jongomaXP, setJongomaXP] = useState(0);
   const [weightLogs, setWeightLogs] = useState<any[]>([]);
   const [newWeight, setNewWeight] = useState("");
+  const [showWeightModal, setShowWeightModal] = useState(false);
   const [currentWeightInput, setCurrentWeightInput] = useState<number>(0);
   const [showConfetti, setShowConfetti] = useState<boolean | string>(false);
   const [weightCoachMessage, setWeightCoachMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
@@ -2086,7 +2086,7 @@ export default function NutritionDashboard() {
             log_date: todayStr,
             weight: newWeight
           };
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload, { onConflict: ['client_id', 'log_date'] });
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload as any, { onConflict: 'client_id, log_date' });
 
           if (insertErr) {
               alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
@@ -2825,7 +2825,7 @@ export default function NutritionDashboard() {
 
 {activeTab === 'minute-doc' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
                 <div>
@@ -2911,7 +2911,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'today' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                <div className="flex items-center gap-4">
                   <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" />
@@ -3177,7 +3177,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'week' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
             {/* SECTION SMART PLANNER (Générateur) */}
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -3405,7 +3405,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'orders' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Package className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Mes Commandes</h2>
                 
@@ -3466,7 +3466,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
                 
@@ -3642,7 +3642,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'favorites' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
@@ -3760,7 +3760,7 @@ export default function NutritionDashboard() {
         {/* VUE BOUTIQUE */}
         {activeTab === 'shop' && (
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
               <div className="flex items-center gap-4 mb-8">
                  <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" />
@@ -4231,136 +4231,143 @@ export default function NutritionDashboard() {
           </div>
         )}
 
-        {activeTab === 'coaching' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Activity className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Coaching Personnel</h2>
-                <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-8">
-                   <h3 className="font-black text-lg text-blue-800 mb-2">Besoin d'un accompagnement sur-mesure ?</h3>
-                   <p className="text-sm font-medium text-blue-700">Prenez rendez-vous avec l'un de nos experts en nutrition pour adapter votre programme, surmonter un blocage ou poser vos questions.</p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between hover:border-black transition-colors">
-                      <div>
-                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Clock size={20}/></div>
-                         <h4 className="font-black uppercase text-sm mb-2">Bilan 15 min (Gratuit)</h4>
-                         <p className="text-xs text-zinc-500 font-medium mb-4">Inclus dans votre abonnement Premium. Idéal pour un ajustement rapide de votre plan.</p>
-                      </div>
-                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver mon bilan gratuit de 15min avec un coach.', '_blank')} className="w-full bg-black text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Réserver</button>
+                {activeTab === 'coaching' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full h-full min-h-[70vh] flex flex-col max-w-4xl mx-auto bg-zinc-50 rounded-[2.5rem] border border-zinc-200 overflow-hidden shadow-sm relative">
+             <div className="bg-white px-6 py-4 border-b border-zinc-200 flex items-center justify-between sticky top-0 z-20 shrink-0">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#39FF14] p-0.5">
+                      <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-full h-full object-cover rounded-full bg-black" />
                    </div>
-
-                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden hover:border-[#39FF14] transition-colors">
-                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">Recommandé</div>
-                      <div>
-                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Target size={20}/></div>
-                         <h4 className="font-black uppercase text-sm mb-2">Consultation Complète (45 min)</h4>
-                         <p className="text-xs text-zinc-500 font-medium mb-4">Analyse approfondie, refonte du plan alimentaire et stratégies avancées.</p>
-                      </div>
-                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver une consultation complète de 45min (10.000F).', '_blank')} className="w-full bg-[#39FF14] text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Réserver (10.000 F)</button>
+                   <div>
+                      <h2 className="font-black text-black uppercase tracking-tighter flex items-center gap-2">Coach Rokhy <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span></h2>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">En ligne</p>
                    </div>
                 </div>
+             </div>
+
+             <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col custom-scrollbar">
+                {/* Initial Bot Message */}
+                <div className="flex items-end gap-3 w-full md:w-3/4">
+                   <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-zinc-200">
+                      <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-full h-full object-cover bg-black" />
+                   </div>
+                   <div className="bg-white border border-zinc-200 p-4 rounded-2xl rounded-bl-sm shadow-sm">
+                      <p className="text-sm font-medium text-black">Salut ! C&apos;est Coach Rokhy. Comment se passe ta semaine par rapport à tes objectifs ?</p>
+                   </div>
+                </div>
+
+                {/* User Reply */}
+                {coachingChatStep > 0 && (
+                   <div className="flex items-end gap-3 w-full md:w-3/4 self-end flex-row-reverse animate-in fade-in slide-in-from-bottom-2">
+                      <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
+                         <User size={16} className="text-zinc-500" />
+                      </div>
+                      <div className="bg-[#39FF14]/20 border border-[#39FF14]/30 p-4 rounded-2xl rounded-br-sm shadow-sm">
+                         <p className="text-sm font-medium text-black">
+                            {coachingChatStep === 1 && "Je stagne un peu..."}
+                            {coachingChatStep === 2 && "J&apos;ai fait un gros écart !"}
+                            {coachingChatStep === 3 && "J&apos;ai une question spécifique."}
+                         </p>
+                      </div>
+                   </div>
+                )}
+
+                {/* Bot Response Based on User Reply */}
+                {coachingChatStep > 0 && (
+                   <div className="flex items-end gap-3 w-full md:w-3/4 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
+                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-zinc-200">
+                         <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-full h-full object-cover bg-black" />
+                      </div>
+                      <div className="bg-white border border-zinc-200 p-4 rounded-2xl rounded-bl-sm shadow-sm">
+                         {coachingChatStep === 1 && (
+                            <>
+                               <p className="text-sm font-medium text-black mb-4">La stagnation est normale, ne lâche rien ! As-tu pensé à remplacer ton riz brisé par du Fonio cette semaine pour relancer la machine sans te priver ?</p>
+                               <button onClick={() => setActiveTab('shop')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
+                                  🛒 Découvrir le Fonio
+                               </button>
+                            </>
+                         )}
+                         {coachingChatStep === 2 && (
+                            <>
+                               <p className="text-sm font-medium text-black mb-4">Zéro culpabilité ! L&apos;important c&apos;est le prochain repas. Fais-toi une petite infusion de Kinkéliba ou de Bissap sans sucre ce soir pour aider la digestion.</p>
+                               <button onClick={() => setActiveTab('today')} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
+                                  💪 Reprendre mon menu
+                               </button>
+                            </>
+                         )}
+                         {coachingChatStep === 3 && (
+                            <>
+                               <p className="text-sm font-medium text-black mb-4">Pas de souci, chaque métabolisme est unique. Discutons-en directement de vive voix pour adapter ton programme.</p>
+                               <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#25D366] text-white px-6 py-4 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:scale-105 transition-transform shadow-lg w-full flex items-center justify-center gap-2">
+                                  <MessageCircle size={20} /> Discuter sur WhatsApp
+                               </button>
+                            </>
+                         )}
+                      </div>
+                   </div>
+                )}
+             </div>
+
+             {/* Quick Replies / Choices */}
+             <div className="bg-white p-4 border-t border-zinc-200 shrink-0">
+                 {coachingChatStep === 0 ? (
+                    <div className="flex flex-wrap gap-2 justify-center">
+                        <button onClick={() => setCoachingChatStep(1)} className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-black px-4 py-3 rounded-full text-xs font-bold transition-colors">Je stagne un peu...</button>
+                        <button onClick={() => setCoachingChatStep(2)} className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-black px-4 py-3 rounded-full text-xs font-bold transition-colors">J&apos;ai fait un gros écart !</button>
+                        <button onClick={() => setCoachingChatStep(3)} className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-black px-4 py-3 rounded-full text-xs font-bold transition-colors">J&apos;ai une question spécifique.</button>
+                    </div>
+                 ) : (
+                    <div className="flex justify-center">
+                        <button onClick={() => setCoachingChatStep(0)} className="text-zinc-400 hover:text-black text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors"><RotateCcw size={14}/> Recommencer</button>
+                    </div>
+                 )}
              </div>
           </div>
         )}
 
-        {activeTab === 'weight' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
-                {/* Header de la section poids */}
-                <div className="flex justify-between items-center bg-zinc-50 p-6 md:p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
-                    <div>
-                        <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
-                            <Scale size={20} className="text-black"/> Mon Poids
+                {activeTab === 'weight' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-7xl mx-auto">
+                {/* Header and Background */}
+                <div className="relative rounded-[2.5rem] p-6 md:p-8 border border-zinc-200 shadow-sm overflow-hidden min-h-[70vh] flex flex-col justify-between">
+                    {/* Background Images */}
+                    <div className="absolute inset-0 z-0 hidden md:block">
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783280413/Woman_standing_on_scale_smiling_202607051938_e6h39p.jpg" alt="Background" className="w-full h-full object-cover opacity-10" />
+                    </div>
+                    <div className="absolute inset-0 z-0 block md:hidden">
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783280897/weight_gfpje9.jpg" alt="Background" className="w-full h-full object-cover opacity-10" />
+                    </div>
+
+                    {/* Gradient Overlay for Readability */}
+                    <div className="absolute inset-0 bg-white/70 md:bg-white/50 backdrop-blur-[2px] z-0"></div>
+
+                    <div className="relative z-10 w-full mb-6">
+                        <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-4"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black">
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Balance 3D" className="w-8 h-8 rounded-full object-cover mix-blend-multiply" />
+                            Mon Poids
                         </h2>
                     </div>
-                </div>
 
-                {/* Dashboard principal */}
-                <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border border-zinc-200 shadow-xl relative overflow-hidden">
-                    {/* Décoration de fond */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-black/[0.02] to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
-
-                    <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-                        {/* Colonne gauche : Saisie */}
-                        <div className="flex-1 w-full space-y-6">
-                            <div className="bg-zinc-50 rounded-3xl p-6 border border-zinc-200 shadow-sm">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
-                                    <Activity size={16}/> Saisie du jour
-                                </h3>
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex items-center gap-4">
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            value={newWeight}
-                                            onChange={(e) => setNewWeight(e.target.value)}
-                                            placeholder="Ex: 75.5"
-                                            className="flex-1 w-full text-4xl font-black p-4 border-2 border-zinc-200 rounded-2xl bg-white focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5 transition-all text-black"
-                                        />
-                                        <span className="text-2xl font-black text-zinc-400">KG</span>
-                                    </div>
-                                    <button onClick={handleSaveWeight} className="w-full md:w-auto px-10 py-4 bg-black text-[#39FF14] rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 hover:shadow-[0_0_30px_rgba(57,255,20,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
-                                        <CheckCircle size={20}/> Enregistrer mon poids
-                                    </button>
-                                    {coachFeedback && (
-                                       <div className="mt-6 w-full p-5 rounded-2xl border border-[#39FF14]/20 bg-[#39FF14]/5 flex items-start gap-4">
-                                          <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-[#39FF14] shrink-0 border border-[#39FF14]/30"><Dumbbell size={20}/></div>
-                                          <div>
-                                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Coach virtuel</p>
-                                             <p className={`text-sm font-bold ${coachFeedback.type === 'success' ? 'text-green-600' : coachFeedback.type === 'warning' ? 'text-orange-500' : 'text-zinc-700'}`}>
-                                                {coachFeedback.text}
-                                             </p>
-                                          </div>
-                                       </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Stats rapides */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white p-5 rounded-3xl border border-zinc-200 shadow-sm flex flex-col justify-center">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Objectif</span>
-                                    <div className="flex items-end gap-1">
-                                        <span className="text-2xl font-black text-black">{clientProfile?.diagnostic_data?.targetWeight || '--'}</span>
-                                        <span className="text-xs font-bold text-zinc-500 mb-1">KG</span>
-                                    </div>
-                                </div>
-                                <div className="bg-black p-5 rounded-3xl shadow-lg flex flex-col justify-center relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-[#39FF14]/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-1 relative z-10">Progrès Total</span>
-                                    <div className="flex items-end gap-1 relative z-10">
-                                        <span className="text-2xl font-black text-white">
-                                            {weightLogs.length > 0 && clientProfile?.diagnostic_data?.targetWeight ?
-                                                (() => {
-                                                    const firstWeight = parseFloat(weightLogs[0].weight);
-                                                    const currentWeight = parseFloat(weightLogs[weightLogs.length - 1].weight);
-                                                    const diff = firstWeight - currentWeight;
-                                                    return diff > 0 ? `-${diff.toFixed(1)}` : `+${Math.abs(diff).toFixed(1)}`;
-                                                })() : '--'
-                                            }
-                                        </span>
-                                        <span className="text-xs font-bold text-zinc-400 mb-1">KG</span>
-                                    </div>
-                                    <TrendingDown size={32} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10 group-hover:scale-110 transition-transform"/>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Colonne droite : Graphique */}
-                        <div className="flex-1 w-full flex flex-col h-full min-h-[300px] bg-zinc-50 rounded-3xl p-6 border border-zinc-200 shadow-sm">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-6 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><LineChartIcon size={16}/> Évolution</span>
-                                <span className="text-[9px] bg-white px-2 py-1 rounded-md border border-zinc-200 shadow-sm">30 Derniers Jours</span>
+                    <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 w-full flex-grow">
+                        {/* Top Chart Area */}
+                        <div className="md:col-span-12 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col min-h-[300px]">
+                            <h3 className="text-sm font-black text-black mb-4 flex justify-between items-center">
+                                Weight Loss Journey
                             </h3>
-                            <div className="flex-1 w-full min-h-[200px]">
+                            <div className="flex-grow w-full min-h-[200px] relative">
                                 {weightLogs.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={[...weightLogs].reverse()}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
+                                        <AreaChart data={[...weightLogs].reverse()}>
+                                            <defs>
+                                                <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#39FF14" stopOpacity={0.4}/>
+                                                    <stop offset="95%" stopColor="#39FF14" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" opacity={0.5} />
                                             <XAxis
                                                 dataKey="log_date"
-                                                tickFormatter={(date) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                                                tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short' })}
                                                 axisLine={false}
                                                 tickLine={false}
                                                 tick={{fontSize: 10, fill: '#a1a1aa', fontWeight: 'bold'}}
@@ -4374,28 +4381,118 @@ export default function NutritionDashboard() {
                                                 dx={-10}
                                             />
                                             <RechartsTooltip
-                                                contentStyle={{borderRadius: '16px', border: '1px solid #e4e4e7', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 'bold', fontSize: '12px'}}
-                                                itemStyle={{color: '#000', fontWeight: '900'}}
-                                                labelFormatter={(label) => new Date(label).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                                formatter={(value) => [`${value} kg`, 'Poids']}
+                                                contentStyle={{borderRadius: '12px', border: 'none', backgroundColor: '#000', color: '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)', fontWeight: 'bold', fontSize: '12px', padding: '8px 12px'}}
+                                                itemStyle={{color: '#fff', fontWeight: '900'}}
+                                                labelStyle={{display: 'none'}}
+                                                cursor={{stroke: '#39FF14', strokeWidth: 1, strokeDasharray: '3 3'}}
+                                                formatter={(value) => [`${value} kg`, 'Weight Loss']}
                                             />
                                             {clientProfile?.diagnostic_data?.targetWeight && (
-                                               <ReferenceLine y={parseFloat(clientProfile.diagnostic_data.targetWeight)} stroke="#39FF14" strokeDasharray="5 5" label={{ position: 'top', value: 'Objectif', fill: '#39FF14', fontSize: 10, fontWeight: 'bold' }} />
+                                                <ReferenceLine y={parseFloat(clientProfile.diagnostic_data.targetWeight)} stroke="#39FF14" strokeDasharray="3 3" opacity={0.5} />
                                             )}
-                                            <Line
+                                            <Area
                                                 type="monotone"
                                                 dataKey="weight"
-                                                stroke="#000000"
+                                                stroke="#39FF14"
                                                 strokeWidth={4}
-                                                dot={{r: 4, fill: "#000", strokeWidth: 2, stroke: "#fff"}}
-                                                activeDot={{r: 8, fill: "#39FF14", strokeWidth: 0}}
+                                                fillOpacity={1}
+                                                fill="url(#colorWeight)"
+                                                activeDot={{r: 6, fill: "#000", strokeWidth: 2, stroke: "#39FF14"}}
                                             />
-                                        </LineChart>
+                                        </AreaChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-zinc-400 space-y-4">
-                                        <LineChartIcon size={48} className="opacity-20"/>
-                                        <p className="text-sm font-bold text-center max-w-xs">Enregistrez votre premier poids pour voir votre graphique d'évolution.</p>
+                                    <div className="h-full flex flex-col items-center justify-center text-zinc-400">
+                                        <p className="text-xs font-bold">Aucun poids enregistré</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Bottom Left: Current vs Target Weight */}
+                        <div className="md:col-span-6 lg:col-span-4 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col justify-between relative overflow-hidden">
+                            <h3 className="text-sm font-black text-black mb-6">Current vs Target Weight</h3>
+
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-500 mb-1">Current:</p>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl sm:text-5xl font-black tracking-tighter">
+                                            {weightLogs.length > 0 ? parseFloat(weightLogs[weightLogs.length - 1].weight).toFixed(1) : '--'}
+                                        </span>
+                                        <span className="text-xl font-black">kg</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={() => { setNewWeight(weightLogs.length > 0 ? (parseFloat(weightLogs[weightLogs.length - 1].weight) + 0.1).toFixed(1) : ''); setShowWeightModal(true); }} className="w-10 h-10 rounded-xl bg-red-100 hover:bg-red-200 text-red-500 flex items-center justify-center font-black text-xl transition-colors shadow-sm">
+                                        +
+                                    </button>
+                                    <button onClick={() => { setNewWeight(weightLogs.length > 0 ? (parseFloat(weightLogs[weightLogs.length - 1].weight) - 0.1).toFixed(1) : ''); setShowWeightModal(true); }} className="w-10 h-10 rounded-xl bg-green-100/50 hover:bg-green-100 text-red-400 flex items-center justify-center font-black text-xl transition-colors shadow-sm">
+                                        -
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-end border-t border-zinc-100 pt-4">
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-500 mb-1">Target:</p>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-3xl sm:text-4xl font-black tracking-tighter">
+                                            {clientProfile?.diagnostic_data?.targetWeight || '--'}
+                                        </span>
+                                        <span className="text-lg font-black">kg</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                     <div className="w-8 h-8 rounded-full bg-[#39FF14]/20 flex items-center justify-center">
+                                        <ArrowRight size={16} className="text-green-600"/>
+                                     </div>
+                                     {weightLogs.length > 0 && parseFloat(weightLogs[weightLogs.length-1].weight) <= parseFloat(clientProfile?.diagnostic_data?.targetWeight || '0') ? (
+                                        <span className="text-xl" title="Objectif Atteint">😎</span>
+                                     ) : (
+                                        <span className="text-xl" title="En cours">🤨</span>
+                                     )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Center: BMI/IMC History */}
+                        <div className="md:col-span-6 lg:col-span-8 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-sm font-black text-black">BMI/IMC History</h3>
+                                <HeartPulse size={20} className="text-red-500" />
+                            </div>
+
+                            <div className="space-y-3 flex-grow overflow-y-auto max-h-[220px] custom-scrollbar pr-2">
+                                {weightLogs.length > 0 ? (
+                                    [...weightLogs].reverse().map((log, idx, arr) => {
+                                        const hM = (clientProfile?.diagnostic_data?.height || 170) / 100;
+                                        const currentW = parseFloat(log.weight);
+                                        const imcVal = hM > 0 ? currentW / (hM * hM) : 0;
+
+                                        const prevLog = arr[idx + 1];
+                                        let diff = 0;
+                                        if (prevLog) diff = currentW - parseFloat(prevLog.weight);
+
+                                        return (
+                                            <div key={log.log_date} className="bg-zinc-100/80 p-3 sm:p-4 rounded-2xl flex justify-between items-center group hover:bg-zinc-200 transition-colors">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">{new Date(log.log_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}:</span>
+                                                    <span className="text-sm font-black">{log.weight} kg</span>
+                                                    <span className="text-xs font-bold text-zinc-500">- IMC {imcVal.toFixed(1)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {diff < 0 ? <TrendingDown size={18} className="text-green-500"/> : diff > 0 ? <TrendingUp size={18} className="text-orange-500"/> : <span className="w-[18px]"></span>}
+                                                    <button onClick={() => handleDeleteWeight(log.log_date)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                                                        <Trash2 size={14}/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-zinc-400 font-bold text-sm">
+                                        Pas d&apos;historique
                                     </div>
                                 )}
                             </div>
@@ -4403,55 +4500,38 @@ export default function NutritionDashboard() {
                     </div>
                 </div>
 
-                {/* Historique liste */}
-                <div className="bg-white rounded-[2.5rem] p-6 border border-zinc-200 shadow-sm">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-6 flex items-center justify-between">
-                        Historique détaillé
-                        <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px]">{weightLogs.length} entrées</span>
-                    </h3>
-                    {weightLogs.length > 0 ? (
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                            {[...weightLogs].reverse().map((log, idx, arr) => {
-                                const currentWeight = parseFloat(log.weight);
-                                const prevLog = arr[idx + 1]; // Dans la liste inversée (du plus récent au plus ancien), l'élément suivant (idx+1) est chronologiquement "avant"
-                                const prevWeight = prevLog ? parseFloat(prevLog.weight) : null;
-                                let diff: number | null = null;
-                                if (prevWeight) {
-                                    diff = currentWeight - prevWeight;
-                                }
+                {/* Weight Input Modal (Inline or Popup) */}
+                {showWeightModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-sm shadow-2xl relative">
+                            <button onClick={() => setShowWeightModal(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-black bg-zinc-100 p-2 rounded-full transition-colors"><X size={16}/></button>
+                            <div className="flex flex-col items-center mb-6">
+                                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
+                                    <Scale size={24} className="text-black" />
+                                </div>
+                                <h3 className="text-xl font-black uppercase text-center">Nouveau Poids</h3>
+                                <p className="text-xs font-bold text-zinc-500 mt-1">Quelle est votre pesée du jour ?</p>
+                            </div>
 
-                                return (
-                                    <div key={log.log_date} className="flex justify-between items-center p-4 rounded-2xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50 transition-colors group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-black group-hover:text-white transition-colors">
-                                                <Calendar size={16}/>
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-sm text-black">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                                                {diff !== null && (
-                                                    <p className={`text-[10px] font-black tracking-widest uppercase flex items-center gap-1 ${diff < 0 ? 'text-green-500' : diff > 0 ? 'text-orange-500' : 'text-zinc-400'}`}>
-                                                        {diff < 0 ? <TrendingDown size={10}/> : diff > 0 ? <TrendingUp size={10}/> : <Minus size={10}/>}
-                                                        {Math.abs(diff).toFixed(1)} kg
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-6">
-                                            <span className="text-xl font-black text-black bg-zinc-100 px-4 py-2 rounded-xl group-hover:bg-[#39FF14] group-hover:text-black transition-colors">{log.weight} <span className="text-xs text-zinc-500 group-hover:text-black/60">kg</span></span>
-                                            <button onClick={() => handleDeleteWeight(log.log_date)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full">
-                                                <Trash2 size={16}/>
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            <div className="flex items-center justify-center gap-4 mb-6">
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={newWeight}
+                                    onChange={(e) => setNewWeight(e.target.value)}
+                                    placeholder="00.0"
+                                    className="w-32 text-4xl font-black p-4 border-b-2 border-zinc-200 bg-transparent focus:outline-none focus:border-black text-center text-black transition-colors"
+                                    autoFocus
+                                />
+                                <span className="text-2xl font-black text-zinc-400">KG</span>
+                            </div>
+
+                            <button onClick={() => { handleSaveWeight(); setShowWeightModal(false); }} className="w-full py-4 bg-black text-[#39FF14] rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2">
+                                <CheckCircle size={20}/> Enregistrer
+                            </button>
                         </div>
-                    ) : (
-                        <div className="text-center py-12 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-3xl">
-                            Aucun historique disponible.
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         )}
 
@@ -4459,7 +4539,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'community' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                      <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
                      <div className="flex items-center gap-3 w-full md:w-auto">
@@ -5704,4 +5784,4 @@ export default function NutritionDashboard() {
 
     </div>
   );
-} 
+}
