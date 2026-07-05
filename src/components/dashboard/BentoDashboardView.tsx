@@ -10,15 +10,15 @@ import { supabase } from "@/lib/supabaseClient";
 // Props required for the weaving
 interface BentoDashboardViewProps {
     user: any;
-
-
+    waterGlasses: number;
+    handleUpdateWater: (delta: number) => void;
     jongomaXP: number;
     clientProfile: any;
     setActiveTab: (tab: string) => void;
     handleMealClick?: (mealType: string, prefillRecipe: any, contextType: string) => void;
 }
 
-export default function BentoDashboardView({ user,   jongomaXP, clientProfile, setActiveTab, handleMealClick }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, setActiveTab, handleMealClick }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
@@ -30,20 +30,12 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
 
     return (
         <div className="w-full max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 pb-20">
-            {/* Bannière de Bienvenue */}
-            <div className="mb-8">
-                <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white">
-                    {greetingText} <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span>.
-                </h1>
-            </div>
 
             {/* Grille Bento */}
-
-            {/* Grille Bento */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 mb-6">
 
                 {/* 1. Mon Jour (Validation repas) - prend plus d'espace */}
-                <div className="col-span-12 lg:col-span-6 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('today')}>
+                <div className="col-span-1 md:col-span-6 h-full rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('today')}>
                     <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Mon Jour</p>
@@ -78,7 +70,7 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
 
                     {/* Actions Mon Jour */}
                     <div className="grid grid-cols-2 gap-3 mt-auto">
-                        <button onClick={(e) => { e.stopPropagation(); handleMealClick?.('Déjeuner', null, 'guided'); }} className="bg-zinc-50 border border-zinc-200 hover:border-[#39FF14] text-black rounded-xl p-3 text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('today'); }} className="bg-zinc-50 border border-zinc-200 hover:border-[#39FF14] text-black rounded-xl p-3 text-xs font-bold transition-colors flex items-center justify-center gap-2">
                             🍲 Loguer Repas
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); setActiveTab('today'); }} className="bg-[#39FF14] text-black rounded-xl p-3 text-xs font-bold hover:bg-[#32e012] transition-colors flex items-center justify-center gap-2">
@@ -88,7 +80,7 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                 </div>
 
                 {/* 2. Poids Actuel */}
-                <div className="col-span-12 lg:col-span-3 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[300px] group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('weight')}>
+                <div className="col-span-1 md:col-span-3 h-full rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[300px] group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('weight')}>
                     <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div>
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Poids Actuel & Objectif</p>
@@ -108,6 +100,42 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                     <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#39FF14]/10 rounded-full blur-xl pointer-events-none"></div>
                 </div>
 
+                {/* 3. HYDRATATION */}
+                <div className="col-span-1 md:col-span-3 h-full rounded-[2rem] bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-sm p-6 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[300px]">
+                    <div>
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                           <Droplet size={14} className="fill-blue-500"/> Hydratation
+                        </p>
+                        <p className="text-4xl font-black text-black mb-1">{waterGlasses} <span className="text-xl text-zinc-500">/ 8</span></p>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                            {waterGlasses === 0 && "Il est temps de boire le premier verre !"}
+                            {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça !"}
+                            {waterGlasses >= 4 && waterGlasses < 8 && "Tu es à la moitié, bravo !"}
+                            {waterGlasses >= 8 && "Objectif atteint !"}
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 mt-4 z-10">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => handleUpdateWater(i + 1 - waterGlasses)}
+                                className="aspect-square relative flex justify-center items-end hover:scale-110 transition-transform"
+                            >
+                                <img
+                                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png"
+                                    className={`w-full h-full object-contain ${i < waterGlasses ? 'opacity-100' : 'opacity-20 grayscale'}`}
+                                    alt="Verre d'eau"
+                                />
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
                 {/* 3. Coach IA (Rokhy) */}
                 <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col justify-between min-h-[300px] relative group" onClick={() => setActiveTab('coaching')}>
                     <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>

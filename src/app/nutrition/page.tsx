@@ -2897,8 +2897,8 @@ export default function NutritionDashboard() {
         {activeTab === 'dashboard' && (
           <BentoDashboardView
               user={user}
-
-
+              waterGlasses={waterGlasses}
+              handleUpdateWater={handleUpdateWater}
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
               setActiveTab={setActiveTab}
@@ -2981,27 +2981,30 @@ export default function NutritionDashboard() {
                    </div>
                 </div>
 
-                {/* 2. Eau et Bilan côte à côte */}
-                <div className="grid grid-cols-2 gap-4">
-                    {/* Objectif Eau */}
-                    <div className="bg-white p-4 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center text-center">
-                        <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
-                           <img src={WATER_ICON} className="w-8 h-8 object-contain mx-auto" />
-                        </div>
-                        <h3 className="font-black text-[10px] uppercase tracking-tighter text-black mb-1">Objectif Eau</h3>
-                        <p className="text-zinc-500 font-bold text-[9px] mb-4">{waterGlasses}/8 verres</p>
-                        <button onClick={() => handleUpdateWater(1)} className="w-full bg-black text-[#39FF14] py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">
-                           + 1 verre
-                        </button>
-                    </div>
+                {/* 2. Le grand widget "Refaire mon diagnostic" en dessous du Pie Chart */}
+                <button
+                  onClick={() => setShowRedoDiagModal(true)}
+                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg flex-1 min-h-[300px] flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
+                >
+                  <img
+                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    alt="Refaire Diagnostic"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 backdrop-blur-[2px]"></div>
 
-                    {/* Bilan de la journée */}
-                    <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform">
-                        <CheckCircle size={24} className="text-black mb-2"/>
-                        <h3 className="font-black text-xs uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
-                        <p className="text-black/70 font-bold text-[9px]">Clôturez pour gagner de l'XP.</p>
-                    </button>
-                </div>
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                     <div className="bg-[#39FF14] text-black p-3 rounded-full animate-pulse shadow-[0_0_30px_rgba(57,255,20,0.6)]">
+                       <Target size={24} />
+                     </div>
+                     <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-white tracking-tighter drop-shadow-md text-center`}>
+                       Refaire mon diagnostic
+                     </h3>
+                     <p className="text-zinc-300 font-bold text-[10px] uppercase tracking-widest text-center">
+                       Ajuster mes objectifs
+                     </p>
+                  </div>
+                </button>
               </div>
 
               {/* COLONNE DROITE (2/3) */}
@@ -3096,30 +3099,49 @@ export default function NutritionDashboard() {
                    </div>
                 )}
 
-                {/* 2. Le grand widget "Refaire mon diagnostic" en dessous des repas */}
-                <button
-                  onClick={() => setShowRedoDiagModal(true)}
-                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg h-48 md:h-56 flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Refaire Diagnostic"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 backdrop-blur-[2px]"></div>
+                {/* 2. Eau et Bilan côte à côte */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Objectif Eau - Interactive */}
+                    <div className="rounded-[2rem] bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-sm p-4 relative overflow-hidden flex flex-col justify-between">
+                        <div>
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
+                               <Droplet size={10} className="fill-blue-500"/> Objectif Eau
+                            </p>
+                            <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
+                            <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest leading-tight">
+                                {waterGlasses === 0 && "Il est temps de boire le premier verre !"}
+                                {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça !"}
+                                {waterGlasses >= 4 && waterGlasses < 8 && "Tu es à la moitié, bravo !"}
+                                {waterGlasses >= 8 && "Objectif atteint !"}
+                            </p>
+                        </div>
 
-                  <div className="relative z-10 flex flex-col items-center gap-3">
-                     <div className="bg-[#39FF14] text-black p-3 rounded-full animate-pulse shadow-[0_0_30px_rgba(57,255,20,0.6)]">
-                       <Target size={24} />
-                     </div>
-                     <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-white tracking-tighter drop-shadow-md`}>
-                       Refaire mon diagnostic
-                     </h3>
-                     <p className="text-zinc-300 font-bold text-[10px] uppercase tracking-widest text-center">
-                       Ajuster mes objectifs et mes mensurations
-                     </p>
-                  </div>
-                </button>
+                        <div className="grid grid-cols-4 gap-1 mt-3 z-10">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => handleUpdateWater(i + 1 - waterGlasses)}
+                                    className="aspect-square relative flex justify-center items-end hover:scale-110 transition-transform"
+                                >
+                                    <img
+                                        src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png"
+                                        className={`w-full h-full object-contain ${i < waterGlasses ? 'opacity-100' : 'opacity-20 grayscale'}`}
+                                        alt="Verre d'eau"
+                                    />
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-blue-400/10 rounded-full blur-xl pointer-events-none"></div>
+                    </div>
+
+                    {/* Bilan de la journée */}
+                    <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform">
+                        <CheckCircle size={24} className="text-black mb-2"/>
+                        <h3 className="font-black text-xs uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
+                        <p className="text-black/70 font-bold text-[9px]">Clôturez pour gagner de l'XP.</p>
+                    </button>
+                </div>
               </div>
             </div>
 
