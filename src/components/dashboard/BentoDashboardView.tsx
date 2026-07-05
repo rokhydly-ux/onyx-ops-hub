@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import {
-    Activity, Droplet, Moon, Search, Bell, LogOut, Plus,
+    Activity, Droplet, Moon, Search, Bell, LogOut,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
 } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
@@ -16,11 +16,9 @@ interface BentoDashboardViewProps {
     clientProfile: any;
     setActiveTab: (tab: string) => void;
     handleMealClick?: (mealType: string, prefillRecipe: any, contextType: string) => void;
-    waterGlasses: number;
-    handleUpdateWater: (amount: number) => void;
 }
 
-export default function BentoDashboardView({ user,   jongomaXP, clientProfile, setActiveTab, handleMealClick, waterGlasses, handleUpdateWater }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user,   jongomaXP, clientProfile, setActiveTab, handleMealClick }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
@@ -110,43 +108,6 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                         </div>
                     </div>
                     <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#39FF14]/10 rounded-full blur-xl pointer-events-none"></div>
-                </div>
-
-
-                {/* 3. Hydratation (NEW) */}
-                <div className="col-span-12 lg:col-span-3 bg-white rounded-[2rem] border border-zinc-200 shadow-sm overflow-hidden flex flex-col justify-between h-full min-h-[300px] group cursor-pointer relative" onClick={() => handleUpdateWater(1)}>
-                  {/* Image de fond avec masque de dégradé (L'image de la femme qui boit) */}
-                  <div className="absolute inset-0 z-0">
-                    <img
-                      src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg"
-                      className="w-full h-full object-cover opacity-40"
-                      alt="Hydratation"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
-                  </div>
-
-                  {/* Contenu z-10 */}
-                  <div className="relative z-10 p-5 flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Hydratation</p>
-                      <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center shadow-sm">
-                        <Droplet size={14} className="text-blue-500" />
-                      </div>
-                    </div>
-
-                    <div className="mt-auto">
-                      <div className="flex items-end gap-1 mb-2">
-                        <span className="text-3xl font-black text-black">{waterGlasses}</span>
-                        <span className="text-xs font-bold text-zinc-500 mb-1">/ 8 verres</span>
-                      </div>
-                      <div className="w-full h-2 bg-zinc-200 rounded-full overflow-hidden shadow-inner">
-                        <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(waterGlasses / 8) * 100}%` }}></div>
-                      </div>
-                      <p className="text-[9px] font-bold text-blue-600 mt-3 uppercase tracking-widest flex items-center gap-1">
-                        <Plus size={10}/> Clic pour ajouter
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
                 {/* 3. Coach IA (Rokhy) */}
