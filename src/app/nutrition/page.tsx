@@ -10,7 +10,7 @@ import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
-, PartyPopper, Home } from "lucide-react";
+, PartyPopper } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
@@ -2371,27 +2371,7 @@ export default function NutritionDashboard() {
 
   const currentHour = new Date().getHours();
   const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
-
-  let greetingSubtext = "";
-  const todayLogForGreeting = dailyLogs.find(l => l.log_date === todayStr);
-  const isReportDone = todayLogForGreeting?.report_data?.followedMenu !== undefined;
-  const mealsLoggedCount = consumedMeals.length;
-
-  if (currentHour >= 5 && currentHour < 12) {
-     greetingSubtext = mealsLoggedCount === 0
-         ? "Excellente matinée ! N'oublie pas de loguer ton petit-déjeuner."
-         : "Ta journée commence bien ! Reste focus sur tes objectifs.";
-  } else if (currentHour >= 12 && currentHour < 18) {
-     greetingSubtext = waterGlasses < 4
-         ? "C'est l'après-midi ! Pense à boire, il te manque de l'eau."
-         : "Super hydratation ! N'oublie pas de vérifier ton Sama Menu ce midi.";
-  } else if (currentHour >= 18 && currentHour < 22) {
-     greetingSubtext = !isReportDone
-         ? "Ta journée s'achève. N'oublie pas de faire ton Bilan Quotidien !"
-         : "Excellente journée accomplie. Profite de ta soirée pour te détendre.";
-  } else {
-     greetingSubtext = "Il se fait tard. Un bon sommeil est le secret d'un métabolisme au top !";
-  }
+  const greetingSubtext = currentHour < 18 ? "Prête pour ta journée ?" : "Pense à t'hydrater ce soir.";
 
   const subTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
   const freeShippingThreshold = 20000;
@@ -2412,7 +2392,6 @@ export default function NutritionDashboard() {
   const hasUnseenBadges = jongomaXP >= 500 && activeTab !== 'history';
 
   const menuItems = [
-    { id: 'dashboard', label: 'Mon Espace', icon: MENU_ICONS.dashboard },
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
@@ -2738,125 +2717,95 @@ export default function NutritionDashboard() {
 
 
       {/* NOUVEAU HEADER GLASSMORPHISM */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex flex-col gap-4">
-
-        {/* LIGNE 1 : LOGO + ACTIONS (Panier, Thème, Avatar...) */}
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-10 w-auto object-contain" />
-          </div>
-          <div className="flex items-center gap-3">
-              {/* Search Bar */}
-              <div className="hidden md:flex items-center bg-white border border-zinc-200 rounded-full px-3 py-1.5 shadow-sm">
-                  <Search size={14} className="text-zinc-400" />
-                  <input type="text" placeholder="Chercher une recette, un membre..." className="bg-transparent border-none text-xs text-zinc-700 outline-none w-48 focus:w-64 transition-all ml-2 placeholder:text-zinc-400" />
-              </div>
-
-              {/* Toggles */}
-              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-yellow-500 transition-colors shadow-sm" title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}>
-                  {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
-              </button>
-
-              <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title="Toggle Kcal">
-                  <Eye size={16}/>
-              </button>
-
-              {/* Cart */}
-              <button onClick={() => setShowCartModal(true)} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
-                  <ShoppingCart size={16} />
-                  {shopCart.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
-                          {shopCart.length}
-                      </span>
-                  )}
-              </button>
-
-              {/* Avatar Dropdown */}
-              <div className="relative group ml-2">
-                  <button className="flex items-center gap-2 focus:outline-none">
-                      <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-9 h-9 rounded-full border-2 border-[#39FF14]/50 object-cover shadow-sm" />
-                  </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
-                      <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
-                      <div className="h-px w-full bg-zinc-100"></div>
-                      <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-50 flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
-                  </div>
-              </div>
-
-              {/* Mobile Menu Toggle */}
-              <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 text-zinc-700"><MenuIcon size={24}/></button>
-          </div>
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => setActiveTab('dashboard')} />
         </div>
 
-        {/* LIGNE 2 : LE MÉGA-MENU (Dropdowns) */}
-        <nav className="w-full flex items-center justify-center gap-8 pb-2 px-4 hidden md:flex">
-
-          {/* 1. MON ESPACE (Dropdown) */}
-          <div className="relative group">
-            <button className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-zinc-600 hover:text-black transition-colors py-2">
-              Mon Espace <ChevronDown size={14}/>
-            </button>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col p-2 z-50">
-              <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <Home size={16} className="text-[#39FF14]"/> Accueil (Dashboard)
-              </button>
-              <button onClick={() => setActiveTab('today')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-full object-cover"/> Mon Jour
-              </button>
-              <button onClick={() => setActiveTab('history')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover"/> Historique
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <img src={MENU_ICONS.profile} className="w-5 h-5 rounded-full object-cover"/> Réglages
-              </button>
+        {/* MÉGA-MENU (Desktop) */}
+        <div className="hidden lg:flex items-center gap-2">
+            <div className="relative group">
+                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
+                    <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
+                    <button onClick={() => setActiveTab('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt=""/> Mon Jour</button>
+                    <button onClick={() => setActiveTab('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt=""/> Historique</button>
+                    <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
+                </div>
             </div>
-          </div>
 
-          {/* 2. NUTRITION (Dropdown) */}
-          <div className="relative group">
-            <button className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-zinc-600 hover:text-black transition-colors py-2">
-              Nutrition <ChevronDown size={14}/>
-            </button>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-zinc-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col p-2 z-50">
-              <button onClick={() => setActiveTab('week')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-full object-cover"/> Sama Menu
-              </button>
-              <button onClick={() => setActiveTab('favorites')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <BookOpen size={16} className="text-[#39FF14]"/> Galerie Recettes
-              </button>
-              <button onClick={() => setActiveTab('weight')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <Scale size={16} className="text-[#39FF14]"/> Mon Poids
-              </button>
+            <div className="relative group">
+                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
+                    <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
+                    <button onClick={() => setActiveTab('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt=""/> Sama Menu</button>
+                    <button onClick={() => setActiveTab('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
+                </div>
             </div>
-          </div>
 
-          {/* 3. RÉSEAU (Dropdown) */}
-          <div className="relative group">
-            <button className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-zinc-600 hover:text-black transition-colors py-2">
-              Réseau <ChevronDown size={14}/>
-            </button>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-zinc-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col p-2 z-50">
-              <button onClick={() => setActiveTab('community')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <Heart size={16} className="text-[#39FF14]"/> Communauté
-              </button>
-              <button onClick={() => setActiveTab('blog')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <FileText size={16} className="text-[#39FF14]"/> Blog & Conseils
-              </button>
-              <button onClick={() => setActiveTab('coaching')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <Activity size={16} className="text-[#39FF14]"/> Coaching
-              </button>
-              <button onClick={() => setActiveTab('minute-doc')} className="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl text-left font-bold text-xs uppercase text-zinc-600 hover:text-black transition-colors">
-                <Video size={16} className="text-[#39FF14]"/> La Minute Doc
-              </button>
+            <div className="relative group">
+                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
+                    <MessageSquare size={14}/> Réseau <ChevronDown size={12}/>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
+                    <button onClick={() => setActiveTab('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
+                    <button onClick={() => setActiveTab('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
+                    <button onClick={() => setActiveTab('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
+                    <button onClick={() => setActiveTab('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
+                    <button onClick={() => setActiveTab('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
+
+                </div>
             </div>
-          </div>
 
-          {/* 4. BOUTIQUE (Lien Direct) */}
-          <button onClick={() => setActiveTab('shop')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200">
-            <img src={MENU_ICONS.shop} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Boutique
-          </button>
+<button onClick={() => setActiveTab('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
+                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt=""/> Boutique
+                </button>
+        </div>
 
-        </nav>
+        {/* Actions Droite */}
+        <div className="flex items-center gap-3">
+            {/* Search Bar */}
+            <div className="hidden md:flex items-center bg-white border border-zinc-200 rounded-full px-3 py-1.5 shadow-sm">
+                <Search size={14} className="text-zinc-400" />
+                <input type="text" placeholder="Chercher une recette, un membre..." className="bg-transparent border-none text-xs text-zinc-700 outline-none w-48 focus:w-64 transition-all ml-2 placeholder:text-zinc-400" />
+            </div>
+
+            {/* Toggles */}
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-yellow-500 transition-colors shadow-sm" title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}>
+                {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
+            </button>
+
+            <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title="Toggle Kcal">
+                <Eye size={16}/>
+            </button>
+
+            {/* Cart */}
+            <button onClick={() => setShowCartModal(true)} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
+                <ShoppingCart size={16} />
+                {shopCart.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
+                        {shopCart.length}
+                    </span>
+                )}
+            </button>
+
+            {/* Avatar Dropdown */}
+            <div className="relative group ml-2">
+                <button className="flex items-center gap-2 focus:outline-none">
+                    <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-9 h-9 rounded-full border-2 border-[#39FF14]/50 object-cover shadow-sm" />
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
+                    <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
+                    <div className="h-px w-full bg-zinc-100"></div>
+                    <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-50 flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
+                </div>
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 text-zinc-700"><MenuIcon size={24}/></button>
+        </div>
       </header>
 
       {/* MAIN CONTENT AREA */}
@@ -2866,6 +2815,43 @@ export default function NutritionDashboard() {
 
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
 {/* GREETING INJECTED */}
+
+{activeTab === 'minute-doc' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
+                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
+                <div>
+                   <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center flex-wrap gap-3 mb-2`}>
+                      La Minute Doc <span className="bg-black text-[#39FF14] text-[12px] px-3 py-1 rounded-full shadow-sm">Par Dr. Thierno</span>
+                   </h2>
+                   <p className="text-zinc-500 font-bold text-sm">Découvrez nos podcasts et vidéos explicatives pour mieux comprendre votre corps et votre alimentation.</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { id: "1", title: "Le Fonio fait-il vraiment maigrir ?", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "12:05" },
+                  { id: "2", title: "Comment remplacer le cube Maggi ?", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "08:30" },
+                  { id: "3", title: "Le danger des jus locaux trop sucrés", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "15:20" },
+                  { id: "4", title: "L'attaya et la perte de poids", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "10:45" },
+                  { id: "5", title: "Jeûne intermittent & plats africains", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "18:10" }
+                ].map((podcast, idx) => (
+                   <div key={idx} className="bg-zinc-950 p-4 rounded-[2rem] border border-zinc-800 shadow-xl flex flex-col group hover:border-[#39FF14] transition-colors">
+                      <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-900 border border-zinc-800">
+                         <iframe src={`${podcast.videoUrl}?controls=1&rel=0`} className="w-full h-full border-0" allowFullScreen></iframe>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between">
+                         <h3 className="text-white font-black uppercase leading-tight mb-2 group-hover:text-[#39FF14] transition-colors">{podcast.title}</h3>
+                         <div className="flex justify-between items-center mt-2">
+                             <span className="bg-white/10 text-zinc-300 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><Clock size={12}/> {podcast.duration}</span>
+                             <button onClick={() => window.open(podcast.videoUrl, '_blank')} className="text-zinc-500 hover:text-white p-2 transition-colors"><ExternalLink size={16}/></button>
+                         </div>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+        )}
 
         {activeTab === 'dashboard' && (
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
@@ -2911,222 +2897,7 @@ export default function NutritionDashboard() {
               handleMealClick={handleMealClick}
           />
         )}
-        {activeTab === 'minute-doc' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
-                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
-                <div>
-                   <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center flex-wrap gap-3 mb-2`}>
-                      La Minute Doc <span className="bg-black text-[#39FF14] text-[12px] px-3 py-1 rounded-full shadow-sm">Par Dr. Thierno</span>
-                   </h2>
-                   <p className="text-zinc-500 font-bold text-sm">Découvrez nos podcasts et vidéos explicatives pour mieux comprendre votre corps et votre alimentation.</p>
-                </div>
-             </div>
 
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* COLONNE GAUCHE (1/3) */}
-              <div className="lg:col-span-1 flex flex-col gap-6">
-                {/* 1. Le Pie Chart (Calories/Macros) */}
-                <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center">
-                   <div className="relative w-40 h-40 shrink-0 mb-6">
-                      <ResponsiveContainer width="100%" height="100%">
-                         <PieChart>
-                            <Pie data={[{name: 'Consommé', value: calories}, {name: 'Restant', value: remainingCalories}]} cx="50%" cy="50%" innerRadius={50} outerRadius={70} stroke="none" startAngle={90} endAngle={-270}>
-                               <Cell key="cell-0" fill="#39FF14" />
-                               <Cell key="cell-1" fill="#f4f4f5" />
-                            </Pie>
-                         </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                         <p className="text-2xl font-black text-black leading-none">{calories}</p>
-                         <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">/ {targetCalories} kcal</p>
-                      </div>
-                   </div>
-
-                   <div className="w-full space-y-4">
-                      <div>
-                         <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]">Protéines</span>
-                            <span className="text-zinc-500 text-[9px]">{proteins} / {proteinGoal}g</span>
-                         </div>
-                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${Math.min((proteins / proteinGoal) * 100, 100)}%` }}></div>
-                         </div>
-                      </div>
-                      <div>
-                         <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]">Glucides</span>
-                            <span className="text-zinc-500 text-[9px]">{carbs} / {carbsGoal}g</span>
-                         </div>
-                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-yellow-500 transition-all duration-1000" style={{ width: `${Math.min((carbs / carbsGoal) * 100, 100)}%` }}></div>
-                         </div>
-                      </div>
-                      <div>
-                         <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]">Lipides</span>
-                            <span className="text-zinc-500 text-[9px]">{fats} / {fatsGoal}g</span>
-                         </div>
-                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${Math.min((fats / fatsGoal) * 100, 100)}%` }}></div>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-
-                {/* 2. Eau et Bilan côte à côte */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Widget Eau */}
-                  <div className="bg-white p-4 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center text-center">
-                      <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-3">
-                         <img src={WATER_ICON} className="w-8 h-8 object-contain mx-auto" />
-                      </div>
-                      <h3 className="font-black text-[10px] uppercase tracking-tighter text-black mb-1">Objectif Eau</h3>
-                      <p className="text-zinc-500 font-bold text-[9px] mb-4">{waterGlasses} / 8 verres</p>
-                      <button onClick={() => handleUpdateWater(1)} className="w-full bg-black text-[#39FF14] py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">
-                         +1 Verre
-                      </button>
-                  </div>
-
-                  {/* Bouton Bilan de la journée */}
-                  <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform">
-                      <CheckCircle size={24} className="text-black mb-2"/>
-                      <h3 className="font-black text-xs uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
-                      <p className="text-black/70 font-bold text-[9px]">Clôturez pour gagner de l'XP.</p>
-                  </button>
-                </div>
-              </div>
-
-              {/* COLONNE DROITE (2/3) */}
-              <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* 1. La liste des repas (Sama Menu ou Mode Libre) */}
-                {trackingMode === 'guided' ? (
-                   (() => {
-                       const todayMenu = weeklyGeneratedMenu.find(d => d.day === formattedCurrentDay);
-                       if (!todayMenu) return <div className="bg-white border border-zinc-200 p-8 text-center text-zinc-500 font-bold rounded-[2.5rem] shadow-sm">Aucun menu généré pour aujourd'hui. Veuillez générer votre Sama Menu.</div>;
-
-                       return (
-                           <div className="bg-white rounded-[2.5rem] shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
-                              <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
-                                 <img src={todayMenu.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover" />
-                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
-                                    <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
-                                    <p className="text-white font-bold text-lg leading-tight line-clamp-1">{todayMenu.meals?.['Déjeuner']?.nom || 'Repas'}</p>
-                                 </div>
-                              </div>
-
-                              <div className="p-5 flex-1 flex flex-col gap-3">
-                                 {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
-                                    const recipe = todayMenu.meals?.[mealType];
-                                    if(!recipe) return null;
-                                    const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
-
-                                    return (
-                                       <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
-                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
-                                             <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                             <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
-                                          </div>
-                                          <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                                             <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.calories || recipe.kcal || recipe.calorie || recipe.energy || "—"} kcal</span>
-                                             {!isConsumed ? (
-                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
-                                             ) : (
-                                                <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
-                                             )}
-                                          </div>
-                                       </div>
-                                    )
-                                 })}
-                              </div>
-                           </div>
-                       )
-                   })()
-                ) : (
-                   /* MODE LIBRE */
-                   <div className="space-y-4 bg-white p-6 rounded-[2.5rem] border border-zinc-200 shadow-sm flex-1">
-                     <div className="mb-4">
-                        <h3 className="font-black text-lg text-black uppercase tracking-tighter">Menu Libre</h3>
-                        <p className="text-zinc-500 text-xs font-bold">Composez votre assiette avec vos propres repas.</p>
-                     </div>
-                     {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
-                         const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
-                         return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }}>
-                             <div className="flex justify-between items-center">
-                                 <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
-                                 <button className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                                    <Plus size={14}/> Ajouter un repas
-                                 </button>
-                             </div>
-                             {loggedMeals.length > 0 && (
-                                 <div className="mt-2 space-y-1">
-                                    {loggedMeals.map((m: any, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100">
-                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name}</span>
-                                           <span className="text-[10px] font-bold text-zinc-500 shrink-0">{m.calories} kcal</span>
-                                        </div>
-                                    ))}
-                                 </div>
-                             )}
-                           </div>
-                         )
-                     })}
-                   </div>
-                )}
-
-                {/* 2. Le grand widget "Refaire mon diagnostic" en dessous des repas */}
-                <button
-                  onClick={() => setShowRedoDiagModal(true)}
-                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg h-48 flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Refaire Diagnostic"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 backdrop-blur-[2px]"></div>
-
-                  <div className="relative z-10 flex flex-col items-center gap-3">
-                     <div className="bg-[#39FF14] text-black p-3 rounded-full animate-pulse shadow-[0_0_30px_rgba(57,255,20,0.6)]">
-                       <Target size={24} />
-                     </div>
-                     <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-white tracking-tighter drop-shadow-md`}>
-                       Refaire mon diagnostic
-                     </h3>
-                     <p className="text-zinc-300 font-bold text-[10px] uppercase tracking-widest text-center">
-                       Ajuster mes objectifs et mes mensurations
-                     </p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Suggestions Boutique */}
-            <div className="bg-white border border-zinc-200 shadow-sm rounded-[2rem] p-8 mt-12 relative overflow-hidden">
-               <h3 className="text-xl font-black uppercase text-black mb-6 flex items-center gap-2"><ShoppingCart className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={24}/> La Boutique Onyx</h3>
-               <p className="text-zinc-500 font-bold text-sm mb-6">Boostez vos résultats avec nos produits 100% naturels.</p>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {crossSellProducts.slice(0,3).map((p: any) => (
-                     <div key={p.id} className="bg-zinc-50 border border-zinc-200 rounded-3xl overflow-hidden flex flex-col group cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setActiveTab('shop')}>
-                        <div className="h-40 w-full relative">
-                            <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        </div>
-                        <div className="p-4 flex flex-col flex-1">
-                           <p className="text-sm font-black text-black group-hover:text-[#39FF14] transition-colors line-clamp-1">{p.nom}</p>
-                           <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1 mb-4">{p.prix_standard} FCFA</p>
-                           <button className="mt-auto w-full bg-black text-[#39FF14] py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform">
-                              Voir le produit
-                           </button>
-                        </div>
-                     </div>
-                  ))}
-               </div>
-            </div>
-
-          </div>
-        )}
 
 
 
