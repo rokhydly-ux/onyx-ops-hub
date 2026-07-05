@@ -172,24 +172,35 @@ const FAMILY_APPROACH_POINTS_NEW = [
 
 const HERO_SLIDES = [
   {
-    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783283813/Woman_s_hand_holding_smartphone_2K_202607051729_ltpbem.jpg",
-    badge: "📱 Disponible sur iOS & Android",
-    title: "LI NGAY LEKK CHAQUE JOUR,",
-    highlight: "SANS CASSE-TÊTE.",
-    sub: "Maigrir en mangeant suniu plats locaux. Prenez votre bol en photo, l'IA calcule vos calories instantanément. Zéro pesée, zéro calcul."
+    ctaType: "diagnostic",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781371355/A_cinematic_16_9_split-screen_before-and-after_202606131604_id9wzx.jpg",
+    badge: "✨ Rééquilibrage 100% Sénégalais",
+    title: "PERDEZ JUSQU'À 8 KG CE MOIS-CI.",
+    highlight: "SANS RÉGIME TOUBAB.",
+    sub: "Affinez vos bras et retrouvez un ventre plat tout en mangeant du Yassa et du Thieb. Découvrez votre profil métabolique."
   },
   {
+    ctaType: "download",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783283813/Woman_s_hand_holding_smartphone_2K_202607051729_ltpbem.jpg",
+    badge: " Application 100% Gratuite",
+    title: "LI NGAY LEKK CHAQUE JOUR,",
+    highlight: "SANS CASSE-TÊTE.",
+    sub: "Maigrir en mangeant suniu plats locaux. Prenez votre bol en photo, l'IA calcule vos calories instantanément."
+  },
+  {
+    ctaType: "diagnostic",
     image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Slide_H%C3%A9ro_2_vmqceb.jpg",
-    badge: "📦 Boutique Nutrition",
+    badge: " Boutique Nutrition",
     title: "LA BOX NUTRITION",
     highlight: "LIVRÉE CHEZ VOUS.",
     sub: "Commandez notre coffret d'essentiels (Fonio, Moringa, Bouye) directement depuis l'application pour démarrer votre rééquilibrage."
   },
   {
+    ctaType: "diagnostic",
     image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Slide_H%C3%A9ro_3_n8ltw2.jpg",
-    badge: "🥬 100% Naturel",
+    badge: "100% Naturel",
     title: "LE POUVOIR DE",
-    highlight: "NOS TERROIRS.",
+    highlight: "NOS TERROIRS SENEGALAIS.",
     sub: "Fini les produits importés hors de prix. Nous utilisons les super-aliments de nos marchés pour booster votre métabolisme."
   }
 ];
@@ -272,7 +283,7 @@ export default function NutritionAfricaineLanding() {
   useEffect(() => {
       const interval = setInterval(() => {
           setHeroSlide(prev => (prev + 1) % HERO_SLIDES.length);
-      }, 5000);
+      }, 8000);
       return () => clearInterval(interval);
   }, []);
 
@@ -918,54 +929,37 @@ export default function NutritionAfricaineLanding() {
       </nav>
 
       {/* 1. HERO SECTION (NOUVEAU) */}
-      <section className="relative w-full min-h-[90vh] md:min-h-[100vh] flex flex-col items-center justify-center overflow-hidden -mt-32 pt-32 z-10">
-        <AnimatePresence mode="wait">
-           <motion.div
-              key={heroSlide}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2 }}
-              className="absolute inset-0 w-full h-full z-0"
-           >
-              <img src={HERO_SLIDES[heroSlide].image} alt="Hero Nutrition" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/50"></div>
-           </motion.div>
-        </AnimatePresence>
+      <section className="relative w-full min-h-[90vh] bg-white flex items-center justify-center pt-32 pb-20 z-10 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 w-full flex flex-col md:flex-row items-center gap-12">
+          {/* Image à Gauche */}
+          <div className="w-full md:w-1/2 relative h-[400px] md:h-[600px]">
+            <AnimatePresence mode="wait">
+              <motion.img key={heroSlide} initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} transition={{ duration: 0.8 }} src={HERO_SLIDES[heroSlide].image} className="absolute inset-0 w-full h-full object-cover rounded-[3rem] shadow-2xl" />
+            </AnimatePresence>
+          </div>
+          {/* Texte à Droite dans une Carte */}
+          <div className="w-full md:w-1/2 flex flex-col items-start text-left relative z-10">
+            <AnimatePresence mode="wait">
+              <motion.div key={heroSlide} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-zinc-100 w-full">
+                <div className="inline-flex items-center gap-2 bg-zinc-50 border border-zinc-100 text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">{HERO_SLIDES[heroSlide].badge}</div>
+                <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl lg:text-[4rem] font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>{HERO_SLIDES[heroSlide].title}<br/><span className="text-black border-b-4 border-[#39FF14]">{HERO_SLIDES[heroSlide].highlight}</span></h1>
+                <p className="text-zinc-600 text-lg md:text-xl font-medium mb-10 leading-relaxed">{HERO_SLIDES[heroSlide].sub}</p>
 
-        {/* Content */}
-        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-40 md:pt-48">
-           <AnimatePresence mode="wait">
-              <motion.div
-                 key={heroSlide}
-                 initial={{ opacity: 0, y: 20 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 exit={{ opacity: 0, y: -20 }}
-                 transition={{ duration: 0.8 }}
-                 className="mb-8"
-              >
-                 <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl lg:text-[5rem] font-black uppercase tracking-tighter leading-[1.05] mb-4 text-white drop-shadow-2xl`}>
-                    {HERO_SLIDES[heroSlide].title} <br/>
-                    <span className="text-[#39FF14] drop-shadow-sm">{HERO_SLIDES[heroSlide].highlight}</span>
-                 </h1>
-                 <p className="text-zinc-200 text-lg md:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
-                    {HERO_SLIDES[heroSlide].sub}
-                 </p>
+                {/* CONDITION DYNAMIQUE DES BOUTONS */}
+                {HERO_SLIDES[heroSlide].ctaType === 'download' ? (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+                    <button className="bg-black text-white px-6 py-3 rounded-2xl flex items-center gap-3 w-full sm:w-auto shadow-xl"><img src="https://upload.wikimedia.org/wikipedia/fr/0/09/Logo_App_Store_d%27Apple.png" className="w-6 h-6 object-contain filter invert" /><div className="text-left"><p className="text-[9px] uppercase font-bold text-zinc-400">Télécharger sur</p><p className="text-sm font-black">App Store</p></div></button>
+                    <button className="bg-black text-white px-6 py-3 rounded-2xl flex items-center gap-3 w-full sm:w-auto shadow-xl"><img src="https://m-cdn.phonearena.com/images/article/141194-wide-two_1200/Changes-to-Google-Play-Store-logo-are-spotted.jpg" className="w-6 h-6 object-contain rounded-full" /><div className="text-left"><p className="text-[9px] uppercase font-bold text-zinc-400">Disponible sur</p><p className="text-sm font-black">Google Play</p></div></button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+                    <button onClick={handleWaClick} className={`bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}><HeartPulse size={20} className="animate-pulse" /> DÉMARRER À 2.900 F</button>
+                    <button onClick={() => setShowDiagnosticModal(true)} className="bg-black text-[#39FF14] px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-3 w-full sm:w-auto"><Target size={20} /> FAIRE LE TEST GRATUIT</button>
+                  </div>
+                )}
               </motion.div>
-           </AnimatePresence>
-
-           {/* Fixed CTAs */}
-           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mt-2">
-             <button onClick={handleWaClick} className={`bg-[#39FF14] text-black px-8 md:px-12 py-5 md:py-6 rounded-full font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
-                <HeartPulse size={24} className="animate-pulse" /> DÉMARRER À 2.900 F
-             </button>
-             <button onClick={() => setShowDiagnosticModal(true)} className="bg-black/50 backdrop-blur-md border-2 border-[#39FF14] text-white px-8 md:px-12 py-5 md:py-6 rounded-full font-black md:text-lg uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)] flex items-center justify-center gap-3 w-full sm:w-auto">
-                <Activity size={24} /> MON DIAGNOSTIC GRATUIT
-             </button>
-           </div>
-           <button onClick={() => setShowFreeMenuModal(true)} className="mt-8 text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-widest underline decoration-zinc-400 underline-offset-4 transition-colors">
-              Ou téléchargez un menu type gratuit (PDF)
-           </button>
+            </AnimatePresence>
+          </div>
         </div>
       </section>
 
@@ -996,13 +990,7 @@ export default function NutritionAfricaineLanding() {
               </motion.div>
             ))}
           </div>
-          <div className="relative mx-auto w-full max-w-lg mt-16">
-             <img 
-               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_high-angle_studio_commercial_shot_202606111513_yehlsx.jpg"
-               alt="Famille partageant un bol de riz"
-               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-200"
-             />
-          </div>
+
         </div>
       </section>
 
@@ -1016,19 +1004,19 @@ export default function NutritionAfricaineLanding() {
             
             <div className="grid md:grid-cols-3 gap-8">
                <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><CheckCircle size={32}/></div>
+                  <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-12 h-12 object-contain" /></div>
                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>100% Adapté aux Plats Locaux</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">Fini la frustration. On adapte les portions de vos plats quotidiens pour que vous puissiez maigrir sans vous priver des repas en famille.</p>
                </div>
 
                <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Smartphone size={32}/></div>
+                  <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/18_djx2ct.png" className="w-12 h-12 object-contain" /></div>
                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Suivi Personnel WhatsApp</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">Un doute sur un aliment ? Une baisse de motivation ? Nos experts nutritionnistes vous accompagnent chaque semaine directement dans votre poche.</p>
                </div>
 
                <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Flame size={32}/></div>
+                  <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-12 h-12 object-contain" /></div>
                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Résultats Durables</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">Pas de régime miracle qui ruine votre métabolisme. Nous visons un rééquilibrage de fond pour une perte de poids et un maintien garanti.</p>
                </div>
@@ -1054,7 +1042,43 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
-      {/* 4. LE MATCH : RÉGIMES OCCIDENTAUX VS NUTRITION À L'AFRICAINE */}
+
+      {/* LE BLOG (Conseils du Coach) */}
+      <section className="py-24 px-6 bg-zinc-50 border-t border-zinc-200">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Conseils <span className="text-black border-b-4 border-[#39FF14]">du Coach</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Lisez nos derniers articles pour booster votre perte de poids locale.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286332/IMG-20250820-WA0117_iegikb.jpg", title: "Comment manger du Thieb sans grossir ?" },
+              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/A_cinematic_16_9_wide_shot_202606131426_deadb8.jpg", title: "Les bienfaits cachés du Fonio" },
+              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781371355/A_cinematic_16_9_split-screen_before-and-after_202606131604_id9wzx.jpg", title: "Pourquoi le Bissap rouge est le meilleur brûleur de graisse" }
+            ].map((article, idx) => (
+              <div key={idx} onClick={() => setShowDiagnosticModal(true)} className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-zinc-200 cursor-pointer group hover:shadow-xl transition-all relative">
+                <div className="h-48 relative overflow-hidden">
+                  <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Lock size={32} className="text-[#39FF14] mb-2" />
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lock size={14} className="text-zinc-400" />
+                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-widest">Réservé aux membres</span>
+                  </div>
+                  <h3 className="font-black text-lg leading-tight group-hover:text-[#39FF14] transition-colors">{article.title}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+{/* 4. LE MATCH : RÉGIMES OCCIDENTAUX VS NUTRITION À L'AFRICAINE */}
       <section className="py-24 px-6 bg-zinc-950 text-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
