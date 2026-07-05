@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import {
-    Activity, Droplet, Moon, Search, Bell, LogOut,
+    Activity, Droplet, Moon, Search, Bell, LogOut, Plus,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
 } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
