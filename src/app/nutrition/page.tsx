@@ -2953,7 +2953,7 @@ export default function NutritionDashboard() {
                    <div className="w-full space-y-4">
                       <div>
                          <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]">Protéines</span>
+                            <span className="text-black uppercase tracking-widest text-[9px]"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full inline mr-1"/> Protéines</span>
                             <span className="text-zinc-500 text-[9px]">{proteins} / {proteinGoal}g</span>
                          </div>
                          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
@@ -2962,7 +2962,7 @@ export default function NutritionDashboard() {
                       </div>
                       <div>
                          <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]">Glucides</span>
+                            <span className="text-black uppercase tracking-widest text-[9px]"><img src={CARBS_ICON} className="w-3 h-3 rounded-full inline mr-1"/> Glucides</span>
                             <span className="text-zinc-500 text-[9px]">{carbs} / {carbsGoal}g</span>
                          </div>
                          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
@@ -2971,7 +2971,7 @@ export default function NutritionDashboard() {
                       </div>
                       <div>
                          <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]">Lipides</span>
+                            <span className="text-black uppercase tracking-widest text-[9px]"><img src={FATS_ICON} className="w-3 h-3 rounded-full inline mr-1"/> Lipides</span>
                             <span className="text-zinc-500 text-[9px]">{fats} / {fatsGoal}g</span>
                          </div>
                          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
@@ -2980,16 +2980,10 @@ export default function NutritionDashboard() {
                       </div>
                    </div>
                 </div>
-
-                </div>
-
-              {/* COLONNE DROITE (2/3) */}
-              <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* 1. Le grand widget "Refaire mon diagnostic" au sommet */}
-                {/* 2. Le grand widget "Refaire mon diagnostic" en dessous des repas */}
+                {/* 2. Refaire mon diagnostic (Bas de colonne gauche) */}
                 <button
                   onClick={() => setShowRedoDiagModal(true)}
-                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg h-40 md:h-48 flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
+                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg h-48 w-full flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
                 >
                   <img
                     src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
@@ -3010,6 +3004,11 @@ export default function NutritionDashboard() {
                      </p>
                   </div>
                 </button>
+
+              </div>
+
+              {/* COLONNE DROITE (2/3) */}
+              <div className="lg:col-span-2 flex flex-col gap-6">
                 {/* 1. Le grand widget "Refaire mon diagnostic" au sommet */}
 
                 {/* 1. La liste des repas (Sama Menu ou Mode Libre) */}
@@ -3574,7 +3573,7 @@ export default function NutritionDashboard() {
 
                   {/* GRAPHIQUE : Calories */}
                   <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Flame size={16}/> Calories Consommées</h3>
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> Calories Consommées</h3>
                      <div className="flex items-end justify-between h-40 gap-2">
                         {Array.from({length: 7}, (_, i) => {
                            const d = new Date();
