@@ -25,3 +25,19 @@ body {
   /* Inter s'applique par défaut sur tout le texte, les tableaux, les petits éléments */
   font-family: var(--font-inter); 
 }
+@layer utilities {
+  @keyframes gentle-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+  }
+
+  .animate-gentle-pulse {
+    animation: gentle-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
