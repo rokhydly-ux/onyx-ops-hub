@@ -43,9 +43,8 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
 
                 {/* 1. Mon Jour (Validation repas) - prend plus d'espace */}
-                <div className="col-span-1 md:col-span-2 lg:col-span-7 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('history')}>
-                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" className="absolute -bottom-6 -right-6 w-32 h-32 opacity-[0.03] grayscale pointer-events-none" alt="" />
-                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors z-10"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
+                <div className="col-span-12 lg:col-span-6 rounded-[2rem] bg-white border border-[#39FF14]/50 shadow-sm p-6 backdrop-blur-sm flex flex-col min-h-[300px] relative group cursor-pointer transition-transform hover:scale-[1.01]" onClick={() => setActiveTab('today')}>
+                    <button className="absolute top-6 right-6 text-zinc-400 group-hover:text-[#39FF14] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></button>
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Mon Jour</p>
                     </div>
@@ -63,15 +62,15 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                         {/* Macros */}
                         <div className="flex-1 w-full space-y-4">
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Protéines</span><span className="text-zinc-500">45 / {clientProfile?.protein_goal || 80}g</span></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black flex items-center gap-1"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375734/A_cute__highly_detailed_3D_202606131825_2_roav76.jpg" className="w-3 h-3 rounded-full"/> Protéines</span><span className="text-zinc-500">45 / {clientProfile?.protein_goal || 80}g</span></div>
                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-blue-400 w-1/2"></div></div>
                             </div>
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Glucides</span><span className="text-zinc-500">120 / {clientProfile?.carbs_goal || 150}g</span></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black flex items-center gap-1"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375738/A_cute__highly_detailed_3D_202606131825_1_epyark.jpg" className="w-3 h-3 rounded-full"/> Glucides</span><span className="text-zinc-500">120 / {clientProfile?.carbs_goal || 150}g</span></div>
                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-yellow-400 w-3/4"></div></div>
                             </div>
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Lipides</span><span className="text-zinc-500">30 / {clientProfile?.fats_goal || 50}g</span></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black flex items-center gap-1"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375735/A_cute__highly_detailed_3D_202606131826_jbhb58.jpg" className="w-3 h-3 rounded-full"/> Lipides</span><span className="text-zinc-500">30 / {clientProfile?.fats_goal || 50}g</span></div>
                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-red-400 w-1/3"></div></div>
                             </div>
                         </div>
@@ -82,7 +81,7 @@ export default function BentoDashboardView({ user,   jongomaXP, clientProfile, s
                         <button onClick={(e) => { e.stopPropagation(); handleMealClick?.('Déjeuner', null, 'guided'); }} className="bg-zinc-50 border border-zinc-200 hover:border-[#39FF14] text-black rounded-xl p-3 text-xs font-bold transition-colors flex items-center justify-center gap-2">
                             🍲 Loguer Repas
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('history'); }} className="bg-[#39FF14] text-black rounded-xl p-3 text-xs font-bold hover:bg-[#32e012] transition-colors flex items-center justify-center gap-2">
+                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('today'); }} className="bg-[#39FF14] text-black rounded-xl p-3 text-xs font-bold hover:bg-[#32e012] transition-colors flex items-center justify-center gap-2">
                             ✅ Bilan Quotidien
                         </button>
                     </div>
