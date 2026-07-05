@@ -3102,13 +3102,19 @@ export default function NutritionDashboard() {
                 {/* 2. Eau et Bilan côte à côte */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Objectif Eau - Interactive */}
-                    <div className="rounded-[2rem] bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-sm p-4 relative overflow-hidden flex flex-col justify-between">
-                        <div>
+                    <div className="rounded-[2rem] border border-blue-100 shadow-sm p-4 relative overflow-hidden flex flex-col justify-between group">
+                        <img
+                            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg"
+                            className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                            alt="Hydratation Background"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/80 to-transparent"></div>
+                        <div className="relative z-10">
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
                                <Droplet size={10} className="fill-blue-500"/> Objectif Eau
                             </p>
                             <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
-                            <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest leading-tight">
+                            <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
                                 {waterGlasses === 0 && "Il est temps de boire le premier verre !"}
                                 {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça !"}
                                 {waterGlasses >= 4 && waterGlasses < 8 && "Tu es à la moitié, bravo !"}

@@ -3,33 +3,19 @@
    - Network:      http://192.168.0.2:3000
 
  ✓ Starting...
- ✓ Ready in 1973ms
- ○ Compiling /src/middleware ...
- ✓ Compiled /src/middleware in 789ms (98 modules)
+ ✓ Ready in 2.5s
+ ✓ Compiled /src/middleware in 352ms (98 modules)
 [Middleware Executed] Detected Host: localhost | Path: /nutrition
  ○ Compiling /nutrition ...
- ✓ Compiled /nutrition in 15.7s (3108 modules)
- GET /nutrition 200 in 18053ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- ○ Compiling /login ...
- ✓ Compiled /login in 5.9s (3105 modules)
- GET /login 200 in 6142ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 65ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 64ms
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
- GET /nutrition 200 in 747ms
+ ✓ Compiled /nutrition in 8.5s (3076 modules)
+ GET /nutrition 200 in 10828ms
 [Middleware Executed] Detected Host: localhost | Path: /login
 [Middleware Executed] Detected Host: localhost | Path: /sw.js
- GET /login 200 in 51ms
 [Middleware Executed] Detected Host: localhost | Path: /
 [Middleware Executed] Detected Host: localhost | Path: /nutrition
 [Middleware Executed] Detected Host: localhost | Path: /manifest.json
-[Middleware Executed] Detected Host: localhost | Path: /login
  ○ Compiling /[shopSlug] ...
- GET /nutrition 200 in 3442ms
- ✓ Compiled /[shopSlug] in 4s (3276 modules)
+ ✓ Compiled /[shopSlug] in 4.1s (3276 modules)
 Error: Route "/[shopSlug]" used `params.shopSlug`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
     at shopSlug (src/app/[shopSlug]/layout.tsx:5:10)
   3 |
@@ -39,65 +25,4 @@ Error: Route "/[shopSlug]" used `params.shopSlug`. `params` should be awaited be
   6 |
   7 |   // 1. Récupérer les infos de la boutique depuis Supabase
   8 |   const { data: shop } = await supabase
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
- GET /nutrition 200 in 50ms
-[Middleware Executed] Detected Host: localhost | Path: /login
-[Middleware Executed] Detected Host: localhost | Path: /sw.js
- GET /login 200 in 78ms
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
-[Middleware Executed] Detected Host: localhost | Path: /
-[Middleware Executed] Detected Host: localhost | Path: /manifest.json
-Error: Route "/[shopSlug]" used `params.shopSlug`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at shopSlug (src/app/[shopSlug]/layout.tsx:5:10)
-  3 |
-  4 | export async function generateMetadata({ params }: { params: { shopSlug: string } }): Promise<Metadata> {
-> 5 |   const { shopSlug } = params;
-    |          ^
-  6 |
-  7 |   // 1. Récupérer les infos de la boutique depuis Supabase
-  8 |   const { data: shop } = await supabase
- GET /nutrition 200 in 250ms
- GET / 200 in 289ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /manifest.json 200 in 344ms
- GET /login 200 in 121ms
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
- GET /nutrition 200 in 94ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 67ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 56ms
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
- GET /nutrition 200 in 79ms
-[Middleware Executed] Detected Host: localhost | Path: /login
-[Middleware Executed] Detected Host: localhost | Path: /sw.js
- GET /login 200 in 51ms
-[Middleware Executed] Detected Host: localhost | Path: /
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
-[Middleware Executed] Detected Host: localhost | Path: /manifest.json
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 198ms
-Error: Route "/[shopSlug]" used `params.shopSlug`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at shopSlug (src/app/[shopSlug]/layout.tsx:5:10)
-  3 |
-  4 | export async function generateMetadata({ params }: { params: { shopSlug: string } }): Promise<Metadata> {
-> 5 |   const { shopSlug } = params;
-    |          ^
-  6 |
-  7 |   // 1. Récupérer les infos de la boutique depuis Supabase
-  8 |   const { data: shop } = await supabase
- GET / 200 in 331ms
- GET /nutrition 200 in 354ms
- GET /manifest.json 200 in 373ms
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
- GET /nutrition 200 in 59ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 36ms
-[Middleware Executed] Detected Host: localhost | Path: /login
- GET /login 200 in 59ms
-[Middleware Executed] Detected Host: localhost | Path: /nutriafro-login
- ○ Compiling /nutriafro-login ...
- ✓ Compiled /nutriafro-login in 1790ms (3190 modules)
- GET /nutriafro-login 200 in 2122ms
- ✓ Compiled in 3s (1983 modules)
-Killed
+ ✓ Compiled in 2.7s (1575 modules)
