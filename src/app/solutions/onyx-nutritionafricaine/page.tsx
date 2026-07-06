@@ -272,7 +272,7 @@ export default function NutritionAfricaineLanding() {
   useEffect(() => {
       const interval = setInterval(() => {
           setHeroSlide(prev => (prev + 1) % HERO_SLIDES.length);
-      }, 5000);
+      }, 8000);
       return () => clearInterval(interval);
   }, []);
 
@@ -1054,6 +1054,44 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
+      {/* SECTION : CONSEILS DU COACH (BLOG) */}
+      <section className="py-24 px-6 bg-white border-t border-zinc-200">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Conseils du <span className="text-black border-b-4 border-[#39FF14]">Coach</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Lisez nos derniers articles pour comprendre votre métabolisme.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg", title: "Comment manger du Tiep et perdre du ventre ?", desc: "Le secret n'est pas d'arrêter le Tiep, mais de comprendre comment l'indice glycémique fonctionne..." },
+              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg", title: "Les 3 erreurs au petit-déjeuner", desc: "Vous prenez du pain au chocolat ou vous sautez le repas ? Voici pourquoi votre corps stocke la graisse..." },
+              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg", title: "Ménopause : Relancer la machine", desc: "Passé 45 ans, le métabolisme ralentit. Découvrez les épices locales qui agissent comme brûleurs naturels..." }
+            ].map((article, i) => (
+              <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
+                <div className="h-48 relative overflow-hidden">
+                  <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                     <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
+                  </div>
+                </div>
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
+                  <p className="text-zinc-500 text-sm font-medium mb-6 relative">
+                    {article.desc}
+                    <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
+                  </p>
+                  <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
+                    Débloquer l'article <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* 4. LE MATCH : RÉGIMES OCCIDENTAUX VS NUTRITION À L'AFRICAINE */}
       <section className="py-24 px-6 bg-zinc-950 text-white">
         <div className="max-w-6xl mx-auto">
@@ -1291,9 +1329,6 @@ export default function NutritionAfricaineLanding() {
             </div>
          </div>
       </section>
-
-
-
 
 {/* 6. TARIFICATION (Original section 3, now section 6) */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
