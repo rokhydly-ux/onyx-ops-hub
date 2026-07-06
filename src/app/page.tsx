@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Heart } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 import { 
@@ -414,7 +415,7 @@ export default function OnyxOpsElite() {
         setShowExitIntent(false);
         setSelectedArticle(null);
         setIsMobileMenuOpen(false);
-          setShowProfileModal(false);
+          // setShowProfileModal(false);
           setIsBotOpen(false);
       }
     };

@@ -1234,7 +1234,7 @@ export default function AdminNutritionAfricaine() {
   const handleSavePromo = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
-      delete payload.id;
+      delete (payload as any).id;
       delete (payload as any).tenant_id;
       if (tenantId) (payload as any).tenant_id = tenantId;
       let res;
@@ -1726,7 +1726,7 @@ export default function AdminNutritionAfricaine() {
                           <div>
                              <h3 className="font-black uppercase text-sm flex items-center gap-2">
                                 {clientName}
-                                {profile.auto_welcome_enabled && <Clock size={14} className="text-purple-500 animate-pulse" title="Message de bienvenue automatique programmé" />}
+                                {profile.auto_welcome_enabled && <Clock size={14} className="text-purple-500 animate-pulse"  />}
                              </h3>
                              <p className="text-xs font-mono text-zinc-500">{phone}</p>
                           </div>
@@ -2923,7 +2923,7 @@ export default function AdminNutritionAfricaine() {
                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (1 URL par ligne)</label><textarea value={productForm.gallery.join('\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split('\n')})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg&#10;https://img2.jpg..." /></div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Tier Budget</label>
-                     <select value={productForm.budget_tier} onChange={e => setProductForm({...productForm, budget_tier: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                     <select value={(productForm as any).budget_tier || ""} onChange={e => setProductForm({...productForm, budget_tier: e.target.value} as any)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
                         <option value="Serré 8k">Serré 8k</option>
                         <option value="Famille 15k">Famille 15k</option>
                         <option value="Confort 25k">Confort 25k</option>
@@ -2941,7 +2941,7 @@ export default function AdminNutritionAfricaine() {
                   </div>
 
                   <label className="flex items-center gap-3 p-4 bg-green-50 border border-green-100 rounded-2xl cursor-pointer hover:bg-green-100 transition-colors">
-                     <input type="checkbox" checked={productForm.is_dietetic} onChange={e => setProductForm({...productForm, is_dietetic: e.target.checked})} className="w-5 h-5 accent-green-600" />
+                     <input type="checkbox" checked={(productForm as any).is_dietetic || false} onChange={e => setProductForm({...productForm, is_dietetic: e.target.checked} as any)} className="w-5 h-5 accent-green-600" />
                      <div>
                         <p className="font-black text-sm uppercase text-green-800">Produit Diététique</p>
                         <p className="text-[10px] font-bold text-green-600">Active le badge "Dietetic" et les filtres santé.</p>

@@ -1,4 +1,6 @@
 "use client";
+import jsPDF from 'jspdf';
+
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -8,8 +10,8 @@ import autoTable from 'jspdf-autotable';
 
 function CatalogueViewer() {
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get('t');
-  const idsParam = searchParams.get('ids');
+  const tenantId = searchParams?.get('t');
+  const idsParam = searchParams?.get('ids');
   
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState({ crm_name: 'Catalogue', logo_url: '', theme_color: '#39FF14' });

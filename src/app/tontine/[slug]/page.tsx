@@ -1358,7 +1358,7 @@ function SlugPageContent({ slug }: { slug: string }) {
   );
 }
 
-export default function Page({ params }: { params: Promise<{ slug: string }> | { slug: string } }) {
+export default function Page({ params }: { params: Promise<{ slug: string }> }) {
     const [slug, setSlug] = useState<string | null>(null);
     
     useEffect(() => {

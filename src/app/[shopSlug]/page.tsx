@@ -623,7 +623,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
 export default function DynamicShopPage() {
   const params = useParams();
-  const shopSlug = params.shopSlug as string;
+  const shopSlug = params?.shopSlug as string;
   const router = useRouter();
 
   const [currentShopId, setCurrentShopId] = useState<string | null>(null);

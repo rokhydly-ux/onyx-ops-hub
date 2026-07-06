@@ -12,7 +12,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 export default function PaymentPage() {
   const params = useParams();
   const router = useRouter();
-  const quoteId = params.quoteId as string;
+  const quoteId = params?.quoteId as string;
 
   const [quote, setQuote] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

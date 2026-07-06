@@ -448,7 +448,7 @@ export default function NutritionDashboard() {
              body: "N'oublie pas de boire ton verre d'eau pour atteindre ton objectif aujourd'hui. Ton métabolisme te dira merci !",
              icon: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
              badge: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
-             vibrate: [200, 100, 200]
+             // vibrate: [200, 100, 200]
           });
        });
     }
@@ -713,10 +713,10 @@ export default function NutritionDashboard() {
         }
       }
 
-      setUser({ ...finalUser, full_name: finalUser?.user_metadata?.full_name || finalUser?.full_name || "Membre" });
+      setUser({ ...finalUser, full_name: finalUser?.user_metadata?.full_name || (finalUser as any)?.full_name || "Membre" });
       setProfileForm({
-         full_name: finalUser?.user_metadata?.full_name || finalUser?.full_name || "",
-         avatar_url: finalUser?.user_metadata?.avatar_url || finalUser?.avatar_url || "",
+         full_name: finalUser?.user_metadata?.full_name || (finalUser as any)?.full_name || "",
+         avatar_url: finalUser?.user_metadata?.avatar_url || (finalUser as any)?.avatar_url || "",
          password: ""
       });
 
@@ -906,7 +906,7 @@ export default function NutritionDashboard() {
     verifyAuth();
 
     // Afficher un message de bienvenue après le diagnostic
-    if (searchParams.get('from') === 'diagnostic') {
+    if (searchParams?.get('from') === 'diagnostic') {
       alert("Félicitations et bienvenue ! Votre espace personnel est prêt.");
       // Nettoyer l'URL
       router.replace('/nutrition');
@@ -1528,7 +1528,7 @@ export default function NutritionDashboard() {
                   protein_goal: results.protein,
                   fats_goal: results.fats,
                   diagnostic_data: { 
-                      ...cleanDiagData,
+                      ...diagData,
                       bmr: results.bmr,
                       tdee: results.tdee
                   }
@@ -3700,7 +3700,7 @@ export default function NutritionDashboard() {
                        const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
                        const isTop10 = top10RecipeIds.includes(fav.id);
                        
-                       const tags = [];
+                       const tags: string[] = [];
                        if (prots >= 20) tags.push("Protéiné");
                        if (fav.carbs <= 30) tags.push("Low Carb");
                        if (cals <= 350) tags.push("Léger");

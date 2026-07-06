@@ -1087,28 +1087,37 @@ export default function NutritionAfricaineLanding() {
             </h2>
             <p className="text-zinc-400 font-bold text-lg">Le Match : Régimes de l'Étranger VS Nutrition à l'Africaine</p>
           </div>
-                    <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-            {/* DANS LA CARTE RÉGIMES DE L'ÉTRANGER */}
-            <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] flex flex-col relative opacity-90">
-              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Carte_Match_1_R%C3%A9gime_de_l_%C3%A9tranger_jyuqlr.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="Régime restrictif" />
-              <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 w-max border border-red-800 shadow-sm">❌ Les Régimes de l'Étranger</span>
-              <ul className="space-y-4 text-zinc-400 font-medium text-base">
-                <li>❌ Adieu le riz, plats insipides.</li>
-                <li>❌ Isolement pendant les repas de famille.</li>
-                <li>❌ Frustration et Effet Yoyo garanti.</li>
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
+            {/* AVANT : Régimes Classiques */}
+            <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] flex flex-col relative opacity-90">
+              <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max border border-red-800">
+                <AlertTriangle size={14} /> Les Régimes de l'Étranger (❌)
+              </span>
+              <ul className="space-y-4 text-zinc-400 font-medium text-lg">
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Adieu le bon riz, bonjour les salades fades.</strong> Devoir chercher du quinoa ou du saumon hors de prix à Dakar.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">S'isoler lors des repas de famille :</strong> "Désolé, je ne mange pas avec vous, je suis au régime."</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Résultat ? Vous craquez et reprenez tout.</strong> Effet Yoyo garanti.</span></li>
               </ul>
             </div>
 
-            {/* DANS LA CARTE NUTRITION AFRICAINE */}
-            <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2.5rem] flex flex-col relative shadow-[0_20px_50px_rgba(57,255,20,0.15)] z-10 md:scale-105">
-              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285417/Senegalese_Thieboudienne_with_ve__2K_202607052103_dit2wp.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="Nutrition Africaine" />
-              <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 w-max shadow-lg">✅ La Méthode Locale</span>
-              <ul className="space-y-4 text-zinc-200 font-medium text-base">
-                <li>✅ Plaisir conservé, on ajuste juste les doses.</li>
-                <li>✅ Super-aliments locaux qui boostent la perte.</li>
-                <li>✅ Économique, familial et durable.</li>
+            {/* APRÈS : Nutrition à l'Africaine */}
+            <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
+              <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
+                <CheckCircle size={14} /> La Méthode Locale (✅)
+              </span>
+              <ul className="space-y-4 text-zinc-200 font-medium text-lg">
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Conservez le plaisir de nos sauces</strong> en apprenant à doser l'huile.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Utilisez les super-aliments de nos marchés</strong> (Soumbala, Bouye, Kinkeliba) pour booster votre métabolisme et bloquer le stockage des graisses.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Une méthode économique, durable et 100% validée médicalement.</strong></span></li>
               </ul>
             </div>
+          </div>
+          <div className="relative mx-auto w-full max-w-lg mt-16">
+             <img
+               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_split-screen_composition_styled_for_202606111513_ompcjz.jpg"
+               alt="Comparaison Régimes"
+               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-800"
+             />
           </div>
         </div>
       </section>
@@ -1317,7 +1326,62 @@ export default function NutritionAfricaineLanding() {
       </section>
 
 
+      {/* NOUVELLE SECTION : SCAN IA & APP */}
+      <section className="py-24 px-6 bg-black text-white overflow-hidden relative">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
+          {/* IMAGE GAUCHE (Mockup App) */}
+          <div className="w-full md:w-1/2 relative">
+            <div className="absolute inset-0 bg-[#39FF14] blur-[100px] opacity-20 rounded-full"></div>
+            <img src="URL_DE_TON_IMAGE_IA_MAIN_IPHONE" alt="Application Scan IA" className="w-full max-w-md mx-auto relative z-10 animate-gentle-pulse" />
+          </div>
 
+          {/* TEXTE DROITE */}
+          <div className="w-full md:w-1/2">
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-[#39FF14]/50 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+              <Smartphone size={14}/> Disponible sur iOS & Android
+            </div>
+            <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
+              Li ngay lekk chaque jour, <span className="text-[#39FF14]">sans casse-tête.</span>
+            </h2>
+            <p className="text-zinc-300 font-bold text-lg mb-8">Maigrir en mangeant suniu plats locaux. Zéro pesée, zéro calcul, zéro "lekk niakh".</p>
+
+            <ul className="space-y-6 mb-10">
+              <li className="flex gap-4 items-start">
+                <div className="bg-[#39FF14] text-black p-2 rounded-xl shrink-0"><Sparkles size={20}/></div>
+                <div>
+                  <h4 className="font-black text-lg uppercase">Scan IA Révolutionnaire</h4>
+                  <p className="text-zinc-400 font-medium mt-1">Prenez votre bol en photo, l'intelligence artificielle calcule vos calories et macros instantanément.</p>
+                </div>
+              </li>
+              <li className="flex gap-4 items-start">
+                <div className="bg-[#39FF14] text-black p-2 rounded-xl shrink-0"><Utensils size={20}/></div>
+                <div>
+                  <h4 className="font-black text-lg uppercase">Le Bol Familial Validé</h4>
+                  <p className="text-zinc-400 font-medium mt-1">L'application vous dit exactement combien de cuillères prendre dans le plat commun pour fondre.</p>
+                </div>
+              </li>
+            </ul>
+
+            {/* BOUTONS APP STORES (Mockups) */}
+            <div className="flex flex-wrap gap-4">
+              <button className="bg-zinc-900 border border-zinc-800 hover:border-[#39FF14] hover:bg-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center gap-3 transition-all">
+                <Apple size={24} />
+                <div className="text-left">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Télécharger sur</p>
+                  <p className="text-sm font-black uppercase">App Store</p>
+                </div>
+              </button>
+              <button className="bg-zinc-900 border border-zinc-800 hover:border-[#39FF14] hover:bg-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center gap-3 transition-all">
+                <Smartphone size={24} className="text-[#39FF14]" />
+                <div className="text-left">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Disponible sur</p>
+                  <p className="text-sm font-black uppercase">Google Play</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
 {/* 6. TARIFICATION (Original section 3, now section 6) */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
@@ -1449,44 +1513,6 @@ export default function NutritionAfricaineLanding() {
                 <p className="text-xs text-zinc-400 mt-4 text-center italic">Ces valeurs sont des estimations. Le programme vous donne des calculs personnalisés.</p>
               </motion.div>
             )}
-          </div>
-        </div>
-      </section>
-
-            {/* LA SECTION BLOG (Le Funnel "Soft Paywall") */}
-      <section className="py-24 px-6 bg-white border-t border-zinc-200">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              Conseils du <span className="text-black border-b-4 border-[#39FF14]">Coach</span>
-            </h2>
-            <p className="text-zinc-500 font-bold text-lg">Lisez nos derniers articles pour comprendre votre métabolisme.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg", title: "Comment manger du Tiep et perdre du ventre ?", desc: "Le secret n'est pas d'arrêter le Tiep, mais de comprendre comment l'indice glycémique fonctionne..." },
-              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg", title: "Les 3 erreurs au petit-déjeuner", desc: "Vous prenez du pain au chocolat ou vous sautez le repas ? Voici pourquoi votre corps stocke la graisse..." },
-              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg", title: "Ménopause : Relancer la machine", desc: "Passé 45 ans, le métabolisme ralentit. Découvrez les épices locales qui agissent comme brûleurs naturels..." }
-            ].map((article, i) => (
-              <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
-                <div className="h-48 relative overflow-hidden">
-                  <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
-                     <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
-                  </div>
-                </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
-                  <p className="text-zinc-500 text-sm font-medium mb-6 relative">
-                    {article.desc}
-                    <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
-                  </p>
-                  <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
-                    Débloquer l'article <ArrowRight size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

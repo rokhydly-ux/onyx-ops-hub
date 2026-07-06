@@ -33,7 +33,7 @@ import { fr } from 'date-fns/locale';
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const leadId = params.id as string;
+  const leadId = params?.id as string;
 
   const [lead, setLead] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

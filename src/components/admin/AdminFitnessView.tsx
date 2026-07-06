@@ -62,7 +62,7 @@ export default function AdminFitnessView() {
                 const text = event.target?.result as string;
                 // Basic CSV parsing (assuming Title;Category;Difficulty;Duration;Benefits;VideoURL format)
                 const rows = text.split('\n');
-                const parsedExercises = [];
+                const parsedExercises: any[] = [];
 
                 // Skip header (i=1)
                 for (let i = 1; i < rows.length; i++) {

@@ -24,7 +24,7 @@ function TontineMembrePage() {
 
 function TontineMembreDashboard() {
   const searchParams = useSearchParams();
-  const tontineId = searchParams.get('id') || searchParams.get('tontine_id');
+  const tontineId = searchParams?.get('id') || searchParams?.get('tontine_id');
 
   // --- ETATS DE CONNEXION & SESSION ---
   const [currentUser, setCurrentUser] = useState<any>(null);

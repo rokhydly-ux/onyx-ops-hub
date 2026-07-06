@@ -8,7 +8,7 @@ import Papa from 'papaparse';
 
 function CRMSettingsContent() {
   const searchParams = useSearchParams();
-  const tabFromUrl = searchParams.get('tab');
+  const tabFromUrl = searchParams?.get('tab');
   const [settings, setSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14', admin_whatsapp: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

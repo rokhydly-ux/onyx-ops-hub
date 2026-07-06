@@ -89,7 +89,7 @@ export default function OnyxHubPortal() {
       
       if (user.email === 'rokhydly@gmail.com' || (adminProfile && !clientProfile)) {
         profileData = adminProfile;
-        role = adminProfile?.role || 'SUPER_ADMIN';
+        role = (adminProfile as any)?.role || 'SUPER_ADMIN';
       } else if (clientProfile) {
         profileData = clientProfile;
         role = 'CLIENT';
