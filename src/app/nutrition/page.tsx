@@ -4413,22 +4413,22 @@ export default function NutritionDashboard() {
 
                         {/* Top Right: Community */}
                         <div className="col-span-12 lg:col-span-4 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col min-h-[300px] justify-between">
-                            <h3 className="text-sm font-black text-black mb-4">Community</h3>
+                            <h3 className="text-sm font-black text-black mb-4">Podium Communauté</h3>
                             <div className="flex-grow flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                                 <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl">
                                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/11_z46c3q.webp" alt="Aïssatou K." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
-                                    <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative"><span className="absolute -left-2 top-0 text-[10px] bg-yellow-400 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">1</span>Walcom, la broslen en rééquilibrage alimentaire?</div>
+                                    <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative flex flex-col gap-1 w-full"><span className="absolute -left-2 top-0 text-[10px] bg-yellow-400 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">1</span><span>Aïssatou K.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -12 kg</span></div>
                                 </div>
                                 <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl flex-row-reverse">
                                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/12_n3j04q.webp" alt="Penda D." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
-                                    <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tr-sm shadow-sm relative"><span className="absolute -right-2 top-0 text-[10px] bg-zinc-300 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">2</span>Droecane de rééquilibrage alimentaire comimoms.</div>
+                                    <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tr-sm shadow-sm relative flex flex-col items-end gap-1 w-full"><span className="absolute -right-2 top-0 text-[10px] bg-zinc-300 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">2</span><span>Penda D.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -9 kg</span></div>
                                 </div>
                                 <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl">
                                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/02_p5h94e.webp" alt="Amadou T." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
-                                    <div className="bg-white border border-zinc-100 text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative"><span className="absolute -left-2 top-0 text-[10px] bg-amber-600 text-white w-4 h-4 rounded-full flex items-center justify-center shadow-sm">3</span>What&apos;s so rééquilibrage alimentaire coammems?</div>
+                                    <div className="bg-white border border-zinc-100 text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative flex flex-col gap-1 w-full"><span className="absolute -left-2 top-0 text-[10px] bg-amber-600 text-white w-4 h-4 rounded-full flex items-center justify-center shadow-sm">3</span><span>Amadou T.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -7 kg</span></div>
                                 </div>
                             </div>
-                            <button onClick={() => setActiveTab('community')} className="w-full mt-4 bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-xs py-3 rounded-xl transition-colors shadow-sm tracking-widest">Join Discussion</button>
+                            <button onClick={() => setActiveTab('community')} className="w-full mt-4 bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-xs py-3 rounded-xl transition-colors shadow-sm tracking-widest">Voir la communauté</button>
                         </div>
                         {/* Bottom Left: Current vs Target Weight */}
                         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col justify-between relative overflow-hidden cursor-pointer" onClick={() => setShowWeightModal(true)}>
