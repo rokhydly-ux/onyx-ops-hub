@@ -1,15 +1,17 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper} from 'lucide-react';
-
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { TrendingUp, Dumbbell, Send, TrendingDown } from "lucide-react";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 
 import { supabase } from "@/lib/supabaseClient";
-import {YAxis, ResponsiveContainer, AreaChart, PieChart, Pie, LineChart, XAxis, ReferenceLine, Cell, Bar, Line, BarChart, Tooltip as RechartsTooltip, CartesianGrid, Area} from 'recharts';
+import {
+  ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
+, PartyPopper } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
@@ -29,13 +31,7 @@ const MENU_ICONS = {
   monJour: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg",
   fitness: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg",
   shop: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg",
-  profile: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg",
-  favorites: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg",
-  community: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg",
-  weight: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg",
-  minuteDoc: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg",
-  blog: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg",
-  coaching: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540692/A_cute__highly_detailed_3D_202606151624_lzxhup.jpg"
+  profile: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg"
 };
 
 const RECIPE_FILTERS = [
@@ -308,7 +304,7 @@ export default function NutritionDashboard() {
   const [theme, setTheme] = useState<'light'|'dark'>('light');
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<any>('dashboard');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'fitness' | 'minute-doc' | 'community' | 'favorites' | 'coaching' | 'blog' | 'shop' | 'orders'>('week');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
@@ -357,7 +353,6 @@ export default function NutritionDashboard() {
   const [isThiernoChatOpen, setIsThiernoChatOpen] = useState(false);
   const [isThiernoDismissed, setIsThiernoDismissed] = useState(false);
   const [thiernoUserReply, setThiernoUserReply] = useState("");
-  const [coachingChatStep, setCoachingChatStep] = useState(0);
   const thiernoChatEndRef = useRef<HTMLDivElement>(null);
   const [thiernoMessages, setThiernoMessages] = useState<any[]>([
     { sender: 'bot', text: "Bonjour ! Je suis le Dr. Thierno. As-tu des questions sur la nutrition, tes portions ou comment adapter tes plats locaux (Mix Sénégalo-Moderne) ?" }
@@ -458,7 +453,6 @@ export default function NutritionDashboard() {
   const [jongomaXP, setJongomaXP] = useState(0);
   const [weightLogs, setWeightLogs] = useState<any[]>([]);
   const [newWeight, setNewWeight] = useState("");
-  const [showWeightModal, setShowWeightModal] = useState(false);
   const [currentWeightInput, setCurrentWeightInput] = useState<number>(0);
   const [showConfetti, setShowConfetti] = useState<boolean | string>(false);
   const [weightCoachMessage, setWeightCoachMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
@@ -2086,7 +2080,7 @@ export default function NutritionDashboard() {
             log_date: todayStr,
             weight: newWeight
           };
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload as any, { onConflict: 'client_id, log_date' });
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload, { onConflict: ['client_id', 'log_date'] });
 
           if (insertErr) {
               alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
@@ -2721,112 +2715,156 @@ export default function NutritionDashboard() {
 
       {/* SIDEBAR VERTICAL */}
 
+      {/* HEADER & HORIZONTAL NAVIGATION */}
+      <header className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 px-4 md:px-8 py-4 flex flex-col gap-4">
+        <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-2">
+                <img src={logoSrc} alt="OnyxNutrition" className="h-10 w-auto object-contain" />
+            </div>
 
-      {/* NOUVEAU HEADER GLASSMORPHISM */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => setActiveTab('dashboard')} />
+            {/* Actions Droite */}
+            <div className="flex items-center gap-4">
+                <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+                    <Search size={14} className="text-zinc-500" />
+                    <input type="text" placeholder="Rechercher..." className="bg-transparent border-none text-xs text-white outline-none w-24 focus:w-32 transition-all ml-2" />
+                </div>
+                <button className="relative p-2 rounded-full bg-white/5 border border-white/10 text-zinc-400 hover:text-white transition-colors">
+                    <Bell size={16} />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+
+                {/* Dropdown Profil */}
+                <div className="relative group">
+                    <button className="flex items-center gap-2 focus:outline-none">
+                        <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-10 h-10 rounded-full border border-white/10 object-cover" />
+                        <ChevronDown size={14} className="text-zinc-500 group-hover:text-white" />
+                    </button>
+                    <div className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
+                        <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-white text-left hover:bg-white/5 transition-colors flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
+                        <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-white text-left hover:bg-white/5 transition-colors flex items-center gap-2"><Settings size={14}/> Paramètres</button>
+                        <div className="h-px w-full bg-white/5"></div>
+                        <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-500/10 transition-colors flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        {/* MÉGA-MENU (Desktop) */}
-        <div className="hidden lg:flex items-center gap-2">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Accueil</button>
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt=""/> Mon Jour</button>
-                    <button onClick={() => setActiveTab('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt=""/> Historique</button>
-                    <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
+        {/* Menu Pills Horizontal */}
+        <nav className="w-full overflow-x-auto scrollbar-hide flex items-center justify-center space-x-2 pb-2">
+            {menuItems.map((item: any) => (
+               <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full font-black uppercase text-[10px] tracking-widest transition-all ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_0_15px_rgba(57,255,20,0.3)]' : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-white/5'}`}
+               >
+                  {item.label}
+               </button>
+            ))}
+        </nav>
+      </header>
+
+
+      {/* MAIN CONTENT AREA */}
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 `}>
+      {/* Header */}
+      <div className="lg:hidden p-4 bg-black flex justify-between items-center sticky top-0 z-40 shadow-md">
+         <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
+         <img src={logoSrc} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" alt="Logo" />
+         <button onClick={() => setShowCartModal(true)} className={`relative p-2 text-zinc-400 hover:text-white transition-all ${isCartBouncing ? 'scale-125 text-[#39FF14] drop-shadow-[0_0_10px_#39FF14]' : ''}`}>
+            <ShoppingCart size={24} />
+            {shopCart.length > 0 && (
+               <span className="absolute top-0 right-0 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black shadow-md">
+                  {shopCart.length}
+               </span>
+            )}
+         </button>
+      </div>
+
+      <header className="bg-black text-white px-6 py-8 border-b-4 border-[#39FF14] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
+
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+             <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-800">
+               <ChevronLeft size={16}/> Retour au Hub
+             </button>
+
+             <div className="flex items-center gap-3">
+                 <button onClick={() => setShowCartModal(true)} className={`relative flex items-center gap-2 hover:text-white transition-all bg-zinc-900 px-4 py-2 rounded-xl border ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'text-zinc-400 border-zinc-800'}`}>
+                    <ShoppingCart size={16} />
+                    <span className="text-xs font-black uppercase hidden sm:block">Panier</span>
+                    {shopCart.length > 0 && (
+                       <span className="absolute -top-2 -right-2 bg-[#39FF14] text-black w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-black animate-pulse shadow-md">
+                          {shopCart.length}
+                       </span>
+                    )}
+                 </button>
+                 <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
+                   {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} <span className="hidden sm:block">{theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}</span>
+                 </button>
+                 <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors ${isExpertMode ? 'text-[#39FF14] border-[#39FF14]' : 'text-zinc-400 border-zinc-800 hover:text-white'}`}>
+                    <Eye size={16}/>
+                    <span className="hidden sm:block">Kcal</span>
+                 </button>
+             </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+            <div>
+              {isOffline && (
+                 <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
+              )}
+              <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
+              <div className="flex items-center gap-4">
+                <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-20 h-20 rounded-full object-cover hidden md:block mr-4 border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)] bg-zinc-800" />
+                <div>
+                  <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
+                    {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+                  </h1>
+                  <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mt-1">{greetingSubtext}</p>
                 </div>
+              </div>
             </div>
 
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt=""/> Sama Menu</button>
-                    <button onClick={() => setActiveTab('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
-                </div>
+            {/* Bandeau Essai Gratuit */}
+            <div className="flex items-center gap-4">
+               <div className={`hidden sm:flex items-center gap-3 bg-zinc-900 p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-800 shadow-inner'} cursor-pointer hover:bg-zinc-800 transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
+                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-700'}`}>{lvlInfo.badge}</div>
+                  <div>
+                     <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest">Niveau : {lvlInfo.name}</p>
+                     <p className="text-white text-xs font-bold">{jongomaXP} XP</p>
+                  </div>
+               </div>
+               <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-xl">
+                 <div className="flex items-center gap-4">
+                    <div className="bg-black border border-zinc-700 p-3 rounded-xl">
+                       <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Abonnement</p>
+                       <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours restants` : 'Expiré'}</strong></p>
+                    </div>
+                 </div>
+                 <button onClick={() => setShowPaymentModal(true)} className="w-full sm:w-auto bg-[#39FF14] text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-colors">Renouveler</button>
+               </div>
             </div>
-
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <MessageSquare size={14}/> Réseau <ChevronDown size={12}/>
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
-                    <button onClick={() => setActiveTab('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
-                    <button onClick={() => setActiveTab('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
-                    <button onClick={() => setActiveTab('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
-                    <button onClick={() => setActiveTab('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
-
-                </div>
-            </div>
-
-<button onClick={() => setActiveTab('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
-                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt=""/> Boutique
-                </button>
-        </div>
-
-        {/* Actions Droite */}
-        <div className="flex items-center gap-3">
-            {/* Search Bar */}
-            <div className="hidden md:flex items-center bg-white border border-zinc-200 rounded-full px-3 py-1.5 shadow-sm">
-                <Search size={14} className="text-zinc-400" />
-                <input type="text" placeholder="Chercher une recette, un membre..." className="bg-transparent border-none text-xs text-zinc-700 outline-none w-48 focus:w-64 transition-all ml-2 placeholder:text-zinc-400" />
-            </div>
-
-            {/* Toggles */}
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-yellow-500 transition-colors shadow-sm" title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}>
-                {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
-            </button>
-
-            <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title="Toggle Kcal">
-                <Eye size={16}/>
-            </button>
-
-            {/* Cart */}
-            <button onClick={() => setShowCartModal(true)} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
-                <ShoppingCart size={16} />
-                {shopCart.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
-                        {shopCart.length}
-                    </span>
-                )}
-            </button>
-
-            {/* Avatar Dropdown */}
-            <div className="relative group ml-2">
-                <button className="flex items-center gap-2 focus:outline-none">
-                    <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-9 h-9 rounded-full border-2 border-[#39FF14]/50 object-cover shadow-sm" />
-                </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
-                    <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
-                    <div className="h-px w-full bg-zinc-100"></div>
-                    <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-50 flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
-                </div>
-            </div>
-
-            {/* Mobile Menu Toggle */}
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 text-zinc-700"><MenuIcon size={24}/></button>
+          </div>
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5`}>
-      {/* Header */}
-
-
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
-{/* GREETING INJECTED */}
+        {activeTab === 'today' && (
+          <BentoDashboardView
+              user={user}
 
-{activeTab === 'minute-doc' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
+
+              jongomaXP={jongomaXP}
+              clientProfile={clientProfile}
+          />
+        )}
+        {activeTab === 'minute-doc' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6">
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
                 <div>
                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center flex-wrap gap-3 mb-2`}>
@@ -2861,323 +2899,259 @@ export default function NutritionDashboard() {
           </div>
         )}
 
-        {activeTab === 'dashboard' && (
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
-            <div>
-              {isOffline && (
-                 <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
-              )}
-              <h1 className={`${spaceGrotesk.className} text-[2.5rem] md:text-4xl font-black uppercase tracking-tighter text-black`}>
-                {greetingText}, <span className="text-zinc-600">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
-              </h1>
-              <p className="text-zinc-500 font-bold text-sm mt-1">{greetingSubtext}</p>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-4">
-               <div className={`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
-                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}`}>{lvlInfo.badge}</div>
-                  <div>
-                     <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Niveau : <span className="text-zinc-800">{lvlInfo.name}</span></p>
-                     <p className="text-black text-xs font-black">{jongomaXP} XP</p>
-                  </div>
-               </div>
-               <div className="bg-white border border-zinc-200 p-2 pr-4 rounded-2xl flex items-center gap-3 shadow-sm cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setShowPaymentModal(true)}>
-                 <div className="bg-black border border-zinc-800 p-2.5 rounded-xl flex items-center justify-center">
-                    <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={20} />
-                 </div>
-                 <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Abonnement</p>
-                    <p className="text-xs font-black text-black"><strong className={daysLeft > 0 ? "text-green-600" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours restants` : 'Expiré'}</strong></p>
-                 </div>
-               </div>
-            </div>
+        {/* VUE FITNESS */}
+        {activeTab === 'fitness' && (
+           <ClientFitnessView clientId={clientProfile?.id || ""} tenantId={clientProfile?.tenant_id || ""} />
+        )}
+
+
+
+
+        {/* VUE COACHING */}
+        {activeTab === 'coaching' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Activity className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Coaching Personnel</h2>
+                <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-8">
+                   <h3 className="font-black text-lg text-blue-800 mb-2">Besoin d'un accompagnement sur-mesure ?</h3>
+                   <p className="text-sm font-medium text-blue-700">Prenez rendez-vous avec l'un de nos experts en nutrition pour adapter votre programme, surmonter un blocage ou poser vos questions.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between hover:border-black transition-colors">
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Clock size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Bilan 15 min (Gratuit)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Inclus dans votre abonnement Premium. Idéal pour un ajustement rapide de votre plan.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver mon bilan gratuit de 15min avec un coach.', '_blank')} className="w-full bg-black text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Réserver</button>
+                   </div>
+
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden hover:border-[#39FF14] transition-colors">
+                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">Recommandé</div>
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Target size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Consultation Complète (45 min)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Analyse approfondie, refonte du plan alimentaire et stratégies avancées.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver une consultation complète de 45min (10.000F).', '_blank')} className="w-full bg-[#39FF14] text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Réserver (10.000 F)</button>
+                   </div>
+                </div>
+             </div>
           </div>
         )}
 
-        {activeTab === 'dashboard' && (
-          <BentoDashboardView
-              user={user}
-              waterGlasses={waterGlasses}
-              handleUpdateWater={handleUpdateWater}
-              jongomaXP={jongomaXP}
-              clientProfile={clientProfile}
-              setActiveTab={setActiveTab}
-              handleMealClick={handleMealClick}
-          />
+        {activeTab === 'blog' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
+                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {articles.map((article: any) => (
+                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
+                     {article.image_url && (
+                        <div className="overflow-hidden rounded-2xl mb-6">
+                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                     )}
+                     <div className="flex gap-2 mb-4">
+                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
+                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                     </div>
+                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
+                     <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
+                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
+                     </div>
+                  </div>
+               ))}
+               {articles.length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
+                     Aucun article publié pour le moment.
+                  </div>
+               )}
+             </div>
+          </div>
         )}
 
-
-
-
-        {activeTab === 'today' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-               <div className="flex items-center gap-4">
-                  <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" />
-                  <div>
-                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Mon Jour</h2>
-                     <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
-                       Enregistrez vos repas, suivez votre eau et complétez votre bilan de la journée.
-                     </p>
-                  </div>
+        {/* MODALE LECTURE ARTICLE */}
+        {selectedArticle && (
+           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+             <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
+               <div className="absolute top-6 right-20 z-10">
+                 <button onClick={() => { const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
                </div>
+               <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
 
-               {/* Switch Mode Guidé / Flexible */}
-               <div className="bg-zinc-100 p-1.5 rounded-full inline-flex relative shadow-inner shrink-0 h-fit">
-                  <button onClick={() => handleTrackingModeChange('guided')} className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'guided' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-400 hover:text-black'}`}>Mode Guidé</button>
-                  <button onClick={() => handleTrackingModeChange('flexible')} className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'flexible' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-400 hover:text-black'}`}>Mode Libre</button>
+               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+
+               {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
+
+               <div className="prose prose-zinc dark:prose-invert max-w-none">
+                  <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-8 font-bold leading-relaxed">{selectedArticle.desc}</p>
+
+                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">{selectedArticle.content}</div>
+
+                  {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
+                     <div className="mb-10">
+                        <h3 className="font-black text-lg mb-4 uppercase tracking-widest text-zinc-400">Galerie</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                           {selectedArticle.gallery.map((img: string, i: number) => (
+                              <img key={i} src={img} className="w-full h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform cursor-pointer" alt="Galerie" />
+                           ))}
+                        </div>
+                     </div>
+                  )}
                </div>
-            </div>
+             </div>
+           </div>
+        )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* COLONNE GAUCHE (1/3) */}
-              <div className="lg:col-span-1 flex flex-col gap-6">
-                {/* 1. Le Pie Chart (Calories/Macros) ici */}
-                <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center">
-                   <div className="relative w-40 h-40 shrink-0 mb-6">
-                      <ResponsiveContainer width="100%" height="100%">
-                         <PieChart>
-                            <Pie data={[{name: 'Consommé', value: calories}, {name: 'Restant', value: remainingCalories}]} cx="50%" cy="50%" innerRadius={50} outerRadius={70} stroke="none" startAngle={90} endAngle={-270}>
-                               <Cell key="cell-0" fill="#39FF14" />
-                               <Cell key="cell-1" fill="#f4f4f5" />
-                            </Pie>
-                         </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                         <p className="text-2xl font-black text-black leading-none">{calories}</p>
-                         <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">/ {targetCalories} kcal</p>
-                      </div>
-                   </div>
+        {activeTab === 'history' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
 
-                   <div className="w-full space-y-4">
-                      <div>
-                         <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full inline mr-1"/> Protéines</span>
-                            <span className="text-zinc-500 text-[9px]">{proteins} / {proteinGoal}g</span>
-                         </div>
-                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${Math.min((proteins / proteinGoal) * 100, 100)}%` }}></div>
-                         </div>
-                      </div>
-                      <div>
-                         <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]"><img src={CARBS_ICON} className="w-3 h-3 rounded-full inline mr-1"/> Glucides</span>
-                            <span className="text-zinc-500 text-[9px]">{carbs} / {carbsGoal}g</span>
-                         </div>
-                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-yellow-500 transition-all duration-1000" style={{ width: `${Math.min((carbs / carbsGoal) * 100, 100)}%` }}></div>
-                         </div>
-                      </div>
-                      <div>
-                         <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-black uppercase tracking-widest text-[9px]"><img src={FATS_ICON} className="w-3 h-3 rounded-full inline mr-1"/> Lipides</span>
-                            <span className="text-zinc-500 text-[9px]">{fats} / {fatsGoal}g</span>
-                         </div>
-                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${Math.min((fats / fatsGoal) * 100, 100)}%` }}></div>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-
-                {/* 2. Le grand widget "Refaire mon diagnostic" en dessous du Pie Chart */}
-                <button
-                  onClick={() => setShowRedoDiagModal(true)}
-                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg flex-1 min-h-[300px] flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Refaire Diagnostic"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 backdrop-blur-[2px]"></div>
-
-                  <div className="relative z-10 flex flex-col items-center gap-3">
-                     <div className="bg-[#39FF14] text-black p-3 rounded-full animate-pulse shadow-[0_0_30px_rgba(57,255,20,0.6)]">
-                       <Target size={24} />
-                     </div>
-                     <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-white tracking-tighter drop-shadow-md text-center`}>
-                       Refaire mon diagnostic
-                     </h3>
-                     <p className="text-zinc-300 font-bold text-[10px] uppercase tracking-widest text-center">
-                       Ajuster mes objectifs
-                     </p>
-                  </div>
-                </button>
-              </div>
-
-              {/* COLONNE DROITE (2/3) */}
-              <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* 1. La liste des repas (Sama Menu ou Mode Libre) */}
-                {trackingMode === 'guided' ? (
-                   (() => {
-                       const todayMenu = weeklyGeneratedMenu.find(d => d.day === formattedCurrentDay);
-                       if (!todayMenu) return <div className="bg-white border border-zinc-200 p-8 text-center text-zinc-500 font-bold rounded-[2.5rem] shadow-sm">Aucun menu généré pour aujourd'hui. Veuillez générer votre Sama Menu.</div>;
-
-                       return (
-                           <div className="bg-white rounded-[2.5rem] shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
-                              <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
-                                 <img src={todayMenu.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover" />
-                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
-                                    <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
-                                    <p className="text-white font-bold text-lg leading-tight line-clamp-1">{todayMenu.meals?.['Déjeuner']?.nom || 'Repas'}</p>
-                                 </div>
-                              </div>
-
-                              <div className="p-5 flex-1 flex flex-col gap-3">
-                                 {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
-                                    const recipe = todayMenu.meals?.[mealType];
-                                    if(!recipe) return null;
-                                    const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
-
-                                    return (
-                                       <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
-                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
-                                             <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                             <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
-                                          </div>
-                                          <div className="text-right shrink-0 flex flex-col items-end gap-1">
-
-                                             <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.kcal || recipe.energy || "—"} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
-                                             </div>
-
-                                             {!isConsumed ? (
-                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
-                                             ) : (
-                                                <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
-                                             )}
-                                          </div>
-                                       </div>
-                                    )
-                                 })}
-                              </div>
+            {/* BADGES ET GAMIFICATION */}
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+               <div>
+                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
+                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
+                  <div className="flex gap-2">
+                     {Array.from({length: 7}, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (6 - i));
+                        const dateStr = d.toISOString().split('T')[0];
+                        const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
+                        return (
+                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
+                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
                            </div>
-                       )
-                   })()
-                ) : (
-                   /* MODE LIBRE */
-                   <div className="space-y-4 bg-white p-6 rounded-[2.5rem] border border-zinc-200 shadow-sm flex-1">
-                     <div className="mb-4">
-                        <h3 className="font-black text-lg text-black uppercase tracking-tighter">Menu Libre</h3>
-                        <p className="text-zinc-500 text-xs font-bold">Composez votre assiette avec vos propres repas.</p>
-                     </div>
-                     {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
-                         const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
-                         return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }}>
-                             <div className="flex justify-between items-center">
-                                 <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
-                                 <button className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                                    <Plus size={14}/> Ajouter un repas
-                                 </button>
-                             </div>
-                             {loggedMeals.length > 0 && (
-                                 <div className="mt-2 space-y-1">
-                                    {loggedMeals.map((m: any, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100">
-                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name}</span>
-
-                                           <div className="flex items-center gap-2 shrink-0">
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.calories || 0} kcal</span>
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
-                                           </div>
-
-                                        </div>
-                                    ))}
-                                 </div>
-                             )}
-                           </div>
-                         )
+                        );
                      })}
-                   </div>
-                )}
-
-                {/* 2. Eau et Bilan côte à côte */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Objectif Eau - Interactive */}
-                    <div className="rounded-[2rem] border border-blue-100 shadow-sm p-4 relative overflow-hidden flex flex-col justify-between group">
-                        <img
-                            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg"
-                            className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
-                            alt="Hydratation Background"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/80 to-transparent"></div>
-                        <div className="relative z-10">
-                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                               <Droplet size={10} className="fill-blue-500"/> Objectif Eau
-                            </p>
-                            <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
-                            <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
-                                {waterGlasses === 0 && "Il est temps de boire le premier verre !"}
-                                {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça !"}
-                                {waterGlasses >= 4 && waterGlasses < 8 && "Tu es à la moitié, bravo !"}
-                                {waterGlasses >= 8 && "Objectif atteint !"}
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-1 mt-3 z-10">
-                            {Array.from({ length: 8 }).map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => handleUpdateWater(i + 1 - waterGlasses)}
-                                    className="aspect-square relative flex justify-center items-end hover:scale-110 transition-transform"
-                                >
-                                    <img
-                                        src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png"
-                                        className={`w-full h-full object-contain ${i < waterGlasses ? 'opacity-100' : 'opacity-20 grayscale'}`}
-                                        alt="Verre d'eau"
-                                    />
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-blue-400/10 rounded-full blur-xl pointer-events-none"></div>
-                    </div>
-
-                    {/* Bilan de la journée */}
-                    <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform">
-                        <CheckCircle size={24} className="text-black mb-2"/>
-                        <h3 className="font-black text-xs uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
-                        <p className="text-black/70 font-bold text-[9px]">Clôturez pour gagner de l'XP.</p>
-                    </button>
-                </div>
-              </div>
+                  </div>
+               </div>
+               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
+                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
+                     <span className="text-2xl mb-2">🌱</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <span className="text-2xl mb-2">💎</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <span className="text-2xl mb-2">🌟</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <Award size={28} className="mb-2" />
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
+                  </div>
+               </div>
             </div>
 
-            {/* Suggestions Boutique */}
-            <div className="bg-white border border-zinc-200 shadow-sm rounded-[2rem] p-8 mt-12 relative overflow-hidden">
-               <h3 className="text-xl font-black uppercase text-black mb-6 flex items-center gap-2"><ShoppingCart className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={24}/> La Boutique Onyx</h3>
-               <p className="text-zinc-500 font-bold text-sm mb-6">Boostez vos résultats avec nos produits 100% naturels.</p>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {crossSellProducts.slice(0,3).map((p: any) => (
-                     <div key={p.id} className="bg-zinc-50 border border-zinc-200 rounded-3xl overflow-hidden flex flex-col group cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setActiveTab('shop')}>
-                        <div className="h-40 w-full relative">
-                            <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
+                  <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7 jours
+               </h2>
+
+               <div className="grid md:grid-cols-2 gap-8">
+                  {/* GRAPHIQUE : Hydratation */}
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
+                     <div className="flex items-end justify-between h-40 gap-2">
+                        {Array.from({length: 7}, (_, i) => {
+                           const d = new Date();
+                           d.setDate(d.getDate() - (6 - i));
+                           const dateStr = d.toISOString().split('T')[0];
+                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+                           const count = log?.water_glasses || 0;
+                           const heightPct = Math.min((count / 8) * 100, 100);
+                           return (
+                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                 <div className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400" style={{ height: `${heightPct}%`, minHeight: '4px' }}>
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                       {count} verres
+                                    </div>
+                                 </div>
+                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+
+                  {/* GRAPHIQUE : Calories */}
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Flame size={16}/> Calories Consommées</h3>
+                     <div className="flex items-end justify-between h-40 gap-2">
+                        {Array.from({length: 7}, (_, i) => {
+                           const d = new Date();
+                           d.setDate(d.getDate() - (6 - i));
+                           const dateStr = d.toISOString().split('T')[0];
+                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+                           const count = log?.calories_consumed || 0;
+                           const target = calorieGoal;
+                           const heightPct = count > 0 ? Math.min((count / target) * 100, 100) : 0;
+                           return (
+                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                 <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                       {count} kcal
+                                    </div>
+                                 </div>
+                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* LISTE DES BILANS */}
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" /> Historique des Bilans</h2>
+                 <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
+                    <Download size={14}/> Exporter (PDF)
+                 </button>
+               </div>
+               <div className="space-y-4">
+                  {[...(Array.isArray(dailyLogs) ? dailyLogs : [])].filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime())).sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
+                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                           <p className="font-black text-sm text-black mb-1">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                           <div className="flex flex-wrap gap-2 mt-2">
+                              {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
+                              {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
+                              {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
+                           </div>
                         </div>
-                        <div className="p-4 flex flex-col flex-1">
-                           <p className="text-sm font-black text-black group-hover:text-[#39FF14] transition-colors line-clamp-1">{p.nom}</p>
-                           <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1 mb-4">{p.prix_standard} FCFA</p>
-                           <button className="mt-auto w-full bg-black text-[#39FF14] py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform">
-                              Voir le produit
-                           </button>
+                        <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
                         </div>
                      </div>
                   ))}
+                  {(!Array.isArray(dailyLogs) || dailyLogs.length === 0) && (
+                     <p className="text-sm text-zinc-500 font-medium italic">Aucun bilan enregistré pour le moment.</p>
+                  )}
                </div>
             </div>
           </div>
         )}
 
         {activeTab === 'week' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+          <div className="space-y-12 animate-in fade-in slide-in-from-right-4">
+
             {/* SECTION SMART PLANNER (Générateur) */}
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -3254,18 +3228,7 @@ export default function NutritionDashboard() {
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
-
-                                          {isExpertMode ? (
-                                             <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.kcal || recipe.energy || "—"} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
-                                             </div>
-                                          ) : (
-                                             <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.ux_unit || "1 portion"}</span>
-                                          )}
-
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories || recipe.kcal || recipe.calorie || recipe.energy || (recipe.nutrition && recipe.nutrition.calories) || Math.round(((recipe.carbs || 0) * 4) + ((recipe.proteins || 0) * 4) + ((recipe.fats || 0) * 9)) || "—"} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
@@ -3405,7 +3368,6 @@ export default function NutritionDashboard() {
 
         {activeTab === 'orders' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Package className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Mes Commandes</h2>
                 
@@ -3466,7 +3428,6 @@ export default function NutritionDashboard() {
 
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
                 
@@ -3642,7 +3603,6 @@ export default function NutritionDashboard() {
 
         {activeTab === 'favorites' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
@@ -3760,7 +3720,6 @@ export default function NutritionDashboard() {
         {/* VUE BOUTIQUE */}
         {activeTab === 'shop' && (
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
               <div className="flex items-center gap-4 mb-8">
                  <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" />
@@ -4056,318 +4015,102 @@ export default function NutritionDashboard() {
         </AnimatePresence>
 
         {/* VUE TRACKER DE POIDS */}
-
-
-        {activeTab === 'history' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-
-            {/* BADGES ET GAMIFICATION */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-               <div>
-                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
-                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
-                  <div className="flex gap-2">
-                     {Array.from({length: 7}, (_, i) => {
-                        const d = new Date();
-                        d.setDate(d.getDate() - (6 - i));
-                        const dateStr = d.toISOString().split('T')[0];
-                        const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
-                        return (
-                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
-                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
-                           </div>
-                        );
-                     })}
-                  </div>
-               </div>
-               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
-                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
-                     <span className="text-2xl mb-2">🌱</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">💎</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">🌟</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <Award size={28} className="mb-2" />
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
-                  </div>
-               </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
-                  <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7 jours
-               </h2>
-
-               <div className="grid md:grid-cols-2 gap-8">
-                  {/* GRAPHIQUE : Hydratation */}
-                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
-                     <div className="flex items-end justify-between h-40 gap-2">
-                        {Array.from({length: 7}, (_, i) => {
-                           const d = new Date();
-                           d.setDate(d.getDate() - (6 - i));
-                           const dateStr = d.toISOString().split('T')[0];
-                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                           const count = log?.water_glasses || 0;
-                           const heightPct = Math.min((count / 8) * 100, 100);
-                           return (
-                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
-                                 <div className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400" style={{ height: `${heightPct}%`, minHeight: '4px' }}>
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                       {count} verres
-                                    </div>
-                                 </div>
-                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-
-                  {/* GRAPHIQUE : Calories */}
-                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Flame size={16}/> Calories Consommées</h3>
-                     <div className="flex items-end justify-between h-40 gap-2">
-                        {Array.from({length: 7}, (_, i) => {
-                           const d = new Date();
-                           d.setDate(d.getDate() - (6 - i));
-                           const dateStr = d.toISOString().split('T')[0];
-                           const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                           const count = log?.calories_consumed || 0;
-                           const target = calorieGoal;
-                           const heightPct = count > 0 ? Math.min((count / target) * 100, 100) : 0;
-                           return (
-                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
-                                 <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                       {count} kcal
-                                    </div>
-                                 </div>
-                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            {/* LISTE DES BILANS */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" /> Historique des Bilans</h2>
-                 <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
-                    <Download size={14}/> Exporter (PDF)
-                 </button>
-               </div>
-               <div className="space-y-4">
-                  {[...(Array.isArray(dailyLogs) ? dailyLogs : [])].filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime())).sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
-                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                           <p className="font-black text-sm text-black mb-1">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                           <div className="flex flex-wrap gap-2 mt-2">
-                              {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
-                              {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
-                              {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
-                        </div>
-                     </div>
-                  ))}
-                  {(!Array.isArray(dailyLogs) || dailyLogs.length === 0) && (
-                     <p className="text-sm text-zinc-500 font-medium italic">Aucun bilan enregistré pour le moment.</p>
-                  )}
-               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'blog' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><img src={MENU_ICONS.blog} className="w-12 h-12 rounded-xl object-cover" alt="Blog" /> Blog & Conseils</h2>
-                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
-             </div>
-
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {articles.map((article: any) => (
-                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
-                     {article.image_url && (
-                        <div className="overflow-hidden rounded-2xl mb-6">
-                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                     )}
-                     <div className="flex gap-2 mb-4">
-                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
-                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
-                     </div>
-                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
-                     <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
-                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
-                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
-                     </div>
-                  </div>
-               ))}
-               {articles.length === 0 && (
-                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
-                     Aucun article publié pour le moment.
-                  </div>
-               )}
-             </div>
-          </div>
-        )}
-
-                {activeTab === 'coaching' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full h-full min-h-[70vh] flex flex-col max-w-4xl mx-auto bg-zinc-50 rounded-[2.5rem] border border-zinc-200 overflow-hidden shadow-sm relative">
-             <div className="bg-white px-6 py-4 border-b border-zinc-200 flex items-center justify-between sticky top-0 z-20 shrink-0">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#39FF14] p-0.5">
-                      <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-full h-full object-cover rounded-full bg-black" />
-                   </div>
-                   <div>
-                      <h2 className="font-black text-black uppercase tracking-tighter flex items-center gap-2">Coach Rokhy <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span></h2>
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">En ligne</p>
-                   </div>
-                </div>
-             </div>
-
-             <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col custom-scrollbar">
-                {/* Initial Bot Message */}
-                <div className="flex items-end gap-3 w-full md:w-3/4">
-                   <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-zinc-200">
-                      <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-full h-full object-cover bg-black" />
-                   </div>
-                   <div className="bg-white border border-zinc-200 p-4 rounded-2xl rounded-bl-sm shadow-sm">
-                      <p className="text-sm font-medium text-black">Salut ! C&apos;est Coach Rokhy. Comment se passe ta semaine par rapport à tes objectifs ?</p>
-                   </div>
-                </div>
-
-                {/* User Reply */}
-                {coachingChatStep > 0 && (
-                   <div className="flex items-end gap-3 w-full md:w-3/4 self-end flex-row-reverse animate-in fade-in slide-in-from-bottom-2">
-                      <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
-                         <User size={16} className="text-zinc-500" />
-                      </div>
-                      <div className="bg-[#39FF14]/20 border border-[#39FF14]/30 p-4 rounded-2xl rounded-br-sm shadow-sm">
-                         <p className="text-sm font-medium text-black">
-                            {coachingChatStep === 1 && "Je stagne un peu..."}
-                            {coachingChatStep === 2 && "J&apos;ai fait un gros écart !"}
-                            {coachingChatStep === 3 && "J&apos;ai une question spécifique."}
-                         </p>
-                      </div>
-                   </div>
-                )}
-
-                {/* Bot Response Based on User Reply */}
-                {coachingChatStep > 0 && (
-                   <div className="flex items-end gap-3 w-full md:w-3/4 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
-                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-zinc-200">
-                         <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-full h-full object-cover bg-black" />
-                      </div>
-                      <div className="bg-white border border-zinc-200 p-4 rounded-2xl rounded-bl-sm shadow-sm">
-                         {coachingChatStep === 1 && (
-                            <>
-                               <p className="text-sm font-medium text-black mb-4">La stagnation est normale, ne lâche rien ! As-tu pensé à remplacer ton riz brisé par du Fonio cette semaine pour relancer la machine sans te priver ?</p>
-                               <button onClick={() => setActiveTab('shop')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
-                                  🛒 Découvrir le Fonio
-                               </button>
-                            </>
-                         )}
-                         {coachingChatStep === 2 && (
-                            <>
-                               <p className="text-sm font-medium text-black mb-4">Zéro culpabilité ! L&apos;important c&apos;est le prochain repas. Fais-toi une petite infusion de Kinkéliba ou de Bissap sans sucre ce soir pour aider la digestion.</p>
-                               <button onClick={() => setActiveTab('today')} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
-                                  💪 Reprendre mon menu
-                               </button>
-                            </>
-                         )}
-                         {coachingChatStep === 3 && (
-                            <>
-                               <p className="text-sm font-medium text-black mb-4">Pas de souci, chaque métabolisme est unique. Discutons-en directement de vive voix pour adapter ton programme.</p>
-                               <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#25D366] text-white px-6 py-4 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:scale-105 transition-transform shadow-lg w-full flex items-center justify-center gap-2">
-                                  <MessageCircle size={20} /> Discuter sur WhatsApp
-                               </button>
-                            </>
-                         )}
-                      </div>
-                   </div>
-                )}
-             </div>
-
-             {/* Quick Replies / Choices */}
-             <div className="bg-white p-4 border-t border-zinc-200 shrink-0">
-                 {coachingChatStep === 0 ? (
-                    <div className="flex flex-wrap gap-2 justify-center">
-                        <button onClick={() => setCoachingChatStep(1)} className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-black px-4 py-3 rounded-full text-xs font-bold transition-colors">Je stagne un peu...</button>
-                        <button onClick={() => setCoachingChatStep(2)} className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-black px-4 py-3 rounded-full text-xs font-bold transition-colors">J&apos;ai fait un gros écart !</button>
-                        <button onClick={() => setCoachingChatStep(3)} className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-black px-4 py-3 rounded-full text-xs font-bold transition-colors">J&apos;ai une question spécifique.</button>
-                    </div>
-                 ) : (
-                    <div className="flex justify-center">
-                        <button onClick={() => setCoachingChatStep(0)} className="text-zinc-400 hover:text-black text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors"><RotateCcw size={14}/> Recommencer</button>
-                    </div>
-                 )}
-             </div>
-          </div>
-        )}
-
-                {activeTab === 'weight' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-7xl mx-auto">
-                {/* Header and Background */}
-                <div className="relative rounded-[2.5rem] p-6 md:p-8 border border-zinc-200 shadow-sm overflow-hidden min-h-[70vh] flex flex-col justify-between">
-                    {/* Background Images */}
-                    <div className="absolute inset-0 z-0 hidden md:block">
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783280413/Woman_standing_on_scale_smiling_202607051938_e6h39p.jpg" alt="Background" className="w-full h-full object-cover opacity-10" />
-                    </div>
-                    <div className="absolute inset-0 z-0 block md:hidden">
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783280897/weight_gfpje9.jpg" alt="Background" className="w-full h-full object-cover opacity-10" />
-                    </div>
-
-                    {/* Gradient Overlay for Readability */}
-                    <div className="absolute inset-0 bg-white/70 md:bg-white/50 backdrop-blur-[2px] z-0"></div>
-
-                    <div className="relative z-10 w-full mb-6">
-                        <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-4"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-                        <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Balance 3D" className="w-8 h-8 rounded-full object-cover mix-blend-multiply" />
-                            Mon Poids
+        {activeTab === 'weight' && (
+            <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+                {/* Header de la section poids */}
+                <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-3xl border border-zinc-200 shadow-inner">
+                    <div>
+                        <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+                            <Scale size={20} className="text-black"/> Mon Poids
                         </h2>
                     </div>
+                </div>
 
-                    <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 w-full flex-grow">
-                        {/* Top Chart Area */}
-                        <div className="col-span-12 lg:col-span-8 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col min-h-[300px]">
-                            <h3 className="text-sm font-black text-black mb-4 flex justify-between items-center">
-                                Weight Loss Journey
+                {/* Dashboard principal */}
+                <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border border-zinc-200 shadow-xl relative overflow-hidden">
+                    {/* Décoration de fond */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-black/[0.02] to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+
+                    <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+                        {/* Colonne gauche : Saisie */}
+                        <div className="flex-1 w-full space-y-6">
+                            <div className="bg-zinc-50 rounded-3xl p-6 border border-zinc-200 shadow-sm">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
+                                    <Activity size={16}/> Saisie du jour
+                                </h3>
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={newWeight}
+                                            onChange={(e) => setNewWeight(e.target.value)}
+                                            placeholder="Ex: 75.5"
+                                            className="flex-1 w-full text-4xl font-black p-4 border-2 border-zinc-200 rounded-2xl bg-white focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5 transition-all text-black"
+                                        />
+                                        <span className="text-2xl font-black text-zinc-400">KG</span>
+                                    </div>
+                                    <button onClick={handleSaveWeight} className="w-full md:w-auto px-10 py-4 bg-black text-[#39FF14] rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 hover:shadow-[0_0_30px_rgba(57,255,20,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
+                                        <CheckCircle size={20}/> Enregistrer mon poids
+                                    </button>
+                                    {coachFeedback && (
+                                       <div className="mt-6 w-full p-5 rounded-2xl border border-[#39FF14]/20 bg-[#39FF14]/5 flex items-start gap-4">
+                                          <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-[#39FF14] shrink-0 border border-[#39FF14]/30"><Dumbbell size={20}/></div>
+                                          <div>
+                                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Coach virtuel</p>
+                                             <p className={`text-sm font-bold ${coachFeedback.type === 'success' ? 'text-green-600' : coachFeedback.type === 'warning' ? 'text-orange-500' : 'text-zinc-700'}`}>
+                                                {coachFeedback.text}
+                                             </p>
+                                          </div>
+                                       </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Stats rapides */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white p-5 rounded-3xl border border-zinc-200 shadow-sm flex flex-col justify-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Objectif</span>
+                                    <div className="flex items-end gap-1">
+                                        <span className="text-2xl font-black text-black">{clientProfile?.diagnostic_data?.targetWeight || '--'}</span>
+                                        <span className="text-xs font-bold text-zinc-500 mb-1">KG</span>
+                                    </div>
+                                </div>
+                                <div className="bg-black p-5 rounded-3xl shadow-lg flex flex-col justify-center relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-[#39FF14]/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-1 relative z-10">Progrès Total</span>
+                                    <div className="flex items-end gap-1 relative z-10">
+                                        <span className="text-2xl font-black text-white">
+                                            {weightLogs.length > 0 && clientProfile?.diagnostic_data?.targetWeight ?
+                                                (() => {
+                                                    const firstWeight = parseFloat(weightLogs[0].weight);
+                                                    const currentWeight = parseFloat(weightLogs[weightLogs.length - 1].weight);
+                                                    const diff = firstWeight - currentWeight;
+                                                    return diff > 0 ? `-${diff.toFixed(1)}` : `+${Math.abs(diff).toFixed(1)}`;
+                                                })() : '--'
+                                            }
+                                        </span>
+                                        <span className="text-xs font-bold text-zinc-400 mb-1">KG</span>
+                                    </div>
+                                    <TrendingDown size={32} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10 group-hover:scale-110 transition-transform"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Colonne droite : Graphique */}
+                        <div className="flex-1 w-full flex flex-col h-full min-h-[300px] bg-zinc-50 rounded-3xl p-6 border border-zinc-200 shadow-sm">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-6 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><LineChartIcon size={16}/> Évolution</span>
+                                <span className="text-[9px] bg-white px-2 py-1 rounded-md border border-zinc-200 shadow-sm">30 Derniers Jours</span>
                             </h3>
-                            <div className="flex-grow w-full min-h-[200px] relative">
+                            <div className="flex-1 w-full min-h-[200px]">
                                 {weightLogs.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={[...weightLogs].reverse()}>
-                                            <defs>
-                                                <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#39FF14" stopOpacity={0.4}/>
-                                                    <stop offset="95%" stopColor="#39FF14" stopOpacity={0}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" opacity={0.5} />
+                                        <LineChart data={[...weightLogs].reverse()}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
                                             <XAxis
                                                 dataKey="log_date"
-                                                tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short' })}
+                                                tickFormatter={(date) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                                                 axisLine={false}
                                                 tickLine={false}
                                                 tick={{fontSize: 10, fill: '#a1a1aa', fontWeight: 'bold'}}
@@ -4381,423 +4124,145 @@ export default function NutritionDashboard() {
                                                 dx={-10}
                                             />
                                             <RechartsTooltip
-                                                contentStyle={{borderRadius: '12px', border: 'none', backgroundColor: '#000', color: '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)', fontWeight: 'bold', fontSize: '12px', padding: '8px 12px'}}
-                                                itemStyle={{color: '#fff', fontWeight: '900'}}
-                                                labelStyle={{display: 'none'}}
-                                                cursor={{stroke: '#39FF14', strokeWidth: 1, strokeDasharray: '3 3'}}
-                                                formatter={(value) => [`${value} kg`, 'Weight Loss']}
+                                                contentStyle={{borderRadius: '16px', border: '1px solid #e4e4e7', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 'bold', fontSize: '12px'}}
+                                                itemStyle={{color: '#000', fontWeight: '900'}}
+                                                labelFormatter={(label) => new Date(label).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                                formatter={(value) => [`${value} kg`, 'Poids']}
                                             />
                                             {clientProfile?.diagnostic_data?.targetWeight && (
-                                                <ReferenceLine y={parseFloat(clientProfile.diagnostic_data.targetWeight)} stroke="#39FF14" strokeDasharray="3 3" opacity={0.5} />
+                                               <ReferenceLine y={parseFloat(clientProfile.diagnostic_data.targetWeight)} stroke="#39FF14" strokeDasharray="5 5" label={{ position: 'top', value: 'Objectif', fill: '#39FF14', fontSize: 10, fontWeight: 'bold' }} />
                                             )}
-                                            <Area
+                                            <Line
                                                 type="monotone"
                                                 dataKey="weight"
-                                                stroke="#39FF14"
+                                                stroke="#000000"
                                                 strokeWidth={4}
-                                                fillOpacity={1}
-                                                fill="url(#colorWeight)"
-                                                activeDot={{r: 6, fill: "#000", strokeWidth: 2, stroke: "#39FF14"}}
+                                                dot={{r: 4, fill: "#000", strokeWidth: 2, stroke: "#fff"}}
+                                                activeDot={{r: 8, fill: "#39FF14", strokeWidth: 0}}
                                             />
-                                        </AreaChart>
+                                        </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-zinc-400">
-                                        <p className="text-xs font-bold">Aucun poids enregistré</p>
+                                    <div className="h-full flex flex-col items-center justify-center text-zinc-400 space-y-4">
+                                        <LineChartIcon size={48} className="opacity-20"/>
+                                        <p className="text-sm font-bold text-center max-w-xs">Enregistrez votre premier poids pour voir votre graphique d'évolution.</p>
                                     </div>
                                 )}
                             </div>
                         </div>
-
-
-
-                        {/* Top Right: Community */}
-                        <div className="col-span-12 lg:col-span-4 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col min-h-[300px] justify-between">
-                            <h3 className="text-sm font-black text-black mb-4">Community</h3>
-                            <div className="flex-grow flex flex-col gap-3 overflow-y-auto custom-scrollbar">
-                                <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/11_z46c3q.webp" alt="Aïssatou K." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
-                                    <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative"><span className="absolute -left-2 top-0 text-[10px] bg-yellow-400 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">1</span>Walcom, la broslen en rééquilibrage alimentaire?</div>
-                                </div>
-                                <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl flex-row-reverse">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/12_n3j04q.webp" alt="Penda D." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
-                                    <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tr-sm shadow-sm relative"><span className="absolute -right-2 top-0 text-[10px] bg-zinc-300 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">2</span>Droecane de rééquilibrage alimentaire comimoms.</div>
-                                </div>
-                                <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/02_p5h94e.webp" alt="Amadou T." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
-                                    <div className="bg-white border border-zinc-100 text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative"><span className="absolute -left-2 top-0 text-[10px] bg-amber-600 text-white w-4 h-4 rounded-full flex items-center justify-center shadow-sm">3</span>What&apos;s so rééquilibrage alimentaire coammems?</div>
-                                </div>
-                            </div>
-                            <button onClick={() => setActiveTab('community')} className="w-full mt-4 bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-xs py-3 rounded-xl transition-colors shadow-sm tracking-widest">Join Discussion</button>
-                        </div>
-                        {/* Bottom Left: Current vs Target Weight */}
-                        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col justify-between relative overflow-hidden cursor-pointer" onClick={() => setShowWeightModal(true)}>
-                            <h3 className="text-sm font-black text-black mb-6">Current vs Target Weight</h3>
-
-                            <div className="flex justify-between items-center mb-6">
-                                <div>
-                                    <p className="text-xs font-bold text-zinc-500 mb-1">Current:</p>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl sm:text-5xl font-black tracking-tighter">
-                                            {weightLogs.length > 0 ? parseFloat(weightLogs[weightLogs.length - 1].weight).toFixed(1) : '--'}
-                                        </span>
-                                        <span className="text-xl font-black">kg</span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <button onClick={() => { setNewWeight(weightLogs.length > 0 ? (parseFloat(weightLogs[weightLogs.length - 1].weight) + 0.1).toFixed(1) : ''); setShowWeightModal(true); }} className="w-10 h-10 rounded-xl bg-red-100 hover:bg-red-200 text-red-500 flex items-center justify-center font-black text-xl transition-colors shadow-sm">
-                                        +
-                                    </button>
-                                    <button onClick={() => { setNewWeight(weightLogs.length > 0 ? (parseFloat(weightLogs[weightLogs.length - 1].weight) - 0.1).toFixed(1) : ''); setShowWeightModal(true); }} className="w-10 h-10 rounded-xl bg-green-100/50 hover:bg-green-100 text-red-400 flex items-center justify-center font-black text-xl transition-colors shadow-sm">
-                                        -
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-end border-t border-zinc-100 pt-4">
-                                <div>
-                                    <p className="text-xs font-bold text-zinc-500 mb-1">Target:</p>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-3xl sm:text-4xl font-black tracking-tighter">
-                                            {clientProfile?.diagnostic_data?.targetWeight || '--'}
-                                        </span>
-                                        <span className="text-lg font-black">kg</span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-center gap-2">
-                                     <div className="w-8 h-8 rounded-full bg-[#39FF14]/20 flex items-center justify-center">
-                                        <ArrowRight size={16} className="text-green-600"/>
-                                     </div>
-                                     {weightLogs.length > 0 && parseFloat(weightLogs[weightLogs.length-1].weight) <= parseFloat(clientProfile?.diagnostic_data?.targetWeight || '0') ? (
-                                        <span className="text-xl" title="Objectif Atteint">😎</span>
-                                     ) : (
-                                        <span className="text-xl" title="En cours">🤨</span>
-                                     )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Bottom Center: BMI/IMC History */}
-                        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-sm font-black text-black">BMI/IMC History</h3>
-                                <HeartPulse size={20} className="text-red-500" />
-                            </div>
-
-                            <div className="space-y-3 flex-grow overflow-y-auto max-h-[220px] custom-scrollbar pr-2">
-                                {weightLogs.length > 0 ? (
-                                    [...weightLogs].reverse().map((log, idx, arr) => {
-                                        const hM = (clientProfile?.diagnostic_data?.height || 170) / 100;
-                                        const currentW = parseFloat(log.weight);
-                                        const imcVal = hM > 0 ? currentW / (hM * hM) : 0;
-
-                                        const prevLog = arr[idx + 1];
-                                        let diff = 0;
-                                        if (prevLog) diff = currentW - parseFloat(prevLog.weight);
-
-                                        return (
-                                            <div key={log.log_date} className="bg-zinc-100/80 p-3 sm:p-4 rounded-2xl flex justify-between items-center group hover:bg-zinc-200 transition-colors">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">{new Date(log.log_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}:</span>
-                                                    <span className="text-sm font-black">{log.weight} kg</span>
-                                                    <span className="text-xs font-bold text-zinc-500">- IMC {imcVal.toFixed(1)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    {diff < 0 ? <TrendingDown size={18} className="text-green-500"/> : diff > 0 ? <TrendingUp size={18} className="text-orange-500"/> : <span className="w-[18px]"></span>}
-                                                    <button onClick={() => handleDeleteWeight(log.log_date)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                                                        <Trash2 size={14}/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                ) : (
-                                    <div className="flex items-center justify-center h-full text-zinc-400 font-bold text-sm">
-                                        Pas d&apos;historique
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Bottom Recipes */}
-                        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-4 shadow-sm border border-white flex flex-col h-[280px]">
-                            <h3 className="text-sm font-black text-black mb-3 px-2">Recipes</h3>
-                            <div className="relative flex-grow rounded-2xl overflow-hidden mb-3">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286332/IMG-20250820-WA0117_iegikb.jpg" alt="Recipe of the day" className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                                    <p className="text-white text-xs font-bold leading-tight">{trackingMode === 'guided' ? "Recette de votre plan" : "Recette minceur recommandée"}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setActiveTab('favorites')} className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-sm tracking-widest">View Recipes</button>
-                        </div>
-
-                        {/* Bottom Fitness */}
-                        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-4 shadow-sm border border-white flex flex-col h-[280px]">
-                            <h3 className="text-sm font-black text-black mb-3 px-2">Fitness</h3>
-                            <div className="relative flex-grow rounded-2xl overflow-hidden group cursor-pointer" onClick={() => setActiveTab('fitness')}>
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286277/Woman_wearing_workout_clothes_2K_202607052117_cn1ehb.jpg" alt="Fitness" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                                <div className="absolute inset-x-3 bottom-3">
-                                    <button className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-md tracking-widest">Start Workout</button>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
 
-                {/* Weight Input Modal (Inline or Popup) */}
-                {showWeightModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-sm shadow-2xl relative">
-                            <button onClick={() => setShowWeightModal(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-black bg-zinc-100 p-2 rounded-full transition-colors"><X size={16}/></button>
-                            <div className="flex flex-col items-center mb-6">
-                                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
-                                    <Scale size={24} className="text-black" />
-                                </div>
-                                <h3 className="text-xl font-black uppercase text-center">Nouveau Poids</h3>
-                                <p className="text-xs font-bold text-zinc-500 mt-1">Quelle est votre pesée du jour ?</p>
-                            </div>
+                {/* Historique liste */}
+                <div className="bg-white rounded-[2.5rem] p-6 border border-zinc-200 shadow-sm">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-6 flex items-center justify-between">
+                        Historique détaillé
+                        <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px]">{weightLogs.length} entrées</span>
+                    </h3>
+                    {weightLogs.length > 0 ? (
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {[...weightLogs].reverse().map((log, idx, arr) => {
+                                const currentWeight = parseFloat(log.weight);
+                                const prevLog = arr[idx + 1]; // Dans la liste inversée (du plus récent au plus ancien), l'élément suivant (idx+1) est chronologiquement "avant"
+                                const prevWeight = prevLog ? parseFloat(prevLog.weight) : null;
+                                let diff: number | null = null;
+                                if (prevWeight) {
+                                    diff = currentWeight - prevWeight;
+                                }
 
-                            <div className="flex items-center justify-center gap-4 mb-6">
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    value={newWeight}
-                                    onChange={(e) => setNewWeight(e.target.value)}
-                                    placeholder="00.0"
-                                    className="w-32 text-4xl font-black p-4 border-b-2 border-zinc-200 bg-transparent focus:outline-none focus:border-black text-center text-black transition-colors"
-                                    autoFocus
-                                />
-                                <span className="text-2xl font-black text-zinc-400">KG</span>
-                            </div>
-
-                            <button onClick={() => { handleSaveWeight(); setShowWeightModal(false); }} className="w-full py-4 bg-black text-[#39FF14] rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2">
-                                <CheckCircle size={20}/> Enregistrer
-                            </button>
+                                return (
+                                    <div key={log.log_date} className="flex justify-between items-center p-4 rounded-2xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50 transition-colors group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-black group-hover:text-white transition-colors">
+                                                <Calendar size={16}/>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm text-black">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                {diff !== null && (
+                                                    <p className={`text-[10px] font-black tracking-widest uppercase flex items-center gap-1 ${diff < 0 ? 'text-green-500' : diff > 0 ? 'text-orange-500' : 'text-zinc-400'}`}>
+                                                        {diff < 0 ? <TrendingDown size={10}/> : diff > 0 ? <TrendingUp size={10}/> : <Minus size={10}/>}
+                                                        {Math.abs(diff).toFixed(1)} kg
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <span className="text-xl font-black text-black bg-zinc-100 px-4 py-2 rounded-xl group-hover:bg-[#39FF14] group-hover:text-black transition-colors">{log.weight} <span className="text-xs text-zinc-500 group-hover:text-black/60">kg</span></span>
+                                            <button onClick={() => handleDeleteWeight(log.log_date)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full">
+                                                <Trash2 size={16}/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="text-center py-12 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-3xl">
+                            Aucun historique disponible.
+                        </div>
+                    )}
+                </div>
             </div>
         )}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
-
         {activeTab === 'community' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
-                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
-                            <Search size={16} className="text-zinc-400" />
-                            <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
-                        </div>
-                     </div>
-                 </div>
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-3xl mx-auto">
+             <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14]" /> Le Mur des Assiettes</h2>
+                     <p className="text-zinc-500 text-sm font-bold">Partagez vos repas sains avec la communauté Premium Onyx.</p>
+                  </div>
+                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-1 shadow-sm border border-yellow-200 shrink-0">
+                     <Trophy size={14}/> Classement
+                  </button>
+                </div>
 
-                 {/* Grille 3 Colonnes */}
-                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl focus-within:border-black transition-colors">
+                   {newPostImage && (
+                       <div className="relative w-24 h-24 mb-3 rounded-xl overflow-hidden border border-zinc-200">
+                          <img src={newPostImage} className="w-full h-full object-cover" />
+                          <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
+                       </div>
+                   )}
+                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px]" />
+                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
+                      <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer">
+                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                         {uploadingImage ? <Activity size={20} className="animate-spin" /> : <ImageIcon size={20}/>}
+                      </label>
+                      <button onClick={handlePostCommunity} className="bg-black text-[#39FF14] px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Publier (+15 XP)</button>
+                   </div>
+                </div>
+             </div>
 
-                     {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
-                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
-                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
-                             <div className="space-y-4">
-                                 {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
-                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
-                                         <div className="flex items-center gap-3">
-                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
-                                             <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
-                                         </div>
-                                         <Heart size={14} className="text-red-500 fill-red-500" />
-                                     </div>
-                                 ))}
-                             </div>
+             <div className="space-y-6">
+                {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => (
+                   <div key={post.id || idx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+                      <div className="flex items-center gap-3 mb-4">
+                         <div className="w-10 h-10 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black">{post.client?.charAt(0) || 'M'}</div>
+                         <div>
+                            <p className="font-bold text-sm text-black">{post.client}</p>
+                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
                          </div>
+                         {post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Premium</span>}
+                      </div>
+                      <p className="text-zinc-700 font-medium text-sm mb-4 leading-relaxed">{post.content}</p>
+                      {post.image_url && <img src={post.image_url} alt="Plat" className="w-full h-64 object-cover rounded-2xl mb-4 border border-zinc-100" />}
 
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
-                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
-                             <div className="space-y-4">
-                                 {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
-                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
-                                         <div className="flex items-center gap-3">
-                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
-                                             <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
-                                         </div>
-                                         <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
-                                     </div>
-                                 ))}
-                             </div>
-                         </div>
-                     </div>
-
-                     {/* Colonne Centrale : Feed (6 cols) */}
-                     <div className="col-span-1 lg:col-span-6 space-y-6">
-                        {/* Zone de Création */}
-                        <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm focus-within:border-[#39FF14]/50 transition-colors">
-                           {newPostImage && (
-                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200">
-                                  <img src={newPostImage} className="w-full h-full object-cover" />
-                                  <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={14}/></button>
-                               </div>
-                           )}
-                           <div className="flex items-start gap-4">
-                               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 mt-1" alt="Moi" />
-                               <div className="flex-1">
-                                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre dernier repas ou un accomplissement sportif..." className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[60px] placeholder:text-zinc-400 mt-2" />
-                               </div>
-                           </div>
-                           <div className="flex justify-between items-center mt-2 pt-4 border-t border-zinc-100">
-                              <div className="flex gap-2">
-                                  <label className="text-zinc-500 hover:text-black transition-colors p-2 cursor-pointer bg-zinc-50 hover:bg-zinc-100 rounded-xl flex items-center gap-2">
-                                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                                     {uploadingImage ? <Activity size={16} className="animate-spin" /> : <Camera size={16}/>}
-                                     <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">Photo</span>
-                                  </label>
-                              </div>
-                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-black text-[#39FF14] px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed">Publier</button>
-                           </div>
-                        </div>
-
-                        {/* Le Feed */}
-                        <div className="space-y-6">
-                           {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.map((post, idx) => (
-                              <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex flex-col group">
-                                 <div className="flex items-center justify-between mb-4">
-                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-xl shadow-inner">{post.client?.charAt(0) || 'M'}</div>
-                                        <div>
-                                            <p className="font-black text-sm text-black flex items-center gap-1">{post.client || 'Membre'} <CheckCircle size={12} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
-                                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
-                                        </div>
-                                     </div>
-                                     <MoreHorizontal size={18} className="text-zinc-400 cursor-pointer hover:text-black transition-colors" />
-                                 </div>
-
-                                 <p className="text-sm font-medium text-zinc-700 mb-4 whitespace-pre-wrap leading-relaxed">{post.content || post.texte}</p>
-
-                                 {post.image_url && (
-                                     <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 bg-zinc-50 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
-                                         <img src={post.image_url} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
-                                     </div>
-                                 )}
-
-                                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-                                     <div className="flex items-center gap-6">
-                                         <button className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors text-zinc-400 hover:text-red-500`}>
-                                             <Heart size={16} />
-                                             {post.reactions?.top || post.reactions?.length || Math.floor(Math.random() * 50) + 1} Likes
-                                         </button>
-                                         <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
-                                             <MessageSquare size={16}/> {post.comments?.length || Math.floor(Math.random() * 10)} Réponses
-                                         </button>
-                                     </div>
-                                     <button className="text-zinc-400 hover:text-black transition-colors">
-                                         <Bookmark size={18} />
-                                     </button>
-                                 </div>
-                              </div>
-                           )) : (
-                               <div className="text-center py-16 px-6 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-[2rem] bg-white">
-                                   <Camera size={40} className="mx-auto mb-4 text-zinc-300"/>
-                                   Soyez le premier à partager votre assiette ! 📸
-                               </div>
-                           )}
-                        </div>
-                     </div>
-
-                     {/* Colonne Droite : Mini Profil & Notifications (3 cols) */}
-                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
-
-                         {/* Mini Profile Card */}
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
-                             <div className="h-24 bg-gradient-to-r from-black to-zinc-800 w-full relative">
-                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                             </div>
-                             <div className="px-6 pb-6 relative flex flex-col items-center">
-                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-20 h-20 rounded-full border-4 border-white shadow-md -mt-10 mb-3 bg-zinc-100 object-cover" alt="Moi" />
-                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
-
-                                 <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
-                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {lvlInfo.name}</p>
-
-                                 <div className="grid grid-cols-3 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-6">
-                                     <div>
-                                         <p className="text-lg font-black text-black">{jongomaXP}</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-lg font-black text-black">1.2k</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Followers</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-lg font-black text-black">{(communityPosts.filter(p => p.client === user?.full_name).length) || 0}</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Posts</p>
-                                     </div>
-                                 </div>
-
-                                 <button onClick={openLeaderboard} className="w-full bg-black text-[#39FF14] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-md">
-                                     Voir mon classement
-                                 </button>
-                             </div>
-                         </div>
-
-                         {/* Notifications / Reminders */}
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex-1">
-                             <div className="flex justify-between items-center mb-6">
-                                 <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Notifications</p>
-                                 <button className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest hover:text-black transition-colors">See All</button>
-                             </div>
-
-                             <div className="space-y-6">
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                                         <Droplet size={14}/>
-                                     </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Time to hydrate!</p>
-                                             <p className="text-[9px] text-zinc-400">1h ago</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il te manque encore {8 - waterGlasses} verres d'eau pour atteindre ton objectif du jour. Bois un verre maintenant !</p>
-                                     </div>
-                                 </div>
-
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
-                                         <Activity size={14}/>
-                                     </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Workout Reminder</p>
-                                             <p className="text-[9px] text-zinc-400">2h ago</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Tu as une session "Cardio Intense" prévue dans 30 minutes. Prépare tes baskets !</p>
-                                     </div>
-                                 </div>
-
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center shrink-0">
-                                         <Moon size={14}/>
-                                     </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Sleep Reminder</p>
-                                             <p className="text-[9px] text-zinc-400">Hier</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il est temps de se déconnecter des écrans pour un sommeil réparateur.</p>
-                                     </div>
-                                 </div>
-                             </div>
-                         </div>
-
-                     </div>
-                 </div>
+                      <div className="flex items-center gap-2 pt-4 border-t border-zinc-100">
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🔥 Top {post.reactions?.top > 0 && `(${post.reactions.top})`}</button>
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-green-50 hover:text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🥗 Sain {post.reactions?.sain > 0 && `(${post.reactions.sain})`}</button>
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-blue-50 hover:text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">💪 Courage {post.reactions?.courage > 0 && `(${post.reactions.courage})`}</button>
+                      </div>
+                   </div>
+                ))}
+             </div>
           </div>
         )}
 
-
-{/* MODALE LEADERBOARD */}
+      {/* MODALE LEADERBOARD */}
       {showLeaderboard && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowLeaderboard(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white p-8 rounded-[3rem] max-w-2xl w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-yellow-400 animate-in zoom-in-95 my-auto max-h-[90vh] flex flex-col overflow-hidden">
@@ -5502,66 +4967,32 @@ export default function NutritionDashboard() {
       )}
       
       {/* FOOTER ESPACE CLIENT */}
-      <footer className="bg-black text-white py-16 mt-20 border-t-4 border-[#39FF14]">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
-           <div className="md:col-span-2">
-              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro Logo" className="h-16 w-auto mb-6 object-contain" />
-              <p className="text-zinc-400 font-medium text-sm max-w-sm leading-relaxed mb-6">
-                 La première application nutritionnelle 100% adaptée aux réalités africaines. Atteignez vos objectifs sans abandonner vos plats locaux préférés.
-              </p>
-              <div className="flex gap-4">
-                 <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors text-zinc-400">
-                    <MessageCircle size={20}/>
-                 </button>
-                 <button onClick={() => window.open('https://instagram.com/onyx', '_blank')} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors text-zinc-400">
-                    <Camera size={20}/>
-                 </button>
-                 <button onClick={() => window.open('https://tiktok.com/@onyx', '_blank')} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-[#39FF14] hover:text-black transition-colors text-zinc-400">
-                    <Video size={20}/>
-                 </button>
-              </div>
-           </div>
-           <div>
-              <h4 className="font-black text-lg uppercase tracking-widest mb-6 flex items-center gap-2"><Compass className="text-[#39FF14]"/> Ressources</h4>
-              <ul className="space-y-4 text-zinc-400 font-bold text-sm">
-                 <li><button onClick={() => window.open('https://rokhydiallo.com', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Notre Méthode</button></li>
-                 <li><button onClick={() => window.open('https://rokhydiallo.com/boutique', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Boutique Onyx</button></li>
-                 <li><button onClick={() => window.open('https://rokhydiallo.com/contact', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Espace Coaching</button></li>
-              </ul>
-           </div>
-           <div>
-              <h4 className="font-black text-lg uppercase tracking-widest mb-6 flex items-center gap-2"><Settings className="text-[#39FF14]"/> Légal & Aide</h4>
-              <ul className="space-y-4 text-zinc-400 font-bold text-sm mb-8">
-                 <li><button className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> CGV / CGU</button></li>
-                 <li><button className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Politique de Confidentialité</button></li>
-                 <li><button className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Support Client (WhatsApp)</button></li>
-              </ul>
+      <footer className="bg-black text-white py-12 px-6 mt-20 text-center border-t border-zinc-800">
+         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 mb-8 text-left">
+            <div className="md:col-span-2">
+               <div className="flex items-center gap-3 mb-6">
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-12 w-auto object-contain opacity-80" />
+               </div>
+               <p className="text-zinc-500 text-sm max-w-sm mb-6">
+                  Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
+               </p>
+               <div className="flex items-center gap-4">
+                  <MessageCircle size={20} onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="text-zinc-400 hover:text-[#39FF14] cursor-pointer transition-colors"/>
+               </div>
 
-              <div className="space-y-3">
-                 <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Disponible bientôt</p>
-                 <div className="flex gap-3">
-                    <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-2 opacity-50 grayscale cursor-not-allowed">
-                       <Apple size={20}/>
-                       <div>
-                          <p className="text-[8px] uppercase font-bold text-zinc-400">Download on</p>
-                          <p className="text-xs font-black">App Store</p>
-                       </div>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-2 opacity-50 grayscale cursor-not-allowed">
-                       <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Play_Arrow_logo.svg" className="w-5 h-5"/>
-                       <div>
-                          <p className="text-[8px] uppercase font-bold text-zinc-400">Get it on</p>
-                          <p className="text-xs font-black">Google Play</p>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4">
-           <p className="text-xs font-bold text-zinc-600">© {new Date().getFullYear()} Onyx Ops Elite. Tous droits réservés.</p>
-           <p className="text-[10px] font-black tracking-widest uppercase text-zinc-700 bg-zinc-900 px-3 py-1.5 rounded-full">Designed in Senegal 🇸🇳</p>
-        </div>
+            </div>
+            <div>
+               <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Liens Utiles</h4>
+               <ul className="space-y-4 text-sm text-zinc-500 font-bold">
+                  <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-[#39FF14] transition-colors">Haut de page</button></li>
+                  <li><button onClick={() => setActiveTab('shop')} className="hover:text-[#39FF14] transition-colors">Boutique</button></li>
+               </ul>
+            </div>
+         </div>
+         <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-relaxed border-t border-zinc-800 pt-8">
+            Onyx Hub - Nutrition<br/>
+            © 2026 Onyx Ops Elite
+         </p>
       </footer>
 
       {/* MODALE PANIER */}
