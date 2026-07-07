@@ -1,13 +1,7 @@
-
-> onyx-ops-hub@0.1.0 start
-> next start -p 3000
-
    ▲ Next.js 15.5.15
    - Local:        http://localhost:3000
    - Network:      http://192.168.0.2:3000
 
  ✓ Starting...
- ✓ Ready in 494ms
-❌ DATABASE_URL est manquante dans l'environnement !
-[Middleware Executed] Detected Host: localhost | Path: /nutrition
-[Middleware Executed] Detected Host: localhost | Path: /login
+ ✓ Ready in 505ms
+[Middleware Executed] Detected Host: localhost | Path: /test-modal

@@ -4877,6 +4877,58 @@ export default function NutritionDashboard() {
         </div>
       )}
 
+      {/* MODALE BILAN QUOTIDIEN */}
+      {showDailyReport && (
+        <div id="daily-report-overlay" onClick={(e: any) => e.target.id === 'daily-report-overlay' && setShowDailyReport(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white p-6 sm:p-8 rounded-[2rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 max-h-[90vh] flex flex-col overflow-hidden">
+            <button onClick={() => setShowDailyReport(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-50"><X size={20}/></button>
+
+            <div className="text-center mb-6 mt-2">
+               <div className="w-16 h-16 bg-[#39FF14]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={32} className="text-[#39FF14] drop-shadow-md" />
+               </div>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase text-black tracking-tighter`}>Bilan du Jour</h2>
+               <p className="text-xs font-bold text-zinc-500 mt-2">Cochez les affirmations vraies pour clôturer votre journée.</p>
+            </div>
+
+            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2 pb-4">
+               {/* Checkbox 1: Menu */}
+               <label className="flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group hover:bg-zinc-50 border-zinc-200">
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors shrink-0 ${reportData.followedMenu ? 'bg-[#39FF14] border-[#39FF14]' : 'bg-white border-zinc-300 group-hover:border-black'}`}>
+                     {reportData.followedMenu && <Check size={14} className="text-black font-bold"/>}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={reportData.followedMenu} onChange={(e) => setReportData({...reportData, followedMenu: e.target.checked})} />
+                  <span className="text-sm font-black text-black">J'AI RESPECTÉ 80% DU MENU</span>
+               </label>
+
+               {/* Checkbox 2: Eau */}
+               <label className="flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group hover:bg-zinc-50 border-zinc-200">
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors shrink-0 ${reportData.drankWater ? 'bg-[#39FF14] border-[#39FF14]' : 'bg-white border-zinc-300 group-hover:border-black'}`}>
+                     {reportData.drankWater && <Check size={14} className="text-black font-bold"/>}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={reportData.drankWater} onChange={(e) => setReportData({...reportData, drankWater: e.target.checked})} />
+                  <span className="text-sm font-black text-black">J'AI BU MON OBJECTIF D'EAU</span>
+               </label>
+
+               {/* Checkbox 3: Sucre */}
+               <label className="flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group hover:bg-zinc-50 border-zinc-200">
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors shrink-0 ${reportData.cravedRice ? 'bg-[#39FF14] border-[#39FF14]' : 'bg-white border-zinc-300 group-hover:border-black'}`}>
+                     {reportData.cravedRice && <Check size={14} className="text-black font-bold"/>}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={reportData.cravedRice} onChange={(e) => setReportData({...reportData, cravedRice: e.target.checked})} />
+                  <span className="text-sm font-black text-black">J'AI FAIT UN ÉCART DE SUCRE</span>
+               </label>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-zinc-100 shrink-0">
+               <button onClick={submitDailyReport} disabled={isSubmittingReport} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform shadow-xl flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isSubmittingReport ? <Loader2 size={18} className="animate-spin"/> : "Valider mon bilan"}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODALE REFAIRE LE DIAGNOSTIC (ROKHY) */}
       {showRedoDiagModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
