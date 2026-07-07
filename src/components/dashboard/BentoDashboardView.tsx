@@ -16,9 +16,10 @@ interface BentoDashboardViewProps {
     clientProfile: any;
     setActiveTab: (tab: string) => void;
     handleMealClick?: (meal: any) => void;
+    setShowDailyReport: (show: boolean) => void;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, setActiveTab, handleMealClick }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, setActiveTab, handleMealClick, setShowDailyReport }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
@@ -151,7 +152,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" alt="" className="w-5 h-5 object-cover mix-blend-multiply" />
                             Loguer Repas
                         </button>
-                        <button onClick={() => setActiveTab('today')} className="flex-1 bg-[#39FF14] text-black rounded-xl py-3 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-sm">
+                        <button onClick={() => { setActiveTab('today'); setShowDailyReport(true); }} className="flex-1 bg-[#39FF14] text-black rounded-xl py-3 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-sm">
                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" alt="" className="w-5 h-5 object-cover mix-blend-multiply" />
                             Bilan Quotidien
                         </button>
