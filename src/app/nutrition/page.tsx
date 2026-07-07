@@ -1521,6 +1521,8 @@ export default function NutritionDashboard() {
           setFatsGoal(results.fats);
 
           if (clientProfile && user) {
+              // Extract phone from diagData so it doesn't get inserted into diagnostic_data column causing 500
+              const { phone, ...cleanDiagData } = diagData;
               const payload = {
                   client_id: clientProfile.id,
                   daily_calorie_goal: results.calories,
