@@ -2905,6 +2905,7 @@ export default function NutritionDashboard() {
               clientProfile={clientProfile}
               setActiveTab={setActiveTab}
               handleMealClick={handleMealClick}
+              setShowDailyReport={setShowDailyReport}
           />
         )}
 
