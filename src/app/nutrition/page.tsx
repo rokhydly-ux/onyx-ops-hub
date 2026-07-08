@@ -3118,10 +3118,15 @@ export default function NutritionDashboard() {
                             </p>
                             <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
                             <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
-                                {waterGlasses === 0 && "Il est temps de boire le premier verre !"}
-                                {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça !"}
+                                {waterGlasses === 0 && [
+                                    "L'eau booste votre métabolisme de 30% en 10 min.",
+                                    "Buvez avant les repas pour mieux digérer.",
+                                    "La fatigue est souvent signe de déshydratation.",
+                                    "Objectif : 8 verres pour un ventre plat."
+                                ][new Date().getDay() % 4]}
+                                {waterGlasses > 0 && waterGlasses < 4 && "Continue comme ça ! Chaque verre compte."}
                                 {waterGlasses >= 4 && waterGlasses < 8 && "Tu es à la moitié, bravo !"}
-                                {waterGlasses >= 8 && "Objectif atteint !"}
+                                {waterGlasses >= 8 && "Objectif atteint ! Corps hydraté 💧"}
                             </p>
                         </div>
 
