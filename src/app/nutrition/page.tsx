@@ -4361,7 +4361,7 @@ export default function NutritionDashboard() {
                         {/* Top Chart Area */}
                         <div className="col-span-12 lg:col-span-8 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col min-h-[300px]">
                             <h3 className="text-sm font-black text-black mb-4 flex justify-between items-center">
-                                Weight Loss Journey
+                                Évolution du Poids
                             </h3>
                             <div className="flex-grow w-full min-h-[200px] relative">
                                 {weightLogs.length > 0 ? (
@@ -4441,11 +4441,11 @@ export default function NutritionDashboard() {
                         </div>
                         {/* Bottom Left: Current vs Target Weight */}
                         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col justify-between relative overflow-hidden cursor-pointer" onClick={() => setShowWeightModal(true)}>
-                            <h3 className="text-sm font-black text-black mb-6">Current vs Target Weight</h3>
+                            <h3 className="text-sm font-black text-black mb-6">Poids Actuel vs Cible</h3>
 
                             <div className="flex justify-between items-center mb-6">
                                 <div>
-                                    <p className="text-xs font-bold text-zinc-500 mb-1">Current:</p>
+                                    <p className="text-xs font-bold text-zinc-500 mb-1">Actuel :</p>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-4xl sm:text-5xl font-black tracking-tighter">
                                             {weightLogs.length > 0 ? parseFloat(weightLogs[weightLogs.length - 1].weight).toFixed(1) : '--'}
@@ -4465,7 +4465,7 @@ export default function NutritionDashboard() {
 
                             <div className="flex justify-between items-end border-t border-zinc-100 pt-4">
                                 <div>
-                                    <p className="text-xs font-bold text-zinc-500 mb-1">Target:</p>
+                                    <p className="text-xs font-bold text-zinc-500 mb-1">Cible :</p>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-3xl sm:text-4xl font-black tracking-tighter">
                                             {clientProfile?.diagnostic_data?.targetWeight || '--'}
@@ -4489,7 +4489,7 @@ export default function NutritionDashboard() {
                         {/* Bottom Center: BMI/IMC History */}
                         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-sm font-black text-black">BMI/IMC History</h3>
+                                <h3 className="text-sm font-black text-black">Historique IMC</h3>
                                 <HeartPulse size={20} className="text-red-500" />
                             </div>
 
@@ -4530,14 +4530,14 @@ export default function NutritionDashboard() {
 
                         {/* Bottom Recipes */}
                         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-4 shadow-sm border border-white flex flex-col h-[280px]">
-                            <h3 className="text-sm font-black text-black mb-3 px-2">Recipes</h3>
+                            <h3 className="text-sm font-black text-black mb-3 px-2">Recettes</h3>
                             <div className="relative flex-grow rounded-2xl overflow-hidden mb-3">
                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286332/IMG-20250820-WA0117_iegikb.jpg" alt="Recipe of the day" className="w-full h-full object-cover" />
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                                     <p className="text-white text-xs font-bold leading-tight">{trackingMode === 'guided' ? "Recette de votre plan" : "Recette minceur recommandée"}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setActiveTab('favorites')} className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-sm tracking-widest">View Recipes</button>
+                            <button onClick={() => setActiveTab('favorites')} className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-sm tracking-widest">Voir Recettes</button>
                         </div>
 
                         {/* Bottom Fitness */}
@@ -4546,7 +4546,7 @@ export default function NutritionDashboard() {
                             <div className="relative flex-grow rounded-2xl overflow-hidden group cursor-pointer" onClick={() => setActiveTab('fitness')}>
                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286277/Woman_wearing_workout_clothes_2K_202607052117_cn1ehb.jpg" alt="Fitness" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                                 <div className="absolute inset-x-3 bottom-3">
-                                    <button className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-md tracking-widest">Start Workout</button>
+                                    <button className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-md tracking-widest">Démarrer Séance</button>
                                 </div>
                             </div>
                         </div>
