@@ -14,12 +14,13 @@ interface BentoDashboardViewProps {
     handleUpdateWater: (delta: number) => void;
     jongomaXP: number;
     clientProfile: any;
+    weightLogs: any[];
     setActiveTab: (tab: string) => void;
     handleMealClick?: (meal: any) => void;
     setShowDailyReport: (show: boolean) => void;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, setActiveTab, handleMealClick, setShowDailyReport }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
@@ -59,7 +60,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                                 <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Poids Actuel</p>
                                 <p className="text-xs font-bold text-[#39FF14] uppercase tracking-widest">Obj: {clientProfile?.diagnostic_data?.targetWeight || '--'} kg</p>
                             </div>
-                            <p className="text-3xl font-black text-black">{clientProfile?.diagnostic_data?.currentWeight || '--'} <span className="text-sm">kg</span></p>
+                            <p className="text-3xl font-black text-black">{weightLogs && weightLogs.length > 0 ? parseFloat(weightLogs[weightLogs.length - 1].weight).toFixed(1) : (clientProfile?.diagnostic_data?.currentWeight || '--')} <span className="text-sm">kg</span></p>
                             <div className="w-full bg-zinc-100 rounded-full h-1 mt-2">
                                 <div className="bg-[#39FF14] h-1 rounded-full" style={{ width: '30%' }}></div>
                             </div>

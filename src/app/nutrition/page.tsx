@@ -2903,6 +2903,7 @@ export default function NutritionDashboard() {
               handleUpdateWater={handleUpdateWater}
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
+              weightLogs={weightLogs}
               setActiveTab={setActiveTab}
               handleMealClick={handleMealClick}
               setShowDailyReport={setShowDailyReport}
