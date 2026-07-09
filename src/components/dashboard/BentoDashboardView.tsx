@@ -10,8 +10,8 @@ import { supabase } from "@/lib/supabaseClient";
 // Props required for the weaving
 interface BentoDashboardViewProps {
     user: any;
-    waterGlasses: number[];
-    handleUpdateWater: (idx: number) => void;
+    waterGlasses: number;
+    handleUpdateWater: (delta: number) => void;
     jongomaXP: number;
     clientProfile: any;
     setActiveTab: (tab: string) => void;
@@ -23,6 +23,14 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
+
+    const waterTips = [
+        "L'eau booste votre métabolisme de 30% en 10 min.",
+        "Buvez avant les repas pour mieux digérer.",
+        "La fatigue est souvent signe de déshydratation.",
+        "Objectif : 8 verres pour un ventre plat."
+    ];
+    const dailyWaterTip = waterTips[new Date().getDay() % waterTips.length];
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -76,25 +84,32 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <p className="text-3xl font-black text-black">{clientProfile?.diagnostic_data?.sleepHours || '7h'} <span className="text-sm text-zinc-500">moy</span></p>
                     </div>
                     {/* Hydratation */}
-                    <div className="rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 cursor-pointer group relative overflow-hidden" onClick={() => setActiveTab('today')}>
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg" alt="Water background" className="absolute inset-0 w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 z-0" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent z-10"></div>
+                    <div className="rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 relative overflow-hidden group">
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg" alt="Water background" className="absolute inset-0 w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 z-0 cursor-pointer" onClick={() => setActiveTab('today')} />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent z-10 pointer-events-none"></div>
 
                         <div className="relative z-20 flex flex-col h-full justify-between">
-                            <div className="flex justify-between items-start">
-                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Hydratation</p>
-                                <Droplet size={16} className="text-blue-400" />
+                            <div className="flex justify-between items-start cursor-pointer" onClick={() => setActiveTab('today')}>
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Hydratation</p>
+                                    <p className="text-[9px] font-medium text-zinc-400 max-w-[80%] leading-tight">{dailyWaterTip}</p>
+                                </div>
+                                <Droplet size={16} className="text-blue-400 shrink-0" />
                             </div>
-                            <div className="flex gap-2 items-center">
-                                {[0, 1, 2, 3, 4, 5].map(idx => {
-                                    const isDrank = idx < (waterGlasses?.length ? waterGlasses.filter(v => v).length : 3);
-                                    const isNext = idx === (waterGlasses?.length ? waterGlasses.filter(v => v).length : 3);
+                            <div className="flex gap-2 items-center mt-2">
+                                {[0, 1, 2, 3, 4, 5, 6, 7].map(idx => {
+                                    const isDrank = idx < waterGlasses;
+                                    const isNext = idx === waterGlasses;
                                     return (
                                         <img
                                             key={idx}
                                             src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png"
-                                            className={`w-4 h-10 object-contain ${isDrank ? 'opacity-100' : 'opacity-30 grayscale'} ${isNext ? 'animate-pulse' : ''}`}
+                                            className={`w-4 h-10 object-contain cursor-pointer transition-transform hover:scale-110 ${isDrank ? 'opacity-100' : 'opacity-30 grayscale'} ${isNext ? 'animate-pulse' : ''}`}
                                             alt="Bottle"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUpdateWater(idx + 1 - waterGlasses);
+                                            }}
                                         />
                                     );
                                 })}
