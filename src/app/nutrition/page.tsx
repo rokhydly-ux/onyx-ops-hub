@@ -4589,6 +4589,14 @@ export default function NutritionDashboard() {
             </div>
         )}
 
+        {/* VUE FITNESS */}
+        {activeTab === 'fitness' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-7xl mx-auto">
+                <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-2"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+                <ClientFitnessView clientId={clientProfile?.id} tenantId={clientProfile?.tenant_id} />
+            </div>
+        )}
+
         {/* VUE COMMUNAUTÉ (FEED) */}
 
         {activeTab === 'community' && (
