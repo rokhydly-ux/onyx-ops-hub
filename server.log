@@ -3,6 +3,6 @@
    - Network:      http://192.168.0.2:3000
 
  ✓ Starting...
- ✓ Ready in 485ms
+ ✓ Ready in 908ms
 [Middleware Executed] Detected Host: localhost | Path: /nutrition
 [Middleware Executed] Detected Host: localhost | Path: /login
