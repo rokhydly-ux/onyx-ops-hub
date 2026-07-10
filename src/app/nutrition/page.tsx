@@ -2377,9 +2377,37 @@ export default function NutritionDashboard() {
   const remainingCalories = Math.max(0, targetCalories - calories);
   const lvlInfo = getJongomaLevel(jongomaXP);
 
+
   const currentHour = new Date().getHours();
   const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
-  const greetingSubtext = currentHour < 18 ? "Prête pour ta journée ?" : "Pense à t'hydrater ce soir.";
+
+  // Logic for contextual personalized subtext
+  const hasPendingReport = !reportData || reportData.length === 0;
+  const isMorning = currentHour < 12;
+  const isAfternoon = currentHour >= 12 && currentHour < 18;
+  const isEvening = currentHour >= 18;
+
+  let greetingSubtext = "Prête pour ta journée ?";
+  if (isMorning) {
+    if (waterGlasses < 2) {
+      greetingSubtext = "N'oublie pas de boire tes premiers verres d'eau ! 💧";
+    } else {
+      greetingSubtext = "Super début de journée ! Continue comme ça. ☀️";
+    }
+  } else if (isAfternoon) {
+    if (waterGlasses < 4) {
+      greetingSubtext = "Une petite pause ? Pense à t'hydrater. 🚰";
+    } else {
+      greetingSubtext = "En pleine forme pour cet après-midi ! 🔥";
+    }
+  } else if (isEvening) {
+    if (hasPendingReport) {
+       greetingSubtext = "N'oublie pas de remplir ton Bilan Quotidien ! 📝";
+    } else {
+       greetingSubtext = "Excellente soirée, pense à bien te reposer. 🌙";
+    }
+  }
+
 
   const subTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
   const freeShippingThreshold = 20000;
@@ -2870,7 +2898,7 @@ export default function NutritionDashboard() {
                  <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
               )}
               <h1 className={`${spaceGrotesk.className} text-[2.5rem] md:text-4xl font-black uppercase tracking-tighter text-black`}>
-                {greetingText}, <span className="text-zinc-600">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+                {greetingText}, <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
               </h1>
               <p className="text-zinc-500 font-bold text-sm mt-1">{greetingSubtext}</p>
             </div>
