@@ -40,12 +40,6 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
 
     return (
         <div className="w-full max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 pb-20">
-            {/* Bannière de Bienvenue */}
-            <div className="mb-8">
-                <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-black">
-                    {greetingText} <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span>.
-                </h1>
-            </div>
 
             {/* Grille Bento */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
