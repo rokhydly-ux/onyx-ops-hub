@@ -330,6 +330,9 @@ export default function NutritionDashboard() {
   
   // Bilan
   const [showDailyReport, setShowDailyReport] = useState(false);
+  const [selectedReportDate, setSelectedReportDate] = useState<string>(todayStr);
+  const [showExitIntentModal, setShowExitIntentModal] = useState(false);
+  const [intendedTab, setIntendedTab] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>({ followedMenu: false, cravedRice: false, drankWater: false });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
@@ -1765,6 +1768,20 @@ export default function NutritionDashboard() {
       return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins, carbs_consumed: carbs, fats_consumed: fats }];
     });
   };
+
+  const handleTabChange = (tab: string) => {
+      // Exit intent logic: check if user hasn't filled report today and it's past 20:00
+      const now = new Date();
+      const hasLoggedToday = dailyLogs.some(log => log.log_date === todayStr && log.report_data);
+      const isSwitchingAway = tab !== 'today' && tab !== 'history' && activeTab !== tab;
+
+      if (isSwitchingAway && now.getHours() >= 20 && !hasLoggedToday) {
+          setIntendedTab(tab);
+          setShowExitIntentModal(true);
+          return;
+      }
+      handleTabChange(tab);
+  };
   
   const handleMealClick = async (mealType: string, plannedMeal: any, forceMode?: string) => {
       setFoodSearchQuery("");
@@ -2199,13 +2216,13 @@ export default function NutritionDashboard() {
         setProteins(currentProts);
     }
 
-    const todayLog = dailyLogs.find(l => l.log_date === todayStr);
+    const targetLog = dailyLogs.find(l => l.log_date === selectedReportDate);
 
     const payload = {
-       ...(todayLog?.id ? { id: todayLog.id } : {}),
+       ...(targetLog?.id ? { id: targetLog.id } : {}),
        client_id: clientProfile.id,
        tenant_id: clientProfile.tenant_id || null,
-       log_date: todayStr,
+       log_date: selectedReportDate,
        report_data: { ...reportData, consumedMeals, moods, moodNotes },
        water_glasses: waterGlasses,
        calories_consumed: currentCals || 0,
@@ -2223,7 +2240,7 @@ export default function NutritionDashboard() {
        }
        alert("Mode hors-ligne : Votre bilan a été sauvegardé localement. Il sera synchronisé dès le retour d'Internet.");
        setShowDailyReport(false);
-       setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), payload]);
+       setDailyLogs(prev => [...prev.filter(l => l.log_date !== selectedReportDate), payload]);
        setIsSubmittingReport(false);
        return;
     }
@@ -2239,8 +2256,8 @@ export default function NutritionDashboard() {
        audio.volume = 0.5;
        audio.play().catch(()=>{});
        setShowDailyReport(false);
-       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
-       setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
+       const updatedLog = { client_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       setDailyLogs(prev => [...prev.filter(l => l.log_date !== selectedReportDate), updatedLog]);
     } catch (err: any) {
        alert("Erreur lors de l'enregistrement : " + err.message + "\nVeuillez vérifier que les colonnes carbs_consumed et fats_consumed existent dans nutrition_daily_logs.");
     } finally {
@@ -2755,20 +2772,20 @@ export default function NutritionDashboard() {
       {/* NOUVEAU HEADER GLASSMORPHISM */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => setActiveTab('dashboard')} />
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => handleTabChange('dashboard')} />
         </div>
 
         {/* MÉGA-MENU (Desktop) */}
         <div className="hidden lg:flex items-center gap-2">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Accueil</button>
             <div className="relative group">
                 <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
                     <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt=""/> Mon Jour</button>
-                    <button onClick={() => setActiveTab('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt=""/> Historique</button>
-                    <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
+                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt=""/> Mon Jour</button>
+                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt=""/> Historique</button>
+                    <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
                 </div>
             </div>
 
@@ -2777,8 +2794,8 @@ export default function NutritionDashboard() {
                     <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt=""/> Sama Menu</button>
-                    <button onClick={() => setActiveTab('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
+                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt=""/> Sama Menu</button>
+                    <button onClick={() => handleTabChange('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
                 </div>
             </div>
 
@@ -2787,16 +2804,16 @@ export default function NutritionDashboard() {
                     <MessageSquare size={14}/> Réseau <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => setActiveTab('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
-                    <button onClick={() => setActiveTab('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
-                    <button onClick={() => setActiveTab('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
-                    <button onClick={() => setActiveTab('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
-                    <button onClick={() => setActiveTab('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
+                    <button onClick={() => handleTabChange('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
+                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
+                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
+                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
+                    <button onClick={() => handleTabChange('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
 
                 </div>
             </div>
 
-<button onClick={() => setActiveTab('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
+<button onClick={() => handleTabChange('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
                     <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt=""/> Boutique
                 </button>
         </div>
@@ -2834,7 +2851,7 @@ export default function NutritionDashboard() {
                     <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-9 h-9 rounded-full border-2 border-[#39FF14]/50 object-cover shadow-sm" />
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
-                    <button onClick={() => setActiveTab('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
+                    <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
                     <div className="h-px w-full bg-zinc-100"></div>
                     <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-50 flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
                 </div>
@@ -2855,7 +2872,7 @@ export default function NutritionDashboard() {
 
 {activeTab === 'minute-doc' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
                 <div>
@@ -2932,7 +2949,7 @@ export default function NutritionDashboard() {
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
               weightLogs={weightLogs}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
               setShowDailyReport={setShowDailyReport}
           />
@@ -2943,7 +2960,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'today' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                <div className="flex items-center gap-4">
                   <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" />
@@ -3194,7 +3211,7 @@ export default function NutritionDashboard() {
                <p className="text-zinc-500 font-bold text-sm mb-6">Boostez vos résultats avec nos produits 100% naturels.</p>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {crossSellProducts.slice(0,3).map((p: any) => (
-                     <div key={p.id} className="bg-zinc-50 border border-zinc-200 rounded-3xl overflow-hidden flex flex-col group cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setActiveTab('shop')}>
+                     <div key={p.id} className="bg-zinc-50 border border-zinc-200 rounded-3xl overflow-hidden flex flex-col group cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => handleTabChange('shop')}>
                         <div className="h-40 w-full relative">
                             <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
@@ -3214,7 +3231,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'week' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
             {/* SECTION SMART PLANNER (Générateur) */}
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -3442,7 +3459,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'orders' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Package className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Mes Commandes</h2>
                 
@@ -3503,7 +3520,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
                 
@@ -3618,7 +3635,7 @@ export default function NutritionDashboard() {
                <h4 className="font-black uppercase text-sm mb-1">Bilan en attente !</h4>
                <p className="text-xs text-zinc-400 font-medium mb-3">Il est plus de 20h00, n'oubliez pas de remplir votre bilan de fin de journée pour adapter votre menu de demain.</p>
                <div className="flex gap-2">
-                  <button onClick={() => { setShowReminder(false); setActiveTab('today'); setShowDailyReport(true); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-transform hover:scale-105">Remplir maintenant</button>
+                  <button onClick={() => { setShowReminder(false); handleTabChange('today'); setShowDailyReport(true); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-transform hover:scale-105">Remplir maintenant</button>
                   <button onClick={() => setShowReminder(false)} className="text-zinc-500 hover:text-white px-2 py-2 rounded-lg font-bold text-[10px] uppercase">Plus tard</button>
                </div>
             </div>
@@ -3679,7 +3696,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'favorites' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
@@ -3797,7 +3814,7 @@ export default function NutritionDashboard() {
         {/* VUE BOUTIQUE */}
         {activeTab === 'shop' && (
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
               <div className="flex items-center gap-4 mb-8">
                  <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" />
@@ -4209,25 +4226,54 @@ export default function NutritionDashboard() {
                  </button>
                </div>
                <div className="space-y-4">
-                  {[...(Array.isArray(dailyLogs) ? dailyLogs : [])].filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime())).sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
-                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                           <p className="font-black text-sm text-black mb-1">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                           <div className="flex flex-wrap gap-2 mt-2">
-                              {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
-                              {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
-                              {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
-                        </div>
-                     </div>
-                  ))}
-                  {(!Array.isArray(dailyLogs) || dailyLogs.length === 0) && (
-                     <p className="text-sm text-zinc-500 font-medium italic">Aucun bilan enregistré pour le moment.</p>
-                  )}
+                  {Array.from({length: 7}).map((_, idx) => {
+                     const d = new Date();
+                     d.setDate(d.getDate() - idx);
+                     const dateStr = d.toISOString().split('T')[0];
+                     const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
+
+                     if (log && log.report_data) {
+                         return (
+                             <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                   <p className="font-black text-sm text-black mb-1">{d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                   <div className="flex flex-wrap gap-2 mt-2">
+                                      {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
+                                      {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
+                                      {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
+                                </div>
+                             </div>
+                         );
+                     } else {
+                         return (
+                             <div key={idx} className="bg-white p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4 opacity-80">
+                                <div>
+                                   <p className="font-black text-sm text-black mb-1">{d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                   <div className="flex flex-wrap gap-2 mt-2">
+                                      <span className="bg-zinc-100 text-zinc-400 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>
+                                   </div>
+                                </div>
+                                <div className="flex items-center justify-between md:justify-end gap-6 text-sm font-bold text-zinc-500 w-full md:w-auto mt-4 md:mt-0">
+                                   <div className="flex items-center gap-4">
+                                      <span className="flex items-center gap-1 text-zinc-400"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm grayscale opacity-50"/> 0 kcal</span>
+                                      <span className="flex items-center gap-1 text-zinc-400"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm grayscale opacity-50"/> 0/8</span>
+                                   </div>
+                                   <button onClick={() => {
+                                       setSelectedReportDate(dateStr);
+                                       setShowDailyReport(true);
+                                   }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest animate-pulse hover:scale-105 transition-transform shadow-[0_0_15px_rgba(57,255,20,0.3)]">
+                                      Rattraper
+                                   </button>
+                                </div>
+                             </div>
+                         );
+                     }
+                  })}
                </div>
             </div>
           </div>
@@ -4319,7 +4365,7 @@ export default function NutritionDashboard() {
                          {coachingChatStep === 1 && (
                             <>
                                <p className="text-sm font-medium text-black mb-4">La stagnation est normale, ne lâche rien ! As-tu pensé à remplacer ton riz brisé par du Fonio cette semaine pour relancer la machine sans te priver ?</p>
-                               <button onClick={() => setActiveTab('shop')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
+                               <button onClick={() => handleTabChange('shop')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
                                   🛒 Découvrir le Fonio
                                </button>
                             </>
@@ -4327,7 +4373,7 @@ export default function NutritionDashboard() {
                          {coachingChatStep === 2 && (
                             <>
                                <p className="text-sm font-medium text-black mb-4">Zéro culpabilité ! L&apos;important c&apos;est le prochain repas. Fais-toi une petite infusion de Kinkéliba ou de Bissap sans sucre ce soir pour aider la digestion.</p>
-                               <button onClick={() => setActiveTab('today')} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
+                               <button onClick={() => handleTabChange('today')} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
                                   💪 Reprendre mon menu
                                </button>
                             </>
@@ -4378,7 +4424,7 @@ export default function NutritionDashboard() {
                     <div className="absolute inset-0 bg-white/70 md:bg-white/50 backdrop-blur-[2px] z-0"></div>
 
                     <div className="relative z-10 w-full mb-6">
-                        <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-4"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+                        <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-4"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
                         <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black">
                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Balance 3D" className="w-8 h-8 rounded-full object-cover mix-blend-multiply" />
                             Mon Poids
@@ -4465,7 +4511,7 @@ export default function NutritionDashboard() {
                                     <div className="bg-white border border-zinc-100 text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative flex flex-col gap-1 w-full"><span className="absolute -left-2 top-0 text-[10px] bg-amber-600 text-white w-4 h-4 rounded-full flex items-center justify-center shadow-sm">3</span><span>Amadou T.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -7 kg</span></div>
                                 </div>
                             </div>
-                            <button onClick={() => setActiveTab('community')} className="w-full mt-4 bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-xs py-3 rounded-xl transition-colors shadow-sm tracking-widest">Voir la communauté</button>
+                            <button onClick={() => handleTabChange('community')} className="w-full mt-4 bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-xs py-3 rounded-xl transition-colors shadow-sm tracking-widest">Voir la communauté</button>
                         </div>
                         {/* Bottom Left: Current vs Target Weight */}
                         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white flex flex-col justify-between relative overflow-hidden cursor-pointer" onClick={() => setShowWeightModal(true)}>
@@ -4565,13 +4611,13 @@ export default function NutritionDashboard() {
                                     <p className="text-white text-xs font-bold leading-tight">{trackingMode === 'guided' ? "Recette de votre plan" : "Recette minceur recommandée"}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setActiveTab('favorites')} className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-sm tracking-widest">Voir Recettes</button>
+                            <button onClick={() => handleTabChange('favorites')} className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-sm tracking-widest">Voir Recettes</button>
                         </div>
 
                         {/* Bottom Fitness */}
                         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white/80 backdrop-blur-md rounded-3xl p-4 shadow-sm border border-white flex flex-col h-[280px]">
                             <h3 className="text-sm font-black text-black mb-3 px-2">Fitness</h3>
-                            <div className="relative flex-grow rounded-2xl overflow-hidden group cursor-pointer" onClick={() => setActiveTab('fitness')}>
+                            <div className="relative flex-grow rounded-2xl overflow-hidden group cursor-pointer" onClick={() => handleTabChange('fitness')}>
                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286277/Woman_wearing_workout_clothes_2K_202607052117_cn1ehb.jpg" alt="Fitness" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                                 <div className="absolute inset-x-3 bottom-3">
                                     <button className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-black uppercase text-[10px] py-2.5 rounded-xl transition-colors shadow-md tracking-widest">Démarrer Séance</button>
@@ -4620,7 +4666,7 @@ export default function NutritionDashboard() {
         {/* VUE FITNESS */}
         {activeTab === 'fitness' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-7xl mx-auto">
-                <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-2"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+                <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-2"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
                 <ClientFitnessView clientId={clientProfile?.id} tenantId={clientProfile?.tenant_id} />
             </div>
         )}
@@ -4629,7 +4675,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'community' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                      <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
                      <div className="flex items-center gap-3 w-full md:w-auto">
@@ -4967,6 +5013,42 @@ export default function NutritionDashboard() {
                   {isSubmittingReport ? <Loader2 size={18} className="animate-spin"/> : "Valider mon bilan"}
                </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXIT INTENT MODAL */}
+      {showExitIntentModal && (
+        <div id="exit-intent-overlay" onClick={(e: any) => { if(e.target.id === 'exit-intent-overlay') setShowExitIntentModal(false); }} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white p-8 rounded-[2rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 flex flex-col items-center text-center">
+             <button onClick={() => setShowExitIntentModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+             <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center mb-6 relative">
+                 <AlertCircle size={40} className="text-black" />
+                 <div className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center animate-bounce">
+                    <span className="text-white text-[10px] font-black">!</span>
+                 </div>
+             </div>
+             <h3 className="text-2xl font-black uppercase text-black mb-2 tracking-tighter">Minute !</h3>
+             <p className="text-sm font-bold text-zinc-500 mb-8">Tu n'as pas encore rempli ton bilan aujourd'hui. Prends 30 secondes pour le faire et sécuriser tes XP !</p>
+             <div className="w-full space-y-3">
+                 <button onClick={() => {
+                     setShowExitIntentModal(false);
+                     setSelectedReportDate(todayStr);
+                     setShowDailyReport(true);
+                 }} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-[0_0_30px_rgba(57,255,20,0.4)] animate-pulse flex justify-center items-center gap-2">
+                     Remplir mon bilan
+                 </button>
+                 <button onClick={() => {
+                     setShowExitIntentModal(false);
+                     if (intendedTab) {
+                        // Force change to the tab
+                        // We shouldn't use handleTabChange here to avoid infinite loop
+                        setActiveTab(intendedTab);
+                     }
+                 }} className="w-full bg-transparent text-zinc-400 py-3 rounded-xl font-bold text-xs uppercase hover:text-black transition-colors">
+                     Plus tard
+                 </button>
+             </div>
           </div>
         </div>
       )}
@@ -5704,7 +5786,7 @@ export default function NutritionDashboard() {
                         <div className="h-full flex flex-col items-center justify-center text-zinc-500">
                            <ShoppingBag size={48} className="mb-4 opacity-50"/>
                            <p className="font-bold uppercase tracking-widest text-xs">Votre panier est vide.</p>
-                           <button onClick={() => { setShowCartModal(false); setActiveTab('shop'); }} className="mt-6 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-md">
+                           <button onClick={() => { setShowCartModal(false); handleTabChange('shop'); }} className="mt-6 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-md">
                               Découvrir la boutique
                            </button>
                         </div>
@@ -5915,12 +5997,12 @@ export default function NutritionDashboard() {
 
       {/* BOTTOM NAVIGATION MOBILE */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center px-4 py-2 z-[100] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-         <button onClick={() => { setActiveTab('week'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Sama Menu</span></button>
-         <button onClick={() => { setActiveTab('today'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Mon Jour</span></button>
+         <button onClick={() => { handleTabChange('week'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Sama Menu</span></button>
+         <button onClick={() => { handleTabChange('today'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Mon Jour</span></button>
          <div className="flex-1 flex justify-center -mt-6">
             <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] w-14 h-14 rounded-full shadow-[0_10px_20px_rgba(57,255,20,0.3)] border-4 border-[#f4f4f5] dark:border-zinc-950 flex items-center justify-center hover:scale-110 transition-transform"><ScanLine size={24}/></button>
          </div>
-         <button onClick={() => { setActiveTab('shop'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.shop} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Boutique</span></button>
+         <button onClick={() => { handleTabChange('shop'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.shop} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Boutique</span></button>
          <button onClick={() => setIsMobileMenuOpen(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
       </div>
 
