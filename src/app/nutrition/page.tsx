@@ -1780,7 +1780,7 @@ export default function NutritionDashboard() {
           setShowExitIntentModal(true);
           return;
       }
-      handleTabChange(tab);
+      setActiveTab(tab);
   };
   
   const handleMealClick = async (mealType: string, plannedMeal: any, forceMode?: string) => {
