@@ -149,22 +149,22 @@ const FAQ_DATA = [
 
 const FAMILY_APPROACH_POINTS_NEW = [
   {
-    icon: "🍲",
+    iconUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/13_exx10u.png",
     title: "Partagez la même sauce",
     text: "Vous mangez le même Yassa savoureux (légumes, poisson, zébu) que vos proches."
   },
   {
-    icon: "🔄",
+    iconUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287809/14_k3n6kr.png",
     title: "Le 'Switch' Intelligent",
     text: "Pendant que la famille prend le riz blanc lourd, vous versez votre portion de Fonio précuit ou de Riz local étuvé acheté chez Auchan Sénégal. C'est simple et discret."
   },
   {
-    icon: "⚖️",
+    iconUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/16_uwavos.png",
     title: "Le Contrôle des Portions",
     text: "L'application vous apprend à vous servir la juste quantité dans le bol commun sans frustration."
   },
   {
-    icon: "👨‍👩‍👧‍👦",
+    iconUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png",
     title: "Montrez l'exemple",
     text: "En mangeant plus sainement sans vous isoler, vous inspirez positivement vos proches. Le bien-être devient une affaire de famille." // Kept this one as it's still relevant
   }
@@ -172,22 +172,36 @@ const FAMILY_APPROACH_POINTS_NEW = [
 
 const HERO_SLIDES = [
   {
+    ctaType: "diagnostic",
     image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781371355/A_cinematic_16_9_split-screen_before-and-after_202606131604_id9wzx.jpg",
+    badge: "Rééquilibrage 100% Sénégalais",
     title: "PERDEZ JUSQU'À 8 KG CE MOIS-CI.",
     highlight: "SANS RÉGIME TOUBAB.",
-    sub: "Affinez vos bras et retrouvez un ventre plat tout en mangeant du Yassa et du Thieb. Le rééquilibrage 100% sénégalais."
+    sub: "Affinez vos bras et retrouvez un ventre plat tout en mangeant du Yassa et du Thieb. Découvrez votre profil métabolique."
   },
   {
-    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/A_cinematic_16_9_wide_shot_202606131426_deadb8.jpg",
-    title: "ADIEU LE GROS VENTRE.",
-    highlight: "BONJOUR L'ÉNERGIE.",
-    sub: "Fini les ballonnements de l'après-midi. Apprenez à doser l'huile et remplacez le riz blanc pour une silhouette harmonieuse."
+    ctaType: "download",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783283813/Woman_s_hand_holding_smartphone_2K_202607051729_ltpbem.jpg",
+    badge: " Application 100% Gratuite",
+    title: "LI NGAY LEKK CHAQUE JOUR,",
+    highlight: "SANS CASSE-TÊTE.",
+    sub: "Maigrir en mangeant suniu plats locaux. Prenez votre bol en photo, l'IA calcule vos calories instantanément. Zéro pesée, zéro calcul."
   },
   {
-    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/remplace_ses_vetements_avec_la_202606131429_l6inum.jpg",
-    title: "LA SANTÉ AVANT TOUT.",
-    highlight: "UNE LIGNE AFFINÉE.",
-    sub: "Régulez votre tension et traversez la ménopause avec légèreté grâce aux super-aliments de nos marchés."
+    ctaType: "diagnostic",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Slide_H%C3%A9ro_2_vmqceb.jpg",
+    badge: " Boutique Nutrition",
+    title: "LA BOX NUTRITION",
+    highlight: "LIVRÉE CHEZ VOUS.",
+    sub: "Commandez notre coffret d'essentiels (Fonio, Moringa, Bouye) directement depuis l'application pour démarrer votre rééquilibrage."
+  },
+  {
+    ctaType: "diagnostic",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Slide_H%C3%A9ro_3_n8ltw2.jpg",
+    badge: "🥬 100% Naturel",
+    title: "LE POUVOIR DE",
+    highlight: "NOS TERROIRS.",
+    sub: "Fini les produits importés hors de prix. Nous utilisons les super-aliments de nos marchés pour booster votre métabolisme."
   }
 ];
 
@@ -951,14 +965,29 @@ export default function NutritionAfricaineLanding() {
               </motion.div>
            </AnimatePresence>
 
-           {/* Fixed CTAs */}
-           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mt-2">
-             <button onClick={handleWaClick} className={`bg-[#39FF14] text-black px-8 md:px-12 py-5 md:py-6 rounded-full font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
-                <HeartPulse size={24} className="animate-pulse" /> DÉMARRER À 2.900 F
-             </button>
-             <button onClick={() => setShowDiagnosticModal(true)} className="bg-black/50 backdrop-blur-md border-2 border-[#39FF14] text-white px-8 md:px-12 py-5 md:py-6 rounded-full font-black md:text-lg uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)] flex items-center justify-center gap-3 w-full sm:w-auto">
-                <Activity size={24} /> MON DIAGNOSTIC GRATUIT
-             </button>
+           {/* CONDITION DYNAMIQUE DES BOUTONS */}
+           <div className="flex flex-col items-center justify-center gap-4 w-full mt-2">
+             {HERO_SLIDES[heroSlide].ctaType === 'download' ? (
+               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                 <button className="bg-black hover:bg-zinc-900 border border-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-3 w-full sm:w-auto shadow-xl transition-all">
+                   <img src="https://upload.wikimedia.org/wikipedia/fr/0/09/Logo_App_Store_d%27Apple.png" className="w-6 h-6 object-contain filter invert" alt="App Store" />
+                   <div className="text-left"><p className="text-[9px] uppercase font-bold text-zinc-400">Télécharger sur</p><p className="text-sm font-black uppercase">App Store</p></div>
+                 </button>
+                 <button className="bg-black hover:bg-zinc-900 border border-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-3 w-full sm:w-auto shadow-xl transition-all">
+                   <img src="https://m-cdn.phonearena.com/images/article/141194-wide-two_1200/Changes-to-Google-Play-Store-logo-are-spotted.jpg" className="w-6 h-6 object-contain rounded-full" alt="Google Play" />
+                   <div className="text-left"><p className="text-[9px] uppercase font-bold text-zinc-400">Disponible sur</p><p className="text-sm font-black uppercase">Google Play</p></div>
+                 </button>
+               </div>
+             ) : (
+               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                 <button onClick={handleWaClick} className={`bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
+                   <HeartPulse size={20} className="animate-pulse" /> DÉMARRER À 2.900 F
+                 </button>
+                 <button onClick={() => setShowDiagnosticModal(true)} className="bg-black text-[#39FF14] px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-3 w-full sm:w-auto">
+                   <Target size={20} /> FAIRE LE TEST GRATUIT
+                 </button>
+               </div>
+             )}
            </div>
            <button onClick={() => setShowFreeMenuModal(true)} className="mt-8 text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-widest underline decoration-zinc-400 underline-offset-4 transition-colors">
               Ou téléchargez un menu type gratuit (PDF)
@@ -985,7 +1014,7 @@ export default function NutritionAfricaineLanding() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="bg-white border border-zinc-200 p-8 rounded-[2rem] flex items-start gap-6 shadow-sm"
               >
-                <div className="text-4xl mt-1">{point.icon}</div>
+                <img src={point.iconUrl} className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4" alt={point.title} />
                 <div>
                   <h3 className="font-black text-lg uppercase text-black mb-2">{point.title}</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">{point.text}</p>
@@ -1013,19 +1042,19 @@ export default function NutritionAfricaineLanding() {
             
             <div className="grid md:grid-cols-3 gap-8">
                <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><CheckCircle size={32}/></div>
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="100% Adapté aux Plats Locaux" />
                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>100% Adapté aux Plats Locaux</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">Fini la frustration. On adapte les portions de vos plats quotidiens pour que vous puissiez maigrir sans vous priver des repas en famille.</p>
                </div>
 
                <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Smartphone size={32}/></div>
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/18_djx2ct.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="Suivi Personnel WhatsApp" />
                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Suivi Personnel WhatsApp</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">Un doute sur un aliment ? Une baisse de motivation ? Nos experts nutritionnistes vous accompagnent chaque semaine directement dans votre poche.</p>
                </div>
 
                <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Flame size={32}/></div>
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="Résultats Durables" />
                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Résultats Durables</h3>
                   <p className="text-zinc-600 font-medium leading-relaxed">Pas de régime miracle qui ruine votre métabolisme. Nous visons un rééquilibrage de fond pour une perte de poids et un maintien garanti.</p>
                </div>
@@ -1051,7 +1080,7 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
-      {/* SECTION : CONSEILS DU COACH (BLOG) */}
+      {/* 4. CONSEILS DU COACH (BLOG) */}
       <section className="py-24 px-6 bg-white border-t border-zinc-200">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -1101,6 +1130,7 @@ export default function NutritionAfricaineLanding() {
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
             {/* AVANT : Régimes Classiques */}
             <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] flex flex-col relative opacity-90">
+              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Carte_Match_1_R%C3%A9gime_de_l_%C3%A9tranger_jyuqlr.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="Régimes de l'étranger" />
               <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max border border-red-800">
                 <AlertTriangle size={14} /> Les Régimes de l'Étranger (❌)
               </span>
@@ -1113,6 +1143,7 @@ export default function NutritionAfricaineLanding() {
 
             {/* APRÈS : Nutrition à l'Africaine */}
             <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
+              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285417/Senegalese_Thieboudienne_with_ve__2K_202607052103_dit2wp.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="La Méthode Locale" />
               <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
                 <CheckCircle size={14} /> La Méthode Locale (✅)
               </span>
