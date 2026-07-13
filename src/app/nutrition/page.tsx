@@ -4309,31 +4309,57 @@ export default function NutritionDashboard() {
             <div className="flex flex-col lg:flex-row gap-8">
               {/* MAIN CONTENT (70%) */}
               <div className="lg:w-[70%] space-y-8">
-                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 shadow-sm">
-                  <div className="flex items-center gap-3 mb-6">
+                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 md:p-10 lg:p-12 shadow-sm space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
                     <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{selectedArticle.category || 'Nutrition'}</span>
                     <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={12}/> {selectedArticle.readTime || `${Math.max(1, Math.ceil(((selectedArticle.content || selectedArticle.desc || '').split(' ').length) / 200))} min`}</span>
                     <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Eye size={12}/> {selectedArticle.views_count || 0} vues</span>
                   </div>
-                  <h1 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase text-black dark:text-white mb-8 leading-tight`}>{selectedArticle.title}</h1>
+                  <h1 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase text-zinc-900 dark:text-white tracking-tight leading-tight mb-6`}>{selectedArticle.title}</h1>
 
                   {selectedArticle.image_url && (
-                    <div className="w-full h-[300px] md:h-[450px] rounded-[2rem] overflow-hidden mb-8 shadow-md">
+                    <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm">
                       <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
                     </div>
                   )}
 
                   <div className="prose prose-zinc dark:prose-invert max-w-none font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                     {selectedArticle.content ? (
-                        <div dangerouslySetInnerHTML={{ __html: selectedArticle.content.replace(/\n/g, '<br/>') }} />
-                     ) : (
-                        <p>{selectedArticle.desc}</p>
-                     )}
+{(() => {
+                        let textToRender = selectedArticle.content || selectedArticle.desc || '';
+
+                        // 1. Clean Redundant Title
+                        textToRender = textToRender.replace(/^Titre\s*:.*(\r?\n|$)/im, '');
+
+                        // 2. Extract AI Note
+                        let aiNote = null;
+                        const aiNoteMatch = textToRender.match(/\[([^\]]+IA[^\]]+)\]/i) || textToRender.match(/\[(Généré[^\]]+)\]/i);
+                        if (aiNoteMatch) {
+                           aiNote = aiNoteMatch[0];
+                           textToRender = textToRender.replace(aiNote, '');
+                        }
+
+                        // 3. Split into paragraphs
+                        const paragraphs = textToRender.split(/\n+/).filter((p: string) => p.trim() !== '');
+
+                        return (
+                           <div className="flex flex-col">
+                              {paragraphs.map((paragraph: string, index: number) => (
+                                 <p key={index} className="mb-5 text-zinc-700 dark:text-zinc-300 leading-relaxed text-base md:text-lg font-normal" dangerouslySetInnerHTML={{ __html: paragraph }} />
+                              ))}
+
+                              {aiNote && (
+                                 <div className="mt-8 text-xs text-zinc-400 italic bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                    {aiNote}
+                                 </div>
+                              )}
+                           </div>
+                        );
+                     })()}
                   </div>
                 </div>
 
                 {/* SIMILAR ARTICLES */}
-                <div>
+                <div className="mt-16 pt-8 border-t border-zinc-100 dark:border-zinc-800">
                    <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 text-black dark:text-white`}>Articles <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#39FF14] to-emerald-400">Similaires</span></h3>
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {articles.filter(a => a.id !== selectedArticle.id && (a.category === selectedArticle.category || !a.category)).slice(0, 3).map((article: any) => (
