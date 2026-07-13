@@ -309,6 +309,8 @@ export default function NutritionDashboard() {
   
   // Nouveaux états de l'application Nutrition
   const [activeTab, setActiveTab] = useState<any>('dashboard');
+  const [blogCategory, setBlogCategory] = useState('Tous');
+  const [blogSearch, setBlogSearch] = useState('');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
@@ -567,6 +569,7 @@ export default function NutritionDashboard() {
   })() : 0;
 
   const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+  const [emblaBlogRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   useEffect(() => {
     if (!clientProfile?.id) return;
@@ -4281,16 +4284,77 @@ export default function NutritionDashboard() {
 
         {activeTab === 'blog' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><img src={MENU_ICONS.blog} className="w-12 h-12 rounded-xl object-cover" alt="Blog" /> Blog & Conseils</h2>
-                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
+             {/* CAROUSEL HEADER START */}
+             <div className="w-full relative rounded-[2rem] overflow-hidden" ref={emblaBlogRef}>
+               <div className="flex">
+                 {articles.slice(0, 3).map((article: any) => (
+                   <div key={article.id} className="flex-[0_0_100%] min-w-0 relative h-[400px] md:h-[500px] cursor-pointer group" onClick={() => setSelectedArticle(article)}>
+                     <img src={article.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg'} alt={article.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-8 md:p-12">
+                       <div className="max-w-3xl backdrop-blur-sm bg-black/20 p-6 rounded-[2rem] border border-white/10 relative">
+                         <div className="flex items-center gap-3 mb-4">
+                           <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
+                           <span className="bg-black/50 text-white border border-white/10 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 backdrop-blur-md"><Clock size={12}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                         </div>
+                         <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase text-white mb-4 leading-tight group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
+                         <p className="text-zinc-300 text-sm md:text-base font-medium line-clamp-2 mb-6 max-w-2xl">{article.desc}</p>
+                         <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                             <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt={article.author_name || 'Coach Rokhy'} className="w-10 h-10 rounded-full border-2 border-white/20 object-cover bg-black" />
+                             <div>
+                               <p className="text-white text-xs font-bold uppercase tracking-widest">{article.author_name || 'Coach Rokhy'}</p>
+                               <p className="text-[#39FF14] text-[9px] font-black uppercase">Expert Nutrition</p>
+                             </div>
+                           </div>
+                           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:bg-[#39FF14] group-hover:text-black transition-colors backdrop-blur-md">
+                             <ArrowRight size={20} className="-rotate-45" />
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+                 {articles.length === 0 && (
+                   <div className="flex-[0_0_100%] min-w-0 h-[400px] flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold">Aucun article à la une</div>
+                 )}
+               </div>
              </div>
+             {/* CAROUSEL HEADER END */}
+
+             {/* NAVIGATION & FILTERS START */}
+             <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-zinc-900 p-4 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+               <div className="flex items-center gap-2 overflow-x-auto w-full custom-scrollbar pb-2 md:pb-0">
+                 {['Tous', 'Nutrition', 'Santé', 'Astuces', 'Témoignages'].map(cat => (
+                   <button
+                     key={cat}
+                     onClick={() => setBlogCategory(cat)}
+                     className={`px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest whitespace-nowrap transition-all ${blogCategory === cat ? 'bg-black text-[#39FF14] dark:bg-[#39FF14] dark:text-black border-2 border-transparent' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'}`}
+                   >
+                     {cat}
+                   </button>
+                 ))}
+               </div>
+               <div className="relative w-full md:w-72 shrink-0">
+                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                 <input
+                   type="text"
+                   placeholder="Rechercher un article..."
+                   value={blogSearch}
+                   onChange={(e) => setBlogSearch(e.target.value)}
+                   className="w-full bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white border-2 border-transparent focus:border-[#39FF14] rounded-full pl-11 pr-4 py-3 text-sm font-bold outline-none transition-all"
+                 />
+               </div>
+             </div>
+             {/* NAVIGATION & FILTERS END */}
 
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {articles.map((article: any) => (
+               {articles
+                 .filter((a: any) => blogCategory === 'Tous' || a.category === blogCategory)
+                 .filter((a: any) => blogSearch === '' || (a.title && a.title.toLowerCase().includes(blogSearch.toLowerCase())) || (a.desc && a.desc.toLowerCase().includes(blogSearch.toLowerCase())))
+                 .map((article: any) => (
                   <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
                      {article.image_url && (
-                        <div className="overflow-hidden rounded-2xl mb-6">
+                        <div className="overflow-hidden rounded-[2rem] mb-6">
                            <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
                         </div>
                      )}
@@ -4300,14 +4364,20 @@ export default function NutritionDashboard() {
                      </div>
                      <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
                      <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
-                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
-                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
+                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-2">
+                          <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt={article.author_name || 'Coach Rokhy'} className="w-6 h-6 rounded-full border border-zinc-200 dark:border-zinc-700 object-cover bg-black" />
+                          <span className="text-xs font-bold text-black dark:text-white uppercase tracking-widest">{article.author_name || 'Coach Rokhy'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#39FF14]">
+                           LIRE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform"/>
+                        </div>
                      </div>
                   </div>
                ))}
-               {articles.length === 0 && (
-                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
-                     Aucun article publié pour le moment.
+               {articles.filter((a: any) => blogCategory === 'Tous' || a.category === blogCategory).filter((a: any) => blogSearch === '' || (a.title && a.title.toLowerCase().includes(blogSearch.toLowerCase())) || (a.desc && a.desc.toLowerCase().includes(blogSearch.toLowerCase()))).length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[2rem]">
+                     Aucun article ne correspond à votre recherche.
                   </div>
                )}
              </div>
