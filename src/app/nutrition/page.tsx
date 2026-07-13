@@ -532,6 +532,22 @@ export default function NutritionDashboard() {
   // Blog States
   const [articles, setArticles] = useState<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
+
+  const handleArticleClick = async (article: any) => {
+    setSelectedArticle(article);
+    try {
+      // Optimistically update the UI
+      setArticles(prev => prev.map(a => a.id === article.id ? { ...a, views_count: (a.views_count || 0) + 1 } : a));
+
+      const { error } = await supabase.rpc('increment_article_views', { article_id: article.id });
+      if (error) {
+        console.error("Error incrementing views:", error);
+      }
+    } catch (err) {
+      console.error("Error calling increment_article_views RPC:", err);
+    }
+  };
+
   const [pushEnabled, setPushEnabled] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -649,7 +665,7 @@ export default function NutritionDashboard() {
         const fetchCatalogue = async () => {
             try {
                 // Fetch DB Products
-                let prodQuery = supabase.from('nutrition_products').select('*');
+                const prodQuery = supabase.from('nutrition_products').select('*');
                 const { data: dbProds } = await prodQuery;
                 if (dbProds && dbProds.length > 0) {
                     const grouped = dbProds.reduce((acc: any, p: any) => {
@@ -668,7 +684,7 @@ export default function NutritionDashboard() {
                 }
 
                 // Fetch Promo Codes
-                let promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+                const promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
                 const { data: dbPromos } = await promoQuery;
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
@@ -686,7 +702,7 @@ export default function NutritionDashboard() {
                 if (dbFoods) setFoodDatabaseDB(dbFoods);
 
                 // Fetch All Recipes for Gallery
-                let recipeQuery = supabase.from('nutrition_recipes').select('*');
+                const recipeQuery = supabase.from('nutrition_recipes').select('*');
                 const { data: dbRecipes } = await recipeQuery;
                 if (dbRecipes && dbRecipes.length > 0) setAllRecipesDB(dbRecipes);
                 else setAllRecipesDB(DEFAULT_RECIPES);
@@ -1135,7 +1151,7 @@ export default function NutritionDashboard() {
       const activeFastingMode = fastingOverride !== undefined ? fastingOverride : isFastingMode;
       let currentRecipes: any[] = [];
       try {
-          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
@@ -1161,7 +1177,7 @@ export default function NutritionDashboard() {
           return true;
       });
 
-      let newMenu: any[] = [];
+      const newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
       
@@ -1245,10 +1261,10 @@ export default function NutritionDashboard() {
               return available;
           };
 
-          let breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
-          let lunches = getAvailable('Déjeuner');
-          let dinners = getAvailable('Dîner');
-          let snacks = getAvailable('Collation');
+          const breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
+          const lunches = getAvailable('Déjeuner');
+          const dinners = getAvailable('Dîner');
+          const snacks = getAvailable('Collation');
 
           let bestCombination: any = null;
           let minDiff = Infinity;
@@ -1316,7 +1332,7 @@ export default function NutritionDashboard() {
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
       let currentRecipes: any[] = [];
       try {
-          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
@@ -2576,7 +2592,7 @@ export default function NutritionDashboard() {
   };
 
   const handleReorder = (order: any) => {
-     let updatedCart = [...shopCart];
+     const updatedCart = [...shopCart];
      const itemsToAdd = order.items || [];
      
      itemsToAdd.forEach((item: any) => {
@@ -4282,19 +4298,108 @@ export default function NutritionDashboard() {
           </div>
         )}
 
-        {activeTab === 'blog' && (
+
+        {activeTab === 'blog' && selectedArticle && (
+          <div className="animate-in fade-in slide-in-from-right-4 w-full">
+            <button onClick={() => setSelectedArticle(null)} className="mb-6 flex items-center gap-2 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white transition-colors font-bold text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-xl w-fit shadow-sm hover:shadow-md">
+              <ChevronLeft size={16} />
+              Retour au blog
+            </button>
+
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* MAIN CONTENT (70%) */}
+              <div className="lg:w-[70%] space-y-8">
+                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{selectedArticle.category || 'Nutrition'}</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={12}/> {selectedArticle.readTime || `${Math.max(1, Math.ceil(((selectedArticle.content || selectedArticle.desc || '').split(' ').length) / 200))} min`}</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Eye size={12}/> {selectedArticle.views_count || 0} vues</span>
+                  </div>
+                  <h1 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase text-black dark:text-white mb-8 leading-tight`}>{selectedArticle.title}</h1>
+
+                  {selectedArticle.image_url && (
+                    <div className="w-full h-[300px] md:h-[450px] rounded-[2rem] overflow-hidden mb-8 shadow-md">
+                      <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
+                  <div className="prose prose-zinc dark:prose-invert max-w-none font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                     {selectedArticle.content ? (
+                        <div dangerouslySetInnerHTML={{ __html: selectedArticle.content.replace(/\n/g, '<br/>') }} />
+                     ) : (
+                        <p>{selectedArticle.desc}</p>
+                     )}
+                  </div>
+                </div>
+
+                {/* SIMILAR ARTICLES */}
+                <div>
+                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 text-black dark:text-white`}>Articles <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#39FF14] to-emerald-400">Similaires</span></h3>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {articles.filter(a => a.id !== selectedArticle.id && (a.category === selectedArticle.category || !a.category)).slice(0, 3).map((article: any) => (
+                         <div key={article.id} onClick={() => handleArticleClick(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
+                            {article.image_url && (
+                               <div className="overflow-hidden rounded-[2rem] mb-4">
+                                  <img src={article.image_url} alt={article.title} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500" />
+                               </div>
+                            )}
+                            <div className="flex gap-2 mb-3">
+                               <span className="bg-black text-[#39FF14] px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
+                               <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-2 py-1 rounded-full text-[9px] font-black uppercase flex items-center gap-1"><Eye size={10}/> {article.views_count || 0}</span>
+                            </div>
+                            <h4 className={`${spaceGrotesk.className} text-sm font-black uppercase mb-2 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors line-clamp-2`}>{article.title}</h4>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+              </div>
+
+              {/* SIDEBAR (30%) */}
+              <div className="lg:w-[30%] space-y-6">
+                {/* AUTHOR CARD */}
+                <div className="bg-zinc-50 dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 flex flex-col items-center text-center shadow-sm relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14] opacity-5 blur-[50px] rounded-full pointer-events-none"></div>
+                   <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Coach Rokhy" className="w-24 h-24 rounded-full border-4 border-white dark:border-zinc-800 shadow-xl object-cover bg-black mb-4 z-10" />
+                   <h3 className={`${spaceGrotesk.className} text-xl font-black uppercase text-black dark:text-white z-10`}>Coach Rokhy</h3>
+                   <span className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest bg-black px-3 py-1 rounded-full mb-4 shadow-md z-10">Experte Nutrition</span>
+                   <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium leading-relaxed z-10">Créatrice de la méthode "Nutrition à l'Africaine". Je vous aide à perdre du poids sans régime restrictif en rééquilibrant vos plats locaux favoris.</p>
+                </div>
+
+                {/* TOP TRENDING */}
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+                   <h3 className={`${spaceGrotesk.className} flex items-center gap-2 text-lg font-black uppercase mb-4 text-black dark:text-white`}><TrendingUp className="text-[#39FF14]" size={18}/> Top Trending</h3>
+                   <div className="space-y-4">
+                      {[...articles].sort((a, b) => (b.views_count || 0) - (a.views_count || 0)).slice(0, 3).map((article: any, idx: number) => (
+                         <div key={article.id} onClick={() => handleArticleClick(article)} className="flex items-start gap-4 cursor-pointer group pb-4 border-b border-zinc-100 dark:border-zinc-800 last:border-0 last:pb-0">
+                            <span className="text-3xl font-black text-zinc-200 dark:text-zinc-800 group-hover:text-[#39FF14] transition-colors">0{idx + 1}</span>
+                            <div>
+                               <h4 className="text-xs font-bold text-black dark:text-white group-hover:text-[#39FF14] transition-colors line-clamp-2 leading-tight mb-1">{article.title}</h4>
+                               <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><Eye size={10}/> {article.views_count || 0} vues</p>
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'blog' && !selectedArticle && (
+
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
              {/* CAROUSEL HEADER START */}
              <div className="w-full relative rounded-[2rem] overflow-hidden" ref={emblaBlogRef}>
                <div className="flex">
                  {articles.slice(0, 3).map((article: any) => (
-                   <div key={article.id} className="flex-[0_0_100%] min-w-0 relative h-[400px] md:h-[500px] cursor-pointer group" onClick={() => setSelectedArticle(article)}>
+                   <div key={article.id} className="flex-[0_0_100%] min-w-0 relative h-[400px] md:h-[500px] cursor-pointer group" onClick={() => handleArticleClick(article)}>
                      <img src={article.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg'} alt={article.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-8 md:p-12">
                        <div className="max-w-3xl backdrop-blur-sm bg-black/20 p-6 rounded-[2rem] border border-white/10 relative">
                          <div className="flex items-center gap-3 mb-4">
                            <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
                            <span className="bg-black/50 text-white border border-white/10 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 backdrop-blur-md"><Clock size={12}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                           <span className="bg-black/50 text-white border border-white/10 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 backdrop-blur-md"><Eye size={12}/> {article.views_count || 0} vues</span>
                          </div>
                          <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase text-white mb-4 leading-tight group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
                          <p className="text-zinc-300 text-sm md:text-base font-medium line-clamp-2 mb-6 max-w-2xl">{article.desc}</p>
@@ -4352,7 +4457,7 @@ export default function NutritionDashboard() {
                  .filter((a: any) => blogCategory === 'Tous' || a.category === blogCategory)
                  .filter((a: any) => blogSearch === '' || (a.title && a.title.toLowerCase().includes(blogSearch.toLowerCase())) || (a.desc && a.desc.toLowerCase().includes(blogSearch.toLowerCase())))
                  .map((article: any) => (
-                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
+                  <div key={article.id} onClick={() => handleArticleClick(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
                      {article.image_url && (
                         <div className="overflow-hidden rounded-[2rem] mb-6">
                            <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -4361,6 +4466,7 @@ export default function NutritionDashboard() {
                      <div className="flex gap-2 mb-4">
                         <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
                         <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Eye size={10}/> {article.views_count || 0} vues</span>
                      </div>
                      <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
                      <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
