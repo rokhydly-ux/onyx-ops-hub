@@ -474,6 +474,23 @@ export default function NutritionDashboard() {
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [communityPosts, setCommunityPosts] = useState<any[]>([]);
+
+  // Stories States
+  const [stories, setStories] = useState<any[]>([]);
+  const [groupedStories, setGroupedStories] = useState<any[]>([]);
+  const [isUploadingStory, setIsUploadingStory] = useState(false);
+  const [storyPreviewFile, setStoryPreviewFile] = useState<File | null>(null);
+  const [storyPreviewUrl, setStoryPreviewUrl] = useState<string | null>(null);
+  const [storyCaption, setStoryCaption] = useState("");
+  const storyInputRef = useRef<HTMLInputElement>(null);
+
+  const [viewerActiveGroupIndex, setViewerActiveGroupIndex] = useState<number | null>(null);
+  const [viewerActiveStoryIndex, setViewerActiveStoryIndex] = useState<number>(0);
+  const [isViewerPaused, setIsViewerPaused] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+
+  const [viewerProgress, setViewerProgress] = useState(0); // Progress for image stories (0 to 100)
+
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -695,6 +712,15 @@ export default function NutritionDashboard() {
                         ...p,
                         client: p.clients?.full_name || 'Membre'
                     })));
+                }
+
+                // Fetch Stories actives
+                const { data: rawStories } = await supabase
+                    .from('nutrition_community_stories')
+                    .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+                    .order('created_at', { ascending: true });
+                if (rawStories) {
+                    setStories(rawStories);
                 }
 
                 // Fetch Foods
@@ -1135,6 +1161,167 @@ export default function NutritionDashboard() {
         setOffResults([]);
      }
   }, [foodSearchQuery]);
+
+  // STORY VIEWER LOGIC
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+      let interval: NodeJS.Timeout;
+
+      const handleNextStory = () => {
+          if (viewerActiveGroupIndex === null) return;
+          const currentGroup = groupedStories[viewerActiveGroupIndex];
+
+          if (viewerActiveStoryIndex < currentGroup.stories.length - 1) {
+              setViewerActiveStoryIndex(prev => prev + 1);
+          } else if (viewerActiveGroupIndex < groupedStories.length - 1) {
+              setViewerActiveGroupIndex(prev => prev! + 1);
+              setViewerActiveStoryIndex(0);
+          } else {
+              setViewerActiveGroupIndex(null); // Close viewer
+          }
+          setViewerProgress(0);
+      };
+
+      if (viewerActiveGroupIndex !== null && !isViewerPaused) {
+          const currentGroup = groupedStories[viewerActiveGroupIndex];
+          const currentStory = currentGroup?.stories[viewerActiveStoryIndex];
+
+          if (currentStory) {
+              // Log view automatically when story shows
+              const viewerId = clientProfile?.id || user?.id;
+              if (viewerId) {
+                  // Background async call
+                  supabase.from('nutrition_story_views').insert({
+                      story_id: currentStory.id,
+                      viewer_id: viewerId
+                  }).then(({ error }) => {
+                      if (error && error.code !== '23505') { // Ignore PK duplicate error
+                          console.warn("View tracking failed", error);
+                      }
+                  });
+              }
+
+              // Handle video pause/play
+              if (currentStory.media_type === 'video' && videoRef.current) {
+                  videoRef.current.play().catch(() => {});
+              }
+
+              // Auto-advance for images only (videos are handled by onEnded)
+              if (currentStory.media_type === 'image') {
+                  const duration = 5000; // 5 seconds
+                  const step = 50; // update every 50ms
+
+                  interval = setInterval(() => {
+                      setViewerProgress(prev => prev + (step / duration) * 100);
+                  }, step);
+              }
+          }
+      } else if (isViewerPaused) {
+           const currentGroup = groupedStories[viewerActiveGroupIndex || 0];
+           const currentStory = currentGroup?.stories[viewerActiveStoryIndex];
+           if (currentStory?.media_type === 'video' && videoRef.current) {
+               videoRef.current.pause();
+           }
+      }
+
+      return () => {
+          if (interval) clearInterval(interval);
+      };
+  }, [viewerActiveGroupIndex, viewerActiveStoryIndex, isViewerPaused, groupedStories, clientProfile?.id, user?.id]);
+
+  useEffect(() => {
+      if (viewerProgress >= 100) {
+          if (viewerActiveGroupIndex === null) return;
+          const currentGroup = groupedStories[viewerActiveGroupIndex];
+
+          if (viewerActiveStoryIndex < currentGroup.stories.length - 1) {
+              setViewerActiveStoryIndex(prev => prev + 1);
+          } else if (viewerActiveGroupIndex < groupedStories.length - 1) {
+              setViewerActiveGroupIndex(prev => prev! + 1);
+              setViewerActiveStoryIndex(0);
+          } else {
+              setViewerActiveGroupIndex(null); // Close viewer
+          }
+          setViewerProgress(0);
+      }
+  }, [viewerProgress]);
+
+  const handleViewerSkipForward = () => {
+      if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+      }
+      if (viewerActiveGroupIndex === null) return;
+      const currentGroup = groupedStories[viewerActiveGroupIndex];
+
+      if (viewerActiveStoryIndex < currentGroup.stories.length - 1) {
+          setViewerActiveStoryIndex(prev => prev + 1);
+      } else if (viewerActiveGroupIndex < groupedStories.length - 1) {
+          setViewerActiveGroupIndex(prev => prev! + 1);
+          setViewerActiveStoryIndex(0);
+      } else {
+          setViewerActiveGroupIndex(null);
+      }
+      setViewerProgress(0);
+  };
+
+  const handleViewerSkipBackward = () => {
+      if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+      }
+      if (viewerActiveGroupIndex === null) return;
+
+      if (viewerActiveStoryIndex > 0) {
+          setViewerActiveStoryIndex(prev => prev - 1);
+      } else if (viewerActiveGroupIndex > 0) {
+          setViewerActiveGroupIndex(prev => prev! - 1);
+          setViewerActiveStoryIndex(groupedStories[viewerActiveGroupIndex - 1].stories.length - 1);
+      }
+      setViewerProgress(0);
+  };
+
+  // Regroupement des stories par utilisateur
+  useEffect(() => {
+      if (!stories || stories.length === 0) {
+          setGroupedStories([]);
+          return;
+      }
+      const groups: Record<string, any> = {};
+
+      stories.forEach((story: any) => {
+          if (!story.clients) return;
+          const uId = story.clients.id;
+          if (!groups[uId]) {
+              groups[uId] = {
+                  client: story.clients,
+                  stories: [],
+                  allViewed: true // on assume vrai, on mettra false si on trouve une non-vue
+              };
+          }
+          groups[uId].stories.push(story);
+
+          // Vérifier si l'utilisateur actuel (clientProfile?.id) a vu cette story
+          const myId = clientProfile?.id || user?.id;
+          const hasViewed = story.nutrition_story_views?.some((v: any) => v.viewer_id === myId);
+          if (!hasViewed) {
+              groups[uId].allViewed = false;
+          }
+      });
+
+      // Convertir en tableau et trier (ceux avec des non-vues en premier, puis par date de création de la dernière story)
+      const groupArray = Object.values(groups).sort((a: any, b: any) => {
+          if (a.allViewed === b.allViewed) {
+             const aLast = new Date(a.stories[a.stories.length-1].created_at).getTime();
+             const bLast = new Date(b.stories[b.stories.length-1].created_at).getTime();
+             return bLast - aLast; // plus récent en premier
+          }
+          return a.allViewed ? 1 : -1;
+      });
+
+      setGroupedStories(groupArray);
+  }, [stories, clientProfile?.id, user?.id]);
 
   // Hook de relance d'hydratation
   useEffect(() => {
@@ -2172,6 +2359,58 @@ export default function NutritionDashboard() {
     } catch (err: any) {
         alert("Erreur lors de la suppression : " + err.message);
     }
+  };
+
+  const handleStoryUpload = async () => {
+      if (!storyPreviewFile || !clientProfile) return;
+      setIsUploadingStory(true);
+      try {
+          const fileExt = storyPreviewFile.name.split('.').pop();
+          const fileName = `${clientProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+              .from('community-stories')
+              .upload(fileName, storyPreviewFile);
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from('community-stories').getPublicUrl(fileName);
+          const mediaUrl = urlData.publicUrl;
+          const mediaType = storyPreviewFile.type.startsWith('video/') ? 'video' : 'image';
+
+          const { error: insertError } = await supabase.from('nutrition_community_stories').insert({
+              client_id: clientProfile.id,
+              media_url: mediaUrl,
+              media_type: mediaType,
+              caption: storyCaption || null
+          });
+
+          if (insertError) throw insertError;
+
+          setToastMessage("Story publiée avec succès !");
+          setTimeout(() => setToastMessage(null), 3000);
+
+          // Mettre à jour l'état local (optimiste)
+          const newStory = {
+              id: Date.now().toString(),
+              client_id: clientProfile.id,
+              media_url: mediaUrl,
+              media_type: mediaType,
+              caption: storyCaption,
+              created_at: new Date().toISOString(),
+              clients: { id: clientProfile.id, full_name: user?.full_name, avatar_url: user?.avatar_url },
+              nutrition_story_views: []
+          };
+
+          setStories(prev => [...prev, newStory]);
+      } catch (err: any) {
+          alert("Erreur lors de l'upload de la story : " + err.message);
+      } finally {
+          setIsUploadingStory(false);
+          setStoryPreviewFile(null);
+          setStoryPreviewUrl(null);
+          setStoryCaption("");
+      }
   };
 
   const handlePostCommunity = async () => {
@@ -4888,6 +5127,39 @@ export default function NutritionDashboard() {
                      </div>
                  </div>
 
+                 {/* BARRE DES STORIES (Carrousel Horizontal) */}
+                 <div className="flex gap-4 overflow-x-auto pb-4 pt-2 scrollbar-none mb-4">
+                     {/* 1er cercle : "Ajouter ma story" */}
+                     <div className="flex flex-col items-center gap-1 cursor-pointer shrink-0" onClick={() => storyInputRef.current?.click()}>
+                         <div className="relative w-16 h-16 rounded-full border-2 border-dashed border-zinc-300 p-0.5 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 transition-colors">
+                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-full h-full rounded-full object-cover" alt="Moi" />
+                             <Plus className="w-5 h-5 text-black bg-[#39FF14] rounded-full absolute bottom-0 right-0 border-2 border-white dark:border-zinc-900"/>
+                         </div>
+                         <span className="text-xs font-poppins text-center mt-1 truncate w-16 text-zinc-600 font-medium">Ajouter</span>
+                         <input type="file" accept="image/*,video/mp4" capture="environment" className="hidden" ref={storyInputRef} onChange={(e) => {
+                             const file = e.target.files?.[0];
+                             if (file) {
+                                 setStoryPreviewFile(file);
+                                 setStoryPreviewUrl(URL.createObjectURL(file));
+                                 setStoryCaption("");
+                             }
+                         }} />
+                     </div>
+
+                     {/* Les cercles des autres membres */}
+                     {groupedStories.map((group, idx) => (
+                         <div key={group.client.id} className="flex flex-col items-center gap-1 cursor-pointer shrink-0" onClick={() => {
+                             setViewerActiveGroupIndex(idx);
+                             setViewerActiveStoryIndex(0);
+                         }}>
+                             <div className={`w-16 h-16 rounded-full p-0.5 relative transition-transform hover:scale-105 ${group.allViewed ? 'border-2 border-zinc-300 dark:border-zinc-700' : 'border-[3px] border-[#39FF14] shadow-md shadow-[#39FF14]/30'}`}>
+                                 <img src={group.client.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.client.full_name || 'Membre')}&background=random`} className="w-full h-full rounded-full object-cover border-2 border-white dark:border-zinc-950" alt={group.client.full_name} />
+                             </div>
+                             <span className="text-xs font-poppins text-center mt-1 truncate w-16 text-zinc-800 font-medium">{group.client.full_name?.split(' ')[0]}</span>
+                         </div>
+                     ))}
+                 </div>
+
                  {/* Grille 3 Colonnes */}
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
@@ -5793,6 +6065,174 @@ export default function NutritionDashboard() {
           </div>
         </div>
       )}
+      {/* STORY VIEWER (FULLSCREEN MODAL) */}
+      {viewerActiveGroupIndex !== null && (
+          <div className="fixed inset-0 z-[700] bg-black flex flex-col justify-between animate-in fade-in">
+              {(() => {
+                  const currentGroup = groupedStories[viewerActiveGroupIndex];
+                  const currentStory = currentGroup?.stories[viewerActiveStoryIndex];
+                  if (!currentStory) return null;
+
+                  return (
+                      <>
+                          {/* Top bar (Progress + Header) */}
+                          <div className="absolute top-0 left-0 right-0 z-50 p-4 pt-safe bg-gradient-to-b from-black/80 to-transparent">
+                              {/* Progress Bars */}
+                              <div className="flex gap-1 mb-4">
+                                  {currentGroup.stories.map((_: any, idx: number) => {
+                                      let progress = 0;
+                                      if (idx < viewerActiveStoryIndex) progress = 100;
+                                      else if (idx === viewerActiveStoryIndex) progress = viewerProgress;
+
+                                      return (
+                                          <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
+                                              <div
+                                                  className="h-full bg-white transition-all duration-75 ease-linear"
+                                                  style={{ width: `${progress}%` }}
+                                              />
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+
+                              {/* Header (Avatar + Info + Close) */}
+                              <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-3">
+                                      <img
+                                          src={currentGroup.client.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentGroup.client.full_name || 'Membre')}&background=random`}
+                                          className="w-10 h-10 rounded-full border border-white/50"
+                                          alt={currentGroup.client.full_name}
+                                      />
+                                      <div className="flex flex-col drop-shadow-md">
+                                          <span className="text-white font-black text-sm">{currentGroup.client.full_name}</span>
+                                          <span className="text-white/80 text-[10px] font-bold">
+                                              {(() => {
+                                                  const diffHours = Math.floor((new Date().getTime() - new Date(currentStory.created_at).getTime()) / (1000 * 60 * 60));
+                                                  return diffHours > 0 ? `Il y a ${diffHours}h` : 'À l\'instant';
+                                              })()}
+                                          </span>
+                                      </div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                      {currentStory.media_type === 'video' && (
+                                          <button
+                                              onClick={(e) => { e.stopPropagation(); setIsVideoMuted(!isVideoMuted); }}
+                                              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                                          >
+                                              {isVideoMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                                          </button>
+                                      )}
+                                      <button
+                                          onClick={() => setViewerActiveGroupIndex(null)}
+                                          className="p-2 text-white hover:bg-white/20 rounded-full transition-colors drop-shadow-md"
+                                      >
+                                          <X size={24}/>
+                                      </button>
+                                  </div>
+                              </div>
+                          </div>
+
+                          {/* Center Content (Media) */}
+                          <div className="flex-1 w-full h-full relative bg-zinc-950 flex items-center justify-center">
+                              {currentStory.media_type === 'video' ? (
+                                  <video
+                                      ref={videoRef}
+                                      src={currentStory.media_url}
+                                      autoPlay
+                                      playsInline
+                                      muted={isVideoMuted}
+                                      onEnded={(e) => {
+                                          e.currentTarget.pause();
+                                          e.currentTarget.currentTime = 0;
+                                          handleViewerSkipForward();
+                                      }}
+                                      className="max-h-full max-w-full object-contain mx-auto w-full h-full"
+                                  />
+                              ) : (
+                                  <img
+                                      src={currentStory.media_url}
+                                      alt="Story content"
+                                      className="max-h-full max-w-full object-contain mx-auto w-full h-full"
+                                  />
+                              )}
+
+                              {/* Tap Zones for Navigation */}
+                              <div className="absolute inset-0 flex z-40">
+                                  {/* Left Zone (Prev) */}
+                                  <div
+                                      className="flex-1"
+                                      onClick={handleViewerSkipBackward}
+                                      onMouseDown={() => setIsViewerPaused(true)}
+                                      onMouseUp={() => setIsViewerPaused(false)}
+                                      onTouchStart={() => setIsViewerPaused(true)}
+                                      onTouchEnd={() => setIsViewerPaused(false)}
+                                      onMouseLeave={() => setIsViewerPaused(false)}
+                                  />
+                                  {/* Right Zone (Next) */}
+                                  <div
+                                      className="flex-[2]"
+                                      onClick={handleViewerSkipForward}
+                                      onMouseDown={() => setIsViewerPaused(true)}
+                                      onMouseUp={() => setIsViewerPaused(false)}
+                                      onTouchStart={() => setIsViewerPaused(true)}
+                                      onTouchEnd={() => setIsViewerPaused(false)}
+                                      onMouseLeave={() => setIsViewerPaused(false)}
+                                  />
+                              </div>
+
+                              {/* Caption Overlay */}
+                              {currentStory.caption && (
+                                  <div className="absolute bottom-16 left-0 right-0 p-6 z-50 pointer-events-none">
+                                      <div className="bg-black/60 backdrop-blur-md px-4 py-3 rounded-2xl max-w-sm mx-auto text-center border border-white/10">
+                                          <p className="text-white text-sm font-medium">{currentStory.caption}</p>
+                                      </div>
+                                  </div>
+                              )}
+                          </div>
+                      </>
+                  );
+              })()}
+          </div>
+      )}
+
+      {/* MODALE DE PREVISUALISATION STORY */}
+      {storyPreviewUrl && (
+          <div id="story-preview-overlay" onClick={(e: any) => e.target.id === 'story-preview-overlay' && !isUploadingStory && setStoryPreviewUrl(null)} className="fixed inset-0 z-[700] bg-black/95 flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-zinc-900 rounded-[2rem] w-full max-w-sm overflow-hidden flex flex-col relative border border-zinc-800 h-[80vh] shadow-2xl">
+                  <button onClick={() => !isUploadingStory && setStoryPreviewUrl(null)} className="absolute top-4 right-4 z-50 p-2 bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition">
+                      <X size={20}/>
+                  </button>
+
+                  <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
+                      {storyPreviewFile?.type.startsWith('video/') ? (
+                          <video src={storyPreviewUrl} autoPlay loop playsInline className="w-full h-full object-contain" />
+                      ) : (
+                          <img src={storyPreviewUrl} className="w-full h-full object-contain" alt="Story preview" />
+                      )}
+                  </div>
+
+                  <div className="p-4 bg-zinc-950 flex flex-col gap-3 shrink-0">
+                      <input
+                          type="text"
+                          placeholder="Ajouter une légende..."
+                          value={storyCaption}
+                          onChange={(e) => setStoryCaption(e.target.value)}
+                          className="w-full bg-zinc-900 text-white border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#39FF14]"
+                          maxLength={60}
+                      />
+                      <button
+                          onClick={handleStoryUpload}
+                          disabled={isUploadingStory}
+                          className="w-full bg-[#39FF14] text-black font-black uppercase text-xs tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 transition hover:scale-[1.02] disabled:opacity-50"
+                      >
+                          {isUploadingStory ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                          Publier ma story
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
       {/* MODALE DE PAIEMENT WAVE / OM */}
       {showPaymentModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
