@@ -705,12 +705,23 @@ export default function NutritionDashboard() {
                 const { data: dbPromos } = await promoQuery;
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
-                // Fetch Community Posts
+                // Fetch Community Posts and Likes
                 const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+
+                let likedPostIds = new Set();
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    const { data: myLikes } = await supabase.from('nutrition_post_likes').select('post_id').eq('client_id', session.user.id);
+                    if (myLikes) {
+                        likedPostIds = new Set(myLikes.map(like => like.post_id));
+                    }
+                }
+
                 if (cPosts) {
                     setCommunityPosts(cPosts.map((p: any) => ({
                         ...p,
-                        client: p.clients?.full_name || 'Membre'
+                        client: p.clients?.full_name || 'Membre',
+                        isLikedByMe: likedPostIds.has(p.id)
                     })));
                 }
 
@@ -927,6 +938,9 @@ export default function NutritionDashboard() {
           // Fetch des commandes du client
           const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
           if (ordersData) setClientOrders(ordersData);
+
+          // Note: Likes are now fetched inside fetchCatalogue instead to avoid race conditions.
+
           } // Fin if (activeProfile.id)
 
 
@@ -2416,12 +2430,57 @@ export default function NutritionDashboard() {
   const handlePostCommunity = async () => {
       if (clientProfile?.plan_type !== 'premium' && daysLeft <= 0) return alert("La publication est réservée aux membres Premium pour garantir l'absence de spams.");
       if (!newPostText && !newPostImage) return;
-      const newPost = { id: Date.now().toString(), client: user?.full_name || 'Membre', content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 }, created_at: new Date().toISOString() };
-      setCommunityPosts([newPost, ...communityPosts]);
-      setNewPostText("");
-      setNewPostImage(null);
-      updateXP(15, "Photo/Plat publié dans le Feed");
-      if (clientProfile) await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
+
+      const newPostObj = {
+          client_id: clientProfile?.id,
+          content: newPostText,
+          image_url: newPostImage,
+          post_type: 'standard',
+          likes_count: 0,
+          comments_count: 0
+      };
+
+      try {
+          // 1. Optimistic Update
+          const tempPost = {
+              id: Date.now().toString(), // temporary ID
+              client: user?.full_name || 'Membre',
+              clients: { full_name: user?.full_name || 'Membre' },
+              content: newPostText,
+              image_url: newPostImage,
+              created_at: new Date().toISOString(),
+              likes_count: 0,
+              comments_count: 0
+          };
+          setCommunityPosts([tempPost, ...communityPosts]);
+          setNewPostText("");
+          setNewPostImage(null);
+
+          // 2. Insert to DB
+          const { data, error } = await supabase
+              .from('nutrition_community_posts')
+              .insert(newPostObj)
+              .select('*, clients(full_name)')
+              .single();
+
+          if (error) throw error;
+
+          // 3. Replace temp post with real post
+          if (data) {
+              setCommunityPosts(prev => prev.map(p => p.id === tempPost.id ? {
+                 ...data,
+                 client: data.clients?.full_name || user?.full_name || 'Membre',
+                 clients: { full_name: user?.full_name || 'Membre' }
+              } : p));
+          }
+
+          updateXP(15, "Photo/Plat publié dans le Feed");
+      } catch (err: any) {
+          console.error("Erreur de publication", err);
+          alert("Erreur lors de la publication : " + err.message);
+          // Rollback on error (optional, but good practice)
+          // setCommunityPosts(communityPosts);
+      }
   };
 
   const handleUploadMealPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2443,6 +2502,54 @@ export default function NutritionDashboard() {
       }
   };
 
+  const handleLike = async (postId: string) => {
+      if (!clientProfile?.id || isLiking[postId]) return;
+
+      setIsLiking(prev => ({ ...prev, [postId]: true }));
+      const isAlreadyLiked = communityPosts.find(p => p.id === postId)?.isLikedByMe;
+
+      // Optimistic UI update
+      setCommunityPosts(prev => prev.map(p => {
+          if (p.id === postId) {
+              return {
+                  ...p,
+                  isLikedByMe: !isAlreadyLiked,
+                  likes_count: isAlreadyLiked ? Math.max(0, (p.likes_count || 0) - 1) : (p.likes_count || 0) + 1
+              };
+          }
+          return p;
+      }));
+
+      try {
+          if (isAlreadyLiked) {
+              await supabase
+                  .from('nutrition_post_likes')
+                  .delete()
+                  .eq('post_id', postId)
+                  .eq('client_id', clientProfile.id);
+          } else {
+              await supabase
+                  .from('nutrition_post_likes')
+                  .insert({ post_id: postId, client_id: clientProfile.id });
+          }
+      } catch (err) {
+          console.error("Error liking post:", err);
+          // Rollback on failure (fetch latest state or simple revert)
+          setCommunityPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+                return {
+                    ...p,
+                    isLikedByMe: isAlreadyLiked, // revert
+                    likes_count: isAlreadyLiked ? (p.likes_count || 0) + 1 : Math.max(0, (p.likes_count || 0) - 1)
+                };
+            }
+            return p;
+        }));
+      } finally {
+          setIsLiking(prev => ({ ...prev, [postId]: false }));
+      }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -2450,12 +2557,12 @@ export default function NutritionDashboard() {
         setUploadingImage(true);
         const ext = file.name.split('.').pop();
         const fileName = `posts/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error, data: uploadData } = await supabase.storage.from('avatars').upload(fileName, file);
+        const { error, data: uploadData } = await supabase.storage.from('community-images').upload(fileName, file);
         if (error) throw error;
-        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        const { data } = supabase.storage.from('community-images').getPublicUrl(fileName);
         setNewPostImage(data.publicUrl);
     } catch (err: any) {
-        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'avatars' est public et accepte les uploads.");
+        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'community-images' est public et accepte les uploads.");
     } finally {
         setUploadingImage(false);
     }
@@ -5115,16 +5222,45 @@ export default function NutritionDashboard() {
         {/* VUE COMMUNAUTÉ (FEED) */}
 
         {activeTab === 'community' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
+          <div className="max-w-7xl mx-auto py-6 px-4 space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
-                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
+
+                 {/* Header & Mobile Hub Button */}
+                 <div className="flex justify-between items-center gap-4 mb-4">
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl shrink-0" size={40}/> Club des Lekkologues</h2>
+                     <div className="flex items-center gap-3 w-auto">
+                        <div className="hidden sm:flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full px-4 py-2 w-48 lg:w-64 shadow-sm">
                             <Search size={16} className="text-zinc-400" />
-                            <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
+                            <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black dark:text-white outline-none w-full ml-2 placeholder:text-zinc-400" />
                         </div>
+                        <button onClick={() => setIsCommunityHubOpen(true)} className="lg:hidden bg-zinc-100 dark:bg-zinc-800 p-3 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                            <Trophy size={20} className="text-black dark:text-white" />
+                        </button>
                      </div>
+                 </div>
+
+                 {/* Barre "Stories" */}
+                 <div className="overflow-x-auto flex gap-4 pb-4 mb-6 scrollbar-none">
+                     <div className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group">
+                         <div className="w-16 h-16 rounded-full border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 group-hover:border-[#39FF14] transition-colors relative">
+                             <Plus size={24} className="text-zinc-400 group-hover:text-[#39FF14]" />
+                         </div>
+                         <span className="text-[10px] font-black uppercase text-zinc-500 text-center">Statut</span>
+                     </div>
+                     {[
+                         { name: "Coach Rokhy", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png" },
+                         { name: "Dr. Fatima", img: `https://ui-avatars.com/api/?name=Dr+Fatima&background=random` },
+                         { name: "Chef Kofi", img: `https://ui-avatars.com/api/?name=Chef+Kofi&background=random` },
+                         { name: "Amina F.", img: `https://ui-avatars.com/api/?name=Amina+F&background=random` },
+                         { name: "Moussa S.", img: `https://ui-avatars.com/api/?name=Moussa+S&background=random` },
+                     ].map((story, i) => (
+                         <div key={i} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group">
+                             <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-[#39FF14] to-blue-500">
+                                 <img src={story.img} className="w-full h-full rounded-full border-2 border-white dark:border-black object-cover" alt={story.name} />
+                             </div>
+                             <span className="text-[10px] font-bold text-black dark:text-white text-center w-16 truncate">{story.name}</span>
+                         </div>
+                     ))}
                  </div>
 
                  {/* BARRE DES STORIES (Carrousel Horizontal) */}
@@ -5165,31 +5301,33 @@ export default function NutritionDashboard() {
 
                      {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
                      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
                              <div className="space-y-4">
                                  {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
-                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 p-2 -mx-2 rounded-xl transition-colors group">
                                          <div className="flex items-center gap-3">
-                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
-                                             <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-700" alt={name} />
+                                             <p className="text-xs font-bold text-black dark:text-white group-hover:text-[#39FF14] transition-colors">{name}</p>
                                          </div>
-                                         <Heart size={14} className="text-red-500 fill-red-500" />
+                                         <button className="flex items-center justify-center min-w-[44px] min-h-[44px]">
+                                             <Heart size={20} className="text-red-500 fill-red-500" />
+                                         </button>
                                      </div>
                                  ))}
                              </div>
                          </div>
 
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
                              <div className="space-y-4">
                                  {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
-                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 p-2 -mx-2 rounded-xl transition-colors group">
                                          <div className="flex items-center gap-3">
-                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
-                                             <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 grayscale group-hover:grayscale-0 transition-all" alt={name} />
+                                             <p className="text-xs font-bold text-black dark:text-white group-hover:text-[#39FF14] transition-colors">{name}</p>
                                          </div>
-                                         <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
+                                         <button className="text-[10px] font-black text-zinc-400 hover:text-black min-w-[44px] min-h-[44px] flex items-center justify-center">Suivre</button>
                                      </div>
                                  ))}
                              </div>
@@ -5199,66 +5337,79 @@ export default function NutritionDashboard() {
                      {/* Colonne Centrale : Feed (6 cols) */}
                      <div className="col-span-1 lg:col-span-6 space-y-6">
                         {/* Zone de Création */}
-                        <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm focus-within:border-[#39FF14]/50 transition-colors">
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm focus-within:border-[#39FF14] transition-all mb-8">
                            {newPostImage && (
-                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200">
+                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
                                   <img src={newPostImage} className="w-full h-full object-cover" />
-                                  <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={14}/></button>
+                                  <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-red-500"><X size={20}/></button>
                                </div>
                            )}
                            <div className="flex items-start gap-4">
-                               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 mt-1" alt="Moi" />
+                               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=39FF14`} className="w-12 h-12 rounded-full border border-zinc-200 dark:border-zinc-700" alt="Moi" />
                                <div className="flex-1">
-                                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre dernier repas ou un accomplissement sportif..." className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[60px] placeholder:text-zinc-400 mt-2" />
+                                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre plat santé, une transformation ou une question..." className="w-full bg-transparent resize-none outline-none font-poppins font-medium text-sm min-h-[60px] placeholder:text-zinc-400 mt-2 text-black dark:text-white" />
                                </div>
                            </div>
-                           <div className="flex justify-between items-center mt-2 pt-4 border-t border-zinc-100">
+                           <div className="flex justify-between items-center mt-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                               <div className="flex gap-2">
-                                  <label className="text-zinc-500 hover:text-black transition-colors p-2 cursor-pointer bg-zinc-50 hover:bg-zinc-100 rounded-xl flex items-center gap-2">
+                                  <label className="text-zinc-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px]">
                                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                                     {uploadingImage ? <Activity size={16} className="animate-spin" /> : <Camera size={16}/>}
-                                     <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">Photo</span>
+                                     {uploadingImage ? <Activity size={24} className="animate-spin" /> : <Camera size={24}/>}
                                   </label>
                               </div>
-                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-black text-[#39FF14] px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed">Publier</button>
+                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-[#39FF14] text-black px-6 py-2.5 rounded-full font-poppins-bold text-sm tracking-wide hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]">Publier</button>
                            </div>
                         </div>
 
                         {/* Le Feed */}
                         <div className="space-y-6">
                            {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.map((post, idx) => (
-                              <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex flex-col group">
+                              <div key={post.id || idx} className="bg-white dark:bg-zinc-900 border border-zinc-100/80 dark:border-zinc-800/80 rounded-[2rem] p-6 shadow-sm mb-6 flex flex-col group">
                                  <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-xl shadow-inner">{post.client?.charAt(0) || 'M'}</div>
+                                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(post.client || post.clients?.full_name || 'Membre')}&background=random`} className="w-12 h-12 rounded-full border border-zinc-200 dark:border-zinc-700" alt={post.client || post.clients?.full_name || 'Membre'} />
                                         <div>
-                                            <p className="font-black text-sm text-black flex items-center gap-1">{post.client || 'Membre'} <CheckCircle size={12} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
+                                            <p className="font-poppins-bold text-sm text-black dark:text-white flex items-center gap-1">{post.client || post.clients?.full_name || 'Membre'} <CheckCircle size={14} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
                                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
                                         </div>
                                      </div>
-                                     <MoreHorizontal size={18} className="text-zinc-400 cursor-pointer hover:text-black transition-colors" />
+                                     <MoreHorizontal size={18} className="text-zinc-400 cursor-pointer hover:text-black dark:hover:text-white transition-colors" />
                                  </div>
 
-                                 <p className="text-sm font-medium text-zinc-700 mb-4 whitespace-pre-wrap leading-relaxed">{post.content || post.texte}</p>
+                                 <p className="font-poppins text-zinc-800 dark:text-zinc-200 my-3 whitespace-pre-wrap leading-relaxed">{post.content || post.texte}</p>
 
-                                 {post.image_url && (
-                                     <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 bg-zinc-50 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
+                                 {post.image_url && post.post_type !== 'transformation' && (
+                                     <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
                                          <img src={post.image_url} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
                                      </div>
                                  )}
 
-                                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-                                     <div className="flex items-center gap-6">
-                                         <button className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors text-zinc-400 hover:text-red-500`}>
-                                             <Heart size={16} />
-                                             {post.reactions?.top || post.reactions?.length || Math.floor(Math.random() * 50) + 1} Likes
+                                 {post.image_url && post.post_type === 'transformation' && (
+                                     <div className="w-full bg-[#39FF14] p-4 rounded-2xl text-black font-poppins mb-4 cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
+                                         <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-black relative mb-2">
+                                            <img src={post.image_url} className="w-full h-full object-cover opacity-90 group-hover:scale-[1.02] transition-transform duration-700" alt="Transformation" />
+                                         </div>
+                                         <p className="text-center font-black uppercase text-xs tracking-widest">Transformation</p>
+                                     </div>
+                                 )}
+
+                                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                     <div className="flex items-center gap-4">
+                                         <button
+                                             onClick={() => handleLike(post.id)}
+                                             disabled={isLiking[post.id]}
+                                             className={`flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] p-2 rounded-xl transition-colors ${post.isLikedByMe ? 'text-red-500' : 'text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                                         >
+                                             <Heart size={20} className={post.isLikedByMe ? 'fill-red-500' : ''} />
+                                             <span className="text-xs font-poppins font-semibold">{post.likes_count || 0}</span>
                                          </button>
-                                         <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
-                                             <MessageSquare size={16}/> {post.comments?.length || Math.floor(Math.random() * 10)} Réponses
+                                         <button className="flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] p-2 rounded-xl text-zinc-400 hover:text-black hover:bg-zinc-50 transition-colors">
+                                             <MessageSquare size={20}/>
+                                             <span className="text-xs font-poppins font-semibold">{post.comments_count || 0}</span>
                                          </button>
                                      </div>
-                                     <button className="text-zinc-400 hover:text-black transition-colors">
-                                         <Bookmark size={18} />
+                                     <button className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-zinc-400 hover:text-black hover:bg-zinc-50 transition-colors">
+                                         <Share2 size={20} />
                                      </button>
                                  </div>
                               </div>
@@ -5271,93 +5422,134 @@ export default function NutritionDashboard() {
                         </div>
                      </div>
 
-                     {/* Colonne Droite : Mini Profil & Notifications (3 cols) */}
+                     {/* Colonne Droite : Trending Challenges & Stats (3 cols) */}
                      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
 
-                         {/* Mini Profile Card */}
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
-                             <div className="h-24 bg-gradient-to-r from-black to-zinc-800 w-full relative">
-                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                             </div>
-                             <div className="px-6 pb-6 relative flex flex-col items-center">
-                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-20 h-20 rounded-full border-4 border-white shadow-md -mt-10 mb-3 bg-zinc-100 object-cover" alt="Moi" />
-                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
-
-                                 <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
-                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {lvlInfo.name}</p>
-
-                                 <div className="grid grid-cols-3 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-6">
-                                     <div>
-                                         <p className="text-lg font-black text-black">{jongomaXP}</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-lg font-black text-black">1.2k</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Followers</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-lg font-black text-black">{(communityPosts.filter(p => p.client === user?.full_name).length) || 0}</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Posts</p>
-                                     </div>
+                         {/* Community Stats */}
+                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Community Stats</p>
+                             <div className="grid grid-cols-2 gap-4">
+                                 <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl">
+                                     <p className="text-2xl font-poppins-bold text-black dark:text-white">8K</p>
+                                     <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">Résolutions</p>
                                  </div>
-
-                                 <button onClick={openLeaderboard} className="w-full bg-black text-[#39FF14] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-md">
-                                     Voir mon classement
-                                 </button>
+                                 <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl">
+                                     <p className="text-2xl font-poppins-bold text-black dark:text-white">103</p>
+                                     <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">Followers</p>
+                                 </div>
                              </div>
                          </div>
 
-                         {/* Notifications / Reminders */}
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex-1">
+                         {/* Trending Challenges */}
+                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm flex-1">
                              <div className="flex justify-between items-center mb-6">
-                                 <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Notifications</p>
-                                 <button className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest hover:text-black transition-colors">See All</button>
+                                 <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Trending Challenges</p>
                              </div>
 
                              <div className="space-y-6">
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                                         <Droplet size={14}/>
+                                 <div className="flex flex-col gap-2">
+                                     <div className="flex justify-between items-center">
+                                         <p className="text-sm font-bold text-black dark:text-white">30-Day Plant-Based Africa</p>
+                                         <span className="text-[10px] text-zinc-500 font-bold">12 Days Left</span>
                                      </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Time to hydrate!</p>
-                                             <p className="text-[9px] text-zinc-400">1h ago</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il te manque encore {8 - waterGlasses} verres d'eau pour atteindre ton objectif du jour. Bois un verre maintenant !</p>
+                                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                         <div className="bg-[#39FF14] h-full rounded-full" style={{ width: '60%' }}></div>
                                      </div>
                                  </div>
 
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
-                                         <Activity size={14}/>
+                                 <div className="flex flex-col gap-2">
+                                     <div className="flex justify-between items-center">
+                                         <p className="text-sm font-bold text-black dark:text-white">Hydration Goal</p>
+                                         <span className="text-[10px] text-zinc-500 font-bold">Daily</span>
                                      </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Workout Reminder</p>
-                                             <p className="text-[9px] text-zinc-400">2h ago</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Tu as une session "Cardio Intense" prévue dans 30 minutes. Prépare tes baskets !</p>
+                                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                         <div className="bg-blue-500 h-full rounded-full" style={{ width: `${(waterGlasses/8)*100}%` }}></div>
                                      </div>
                                  </div>
 
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center shrink-0">
-                                         <Moon size={14}/>
+                                 <div className="flex flex-col gap-2">
+                                     <div className="flex justify-between items-center">
+                                         <p className="text-sm font-bold text-black dark:text-white">No Sugar Week</p>
+                                         <span className="text-[10px] text-zinc-500 font-bold">Day 4</span>
                                      </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Sleep Reminder</p>
-                                             <p className="text-[9px] text-zinc-400">Hier</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il est temps de se déconnecter des écrans pour un sommeil réparateur.</p>
+                                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                         <div className="bg-red-500 h-full rounded-full" style={{ width: '57%' }}></div>
                                      </div>
                                  </div>
                              </div>
                          </div>
-
                      </div>
                  </div>
+
+                 {/* Offcanvas Drawer pour Mobile */}
+                 <AnimatePresence>
+                     {isCommunityHubOpen && (
+                         <>
+                             <motion.div
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 exit={{ opacity: 0 }}
+                                 onClick={() => setIsCommunityHubOpen(false)}
+                                 className="fixed inset-0 bg-black/60 z-[200] lg:hidden backdrop-blur-sm"
+                             />
+                             <motion.div
+                                 initial={{ x: '100%' }}
+                                 animate={{ x: 0 }}
+                                 exit={{ x: '100%' }}
+                                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                 className="fixed inset-y-0 right-0 w-80 max-w-[85vw] bg-white dark:bg-zinc-950 z-[210] lg:hidden shadow-2xl p-6 overflow-y-auto flex flex-col gap-8"
+                             >
+                                 <div className="flex justify-between items-center mb-4">
+                                     <h3 className="text-lg font-black uppercase text-black dark:text-white">Hub Activités</h3>
+                                     <button onClick={() => setIsCommunityHubOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 rounded-full text-black dark:text-white">
+                                         <X size={20} />
+                                     </button>
+                                 </div>
+
+                                 {/* Widgets inside drawer */}
+                                 <div className="flex flex-col gap-8 pb-20">
+                                     <div>
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris & Abonnements</p>
+                                         <div className="space-y-4">
+                                             {['Coach Rokhy', 'Dr. Thierno', 'Sophie Diop'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 p-2 -mx-2 rounded-xl transition-colors">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-700" alt={name} />
+                                                         <p className="text-xs font-bold text-black dark:text-white">{name}</p>
+                                                     </div>
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <div>
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Trending Challenges</p>
+                                         <div className="space-y-6">
+                                             <div className="flex flex-col gap-2">
+                                                 <div className="flex justify-between items-center">
+                                                     <p className="text-sm font-bold text-black dark:text-white">30-Day Plant-Based Africa</p>
+                                                     <span className="text-[10px] text-zinc-500 font-bold">12 Days Left</span>
+                                                 </div>
+                                                 <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                                     <div className="bg-[#39FF14] h-full rounded-full" style={{ width: '60%' }}></div>
+                                                 </div>
+                                             </div>
+                                             <div className="flex flex-col gap-2">
+                                                 <div className="flex justify-between items-center">
+                                                     <p className="text-sm font-bold text-black dark:text-white">Hydration Goal</p>
+                                                     <span className="text-[10px] text-zinc-500 font-bold">Daily</span>
+                                                 </div>
+                                                 <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                                     <div className="bg-blue-500 h-full rounded-full" style={{ width: `${(waterGlasses/8)*100}%` }}></div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </motion.div>
+                         </>
+                     )}
+                 </AnimatePresence>
           </div>
         )}
 
