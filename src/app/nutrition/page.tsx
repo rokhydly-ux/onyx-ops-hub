@@ -496,6 +496,11 @@ export default function NutritionDashboard() {
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [activeChallenge, setActiveChallenge] = useState<any>(null);
+  const [isParticipating, setIsParticipating] = useState(false);
+  const [challengeParticipants, setChallengeParticipants] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
@@ -765,6 +770,35 @@ export default function NutritionDashboard() {
                         client: p.clients?.full_name || 'Membre',
                         isLikedByMe: likedPostIds.has(p.id)
                     })));
+                }
+
+                // Fetch Active Challenge
+                const { data: challenges } = await supabase
+                    .from('nutrition_challenges')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (challenges && challenges.length > 0) {
+                    setActiveChallenge(challenges[0]);
+                    const { count } = await supabase
+                        .from('nutrition_challenge_participants')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('challenge_id', challenges[0].id);
+                    setChallengeParticipants(count || 0);
+                } else {
+                    // Fallback Seed Challenge
+                    setActiveChallenge({
+                        id: 'seed-challenge-1',
+                        title: '30 Jours Détox Sans Sucre',
+                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
+                        badge_name: 'Jongoma Détox',
+                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
+                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
+                        xp_reward: 100
+                    });
+                    setChallengeParticipants(27450);
                 }
 
                 // Fetch Foods
@@ -5870,7 +5904,7 @@ export default function NutritionDashboard() {
                                      <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
                                          <div className="bg-red-500 h-full rounded-full" style={{ width: '57%' }}></div>
                                      </div>
-                                 </div>
+                                 )}
                              </div>
                          </div>
                      </div>
