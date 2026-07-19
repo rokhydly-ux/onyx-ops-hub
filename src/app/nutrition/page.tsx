@@ -562,6 +562,8 @@ export default function NutritionDashboard() {
 
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
+  const [activeReactionPostId, setActiveReactionPostId] = useState<string | null>(null);
+  const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
@@ -776,7 +778,7 @@ export default function NutritionDashboard() {
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
                 // Fetch Community Posts
-                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url)').order('created_at', { ascending: false });
                 if (cPosts && cPosts.length > 0) {
                     setCommunityPosts(cPosts.map((p: any) => ({
                         ...p,
@@ -2495,17 +2497,40 @@ export default function NutritionDashboard() {
       setNewPostText("");
       setNewPostImage(null);
       updateXP(15, "Photo/Plat publié dans le Feed");
-      if (clientProfile) await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
+      if (clientProfile) {
+          const { error } = await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
+          if (error) {
+              console.error("Erreur lors de la publication :", error.message);
+              alert("Erreur de publication. Veuillez vérifier les permissions de la base de données.");
+          }
+      }
   };
 
-  const handleLikePost = async (postId: string) => {
+  const handleLikePost = async (postId: string, reactionType: string = 'Like') => {
+      // Mapping the reaction to display emoji/color
+      const reactionIcons: Record<string, { icon: string, color: string }> = {
+          'Like': { icon: '👍', color: 'text-blue-500' },
+          'Amour': { icon: '❤️', color: 'text-red-500' },
+          'Contane': { icon: '😄', color: 'text-yellow-500' },
+          'Faché': { icon: '😡', color: 'text-orange-600' },
+          'Fier': { icon: '🔥', color: 'text-orange-500' }
+      };
+
       setCommunityPosts(prevPosts => prevPosts.map(post => {
           if (post.id === postId) {
               const currentLikes = post.reactions?.top || 0;
-              return { ...post, reactions: { ...post.reactions, top: currentLikes + 1 }, _likedByMe: true };
+              // If already liked, we might just be changing reaction. For simplicity, just increment if not liked.
+              const isNewLike = !post._likedByMe;
+              return {
+                  ...post,
+                  reactions: { ...post.reactions, top: isNewLike ? currentLikes + 1 : currentLikes },
+                  _likedByMe: true,
+                  _myReaction: reactionIcons[reactionType] || reactionIcons['Like']
+              };
           }
           return post;
       }));
+      setActiveReactionPostId(null); // Close palette
 
       // Background async update
       try {
@@ -2515,9 +2540,36 @@ export default function NutritionDashboard() {
              await supabase.from('nutrition_community_posts')
                   .update({ reactions: { ...postToUpdate.reactions, top: currentLikes + 1 } })
                   .eq('id', postId);
+
+             // Insert specific reaction type into the reactions table for accurate historical persistence
+             if (clientProfile) {
+                 await supabase.from('nutrition_reactions').upsert({
+                     post_id: postId,
+                     client_id: clientProfile.id,
+                     reaction_type: reactionType
+                 }, { onConflict: 'post_id, client_id' });
+             }
           }
       } catch (err) {
           console.warn("Could not sync like to DB", err);
+      }
+  };
+
+  const handleFollowUser = async (userIdToFollow: string) => {
+      if (!userIdToFollow) return;
+      if (followedUsers.includes(userIdToFollow)) return; // already followed
+
+      setFollowedUsers(prev => [...prev, userIdToFollow]);
+      setToastMessage("Vous suivez maintenant ce Lekkologue !");
+      setTimeout(() => setToastMessage(null), 3000);
+
+      if (clientProfile && !userIdToFollow.startsWith('coach-') && !userIdToFollow.startsWith('chef-') && !userIdToFollow.startsWith('dr-')) {
+          try {
+              await supabase.from('nutrition_followers').insert({
+                  follower_id: clientProfile.id,
+                  followed_id: userIdToFollow
+              });
+          } catch(e) {}
       }
   };
 
@@ -3213,7 +3265,7 @@ export default function NutritionDashboard() {
             </div>
 
             {/* Mobile Menu Toggle */}
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 text-zinc-700"><MenuIcon size={24}/></button>
+            <button onClick={() => setShowMobileHub(true)} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
         </div>
       </header>
 
@@ -5265,6 +5317,39 @@ export default function NutritionDashboard() {
 
                      {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
                      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+
+                         {/* Mini Profile Card */}
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative mb-6">
+                             <div className="h-24 bg-gradient-to-r from-black to-zinc-800 w-full relative">
+                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                             </div>
+                             <div className="px-6 pb-6 relative flex flex-col items-center">
+                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-20 h-20 rounded-full border-4 border-white shadow-md -mt-10 mb-3 bg-zinc-100 object-cover" alt="Moi" />
+                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
+
+                                 <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
+                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {getJongomaLevel(jongomaXP).name}</p>
+
+                                 <div className="grid grid-cols-2 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-2">
+                                     <div onClick={openLeaderboard} className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                         <p className="text-lg font-black text-black">{jongomaXP}</p>
+                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
+                                     </div>
+                                     <div className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                         <p className="text-lg font-black text-black">1.2k</p>
+                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Abonnés</p>
+                                     </div>
+                                 </div>
+
+                                 <button
+                                   onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }}
+                                   className="w-full mt-4 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                                 >
+                                   Déconnexion
+                                 </button>
+                             </div>
+                         </div>
+
                          <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
                              <div className="space-y-4">
@@ -5336,7 +5421,16 @@ export default function NutritionDashboard() {
                                            <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-xl shadow-inner">{post.client?.charAt(0) || 'M'}</div>
                                         )}
                                         <div>
-                                            <p className="font-black text-sm text-black flex items-center gap-1">{post.client || 'Membre'} <CheckCircle size={12} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-black text-sm text-black flex items-center gap-1">{post.client || 'Membre'} <CheckCircle size={12} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
+                                                {post.client_id && post.client_id !== clientProfile?.id && (
+                                                    followedUsers.includes(post.client_id) ? (
+                                                        <span className="text-[10px] font-bold text-zinc-400">✓ Abonné</span>
+                                                    ) : (
+                                                        <button onClick={() => handleFollowUser(post.client_id)} className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-[#39FF14] px-2 py-0.5 rounded-full font-poppins-bold hover:bg-[#39FF14] hover:text-black transition-all shadow-sm">+ Suivre</button>
+                                                    )
+                                                )}
+                                            </div>
                                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
                                         </div>
                                      </div>
@@ -5351,12 +5445,27 @@ export default function NutritionDashboard() {
                                      </div>
                                  )}
 
-                                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+                                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100 relative">
                                      <div className="flex items-center gap-6">
-                                         <button onClick={() => handleLikePost(post.id)} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors ${post._likedByMe ? 'text-red-500' : 'text-zinc-400 hover:text-red-500'}`}>
-                                             <Heart size={16} className={post._likedByMe ? 'fill-red-500' : ''} />
-                                             {post.likes_count || post.reactions?.top || post.reactions?.length || 0} Likes
-                                         </button>
+                                         <div className="relative" onMouseEnter={() => setActiveReactionPostId(post.id)} onMouseLeave={() => setActiveReactionPostId(null)}>
+                                             {activeReactionPostId === post.id && (
+                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-20 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in">
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform" title="Like">👍</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform" title="Amour">❤️</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform" title="Contane">😄</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform" title="Faché">😡</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform" title="Fier">🔥</button>
+                                                 </div>
+                                             )}
+                                             <button onClick={() => handleLikePost(post.id, 'Like')} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors ${post._likedByMe ? (post._myReaction?.color || 'text-blue-500') : 'text-zinc-400 hover:text-blue-500'}`}>
+                                                 {post._myReaction ? (
+                                                     <span className="text-lg leading-none">{post._myReaction.icon}</span>
+                                                 ) : (
+                                                     <Heart size={16} className={post._likedByMe ? 'fill-blue-500 text-blue-500' : ''} />
+                                                 )}
+                                                 {post.likes_count || post.reactions?.top || post.reactions?.length || 0}
+                                             </button>
+                                         </div>
                                          <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
                                              <MessageSquare size={16}/> {post.comments_count || post.comments?.length || 0} Réponses
                                          </button>
@@ -5377,39 +5486,6 @@ export default function NutritionDashboard() {
 
                      {/* Colonne Droite : Mini Profil & Notifications (3 cols) */}
                      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
-
-                         {/* Mini Profile Card */}
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
-                             <div className="h-24 bg-gradient-to-r from-black to-zinc-800 w-full relative">
-                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                             </div>
-                             <div className="px-6 pb-6 relative flex flex-col items-center">
-                                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-20 h-20 rounded-full border-4 border-white shadow-md -mt-10 mb-3 bg-zinc-100 object-cover" alt="Moi" />
-                                 <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
-
-                                 <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
-                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {lvlInfo.name}</p>
-
-                                 <div className="grid grid-cols-3 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-6">
-                                     <div>
-                                         <p className="text-lg font-black text-black">{jongomaXP}</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-lg font-black text-black">1.2k</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Followers</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-lg font-black text-black">{(communityPosts.filter(p => p.client === user?.full_name).length) || 0}</p>
-                                         <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Posts</p>
-                                     </div>
-                                 </div>
-
-                                 <button onClick={openLeaderboard} className="w-full bg-black text-[#39FF14] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-md">
-                                     Voir mon classement
-                                 </button>
-                             </div>
-                         </div>
 
                          {/* Notifications / Reminders */}
                          <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex-1">
@@ -5490,6 +5566,26 @@ export default function NutritionDashboard() {
                                      </button>
                                  </div>
                                  <div className="p-6 space-y-6 flex-1">
+                                     {/* Navigation Mobile Hub */}
+                                     <div className="space-y-2 mb-6">
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('dashboard'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'dashboard' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src={MENU_ICONS.dashboard} className="w-6 h-6 object-cover rounded-md" alt="Accueil" />
+                                             <span className="font-poppins-bold text-sm">Accueil</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('samaMenu'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'samaMenu' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-6 h-6 object-cover rounded-md" alt="Recettes" />
+                                             <span className="font-poppins-bold text-sm">Recettes & Menus</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors hover:bg-zinc-50 text-zinc-700`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-6 h-6 object-cover rounded-md" alt="Challenges" />
+                                             <span className="font-poppins-bold text-sm">Challenges Tendance</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('profile'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-6 h-6 object-cover rounded-md" alt="Profil" />
+                                             <span className="font-poppins-bold text-sm">Mon Profil & Réglages</span>
+                                         </button>
+                                     </div>
+
                                      {/* Mini Profile Card */}
                                      <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
                                          <div className="h-24 bg-gradient-to-r from-black to-zinc-800 w-full relative">
@@ -5503,23 +5599,19 @@ export default function NutritionDashboard() {
                                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1 mb-6 text-center">Niveau {getJongomaLevel(jongomaXP).name}</p>
 
                                              <div className="grid grid-cols-3 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-6">
-                                                 <div>
+                                                 <div onClick={openLeaderboard} className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
                                                      <p className="text-lg font-black text-black">{jongomaXP}</p>
                                                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
                                                  </div>
-                                                 <div>
+                                                 <div className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
                                                      <p className="text-lg font-black text-black">1.2k</p>
-                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Followers</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Abonnés</p>
                                                  </div>
                                                  <div>
                                                      <p className="text-lg font-black text-black">{(communityPosts.filter(p => p.client === user?.full_name).length) || 0}</p>
                                                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Posts</p>
                                                  </div>
                                              </div>
-
-                                             <button onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-md">
-                                                 Voir mon classement
-                                             </button>
                                          </div>
                                      </div>
 
@@ -5552,6 +5644,13 @@ export default function NutritionDashboard() {
                                              ))}
                                          </div>
                                      </div>
+
+                                     <button
+                                       onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }}
+                                       className="w-full mt-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold rounded-xl transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                                     >
+                                       Déconnexion
+                                     </button>
                                  </div>
                              </motion.div>
                          </>
