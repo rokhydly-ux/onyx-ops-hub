@@ -514,7 +514,22 @@ export default function NutritionDashboard() {
   const [showGroceryList, setShowGroceryList] = useState(false);
   const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
 
-  const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
+  const [profileForm, setProfileForm] = useState({
+      full_name: "",
+      avatar_url: "",
+      password: "",
+      age: "",
+      bio: "",
+      instagram: "",
+      facebook: "",
+      twitter: "",
+      startingWeight: "",
+      currentWeight: "",
+      goalWeight: "",
+      height: "",
+      waist: "",
+      hips: ""
+  });
   const [showReminder, setShowReminder] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -772,11 +787,11 @@ export default function NutritionDashboard() {
       }
 
       setUser({ ...finalUser, full_name: finalUser?.user_metadata?.full_name || finalUser?.full_name || "Membre" });
-      setProfileForm({
+      setProfileForm(prev => ({
+         ...prev,
          full_name: finalUser?.user_metadata?.full_name || finalUser?.full_name || "",
          avatar_url: finalUser?.user_metadata?.avatar_url || finalUser?.avatar_url || "",
-         password: ""
-      });
+      }));
 
       // Récupérer le profil client complet depuis la table 'clients'
       const phoneMatch = finalUser?.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
@@ -889,6 +904,23 @@ export default function NutritionDashboard() {
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
+
+             if (nutritionData.diagnostic_data) {
+                 setProfileForm(prev => ({
+                     ...prev,
+                     age: nutritionData.diagnostic_data.age || "",
+                     bio: nutritionData.diagnostic_data.bio || "",
+                     instagram: nutritionData.diagnostic_data.instagram || "",
+                     facebook: nutritionData.diagnostic_data.facebook || "",
+                     twitter: nutritionData.diagnostic_data.twitter || "",
+                     startingWeight: nutritionData.diagnostic_data.startingWeight || "",
+                     currentWeight: nutritionData.diagnostic_data.currentWeight || "",
+                     goalWeight: nutritionData.diagnostic_data.goalWeight || "",
+                     height: nutritionData.diagnostic_data.height || "",
+                     waist: nutritionData.diagnostic_data.waist || "",
+                     hips: nutritionData.diagnostic_data.hips || ""
+                 }));
+             }
              setBmr(nutritionData.bmr || 0);
              setCalorieGoal(nutritionData.daily_calorie_goal || 0);
              setProteinGoal(nutritionData.protein_goal || 0);
@@ -2592,6 +2624,24 @@ export default function NutritionDashboard() {
           full_name: profileForm.full_name,
           avatar_url: profileForm.avatar_url
         }).eq('id', clientProfile.id);
+
+        // 4. Update nutrition_profiles logic
+        const updatedDiagData = {
+           ...(clientProfile.diagnostic_data || {}),
+           age: profileForm.age,
+           bio: profileForm.bio,
+           instagram: profileForm.instagram,
+           facebook: profileForm.facebook,
+           twitter: profileForm.twitter,
+           startingWeight: profileForm.startingWeight,
+           currentWeight: profileForm.currentWeight,
+           goalWeight: profileForm.goalWeight,
+           height: profileForm.height,
+           waist: profileForm.waist,
+           hips: profileForm.hips
+        };
+        await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
+        setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
       }
 
       setUser({ ...user, full_name: profileForm.full_name, avatar_url: profileForm.avatar_url });
@@ -2930,11 +2980,22 @@ export default function NutritionDashboard() {
           setProfileForm(prev => ({ ...prev, avatar_url: newUrl.trim() }));
           if (clientProfile) {
               await supabase.from('clients').update({ avatar_url: newUrl.trim() }).eq('id', clientProfile.id);
+              setClientProfile(prev => prev ? { ...prev, avatar_url: newUrl.trim() } : prev);
           }
           await supabase.auth.updateUser({ data: { avatar_url: newUrl.trim() } });
           const customSession = localStorage.getItem('onyx_custom_session');
           if (customSession) localStorage.setItem('onyx_custom_session', JSON.stringify(updatedUser));
           alert("Photo de profil mise à jour avec succès !");
+      }
+  };
+
+  const handleChangeCover = async () => {
+      if (!clientProfile) return;
+      const newUrl = prompt("Entrez l'URL de votre nouvelle image de couverture :");
+      if (newUrl && newUrl.trim() !== "") {
+          await supabase.from('clients').update({ cover_url: newUrl.trim() }).eq('id', clientProfile.id);
+          setClientProfile(prev => prev ? { ...prev, cover_url: newUrl.trim() } : prev);
+          alert("Image de couverture mise à jour !");
       }
   };
 
@@ -3830,7 +3891,7 @@ export default function NutritionDashboard() {
             {/* Header / Cover */}
             <div className="relative w-full h-48 sm:h-64 rounded-[2rem] overflow-hidden mb-16 bg-zinc-100 dark:bg-zinc-900 shadow-sm group">
                 <img src={clientProfile?.cover_url || "https://images.unsplash.com/photo-1490818387583-1b5ba47ea8cb?q=80&w=2070&auto=format&fit=crop"} alt="Cover" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer" onClick={() => alert("Changement de couverture à venir")}>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer" onClick={handleChangeCover}>
                     <Camera size={32} className="text-white" />
                 </div>
                 
@@ -3860,42 +3921,98 @@ export default function NutritionDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {/* Left Column: Stats & Settings */}
                     <div className="col-span-1 md:col-span-1 space-y-6">
-                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+                        <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
                             <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Statistiques</p>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
+                                <div className="bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                                     <p className="text-2xl font-poppins-bold text-black dark:text-white">{followersCount}</p>
                                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Followers</p>
                                 </div>
-                                <div>
-                                    <p className="text-2xl font-poppins-bold text-black dark:text-white">{Object.keys(followingMap).length}</p>
-                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Suivis</p>
-                                </div>
-                                <div>
+                                <div className="bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                                     <p className="text-2xl font-poppins-bold text-[#39FF14]">{jongomaXP}</p>
-                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">XP</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">XP Score</p>
                                 </div>
-                                <div>
-                                    <p className="text-2xl font-poppins-bold text-blue-500">{imcValue}</p>
-                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">IMC</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                                    <p className="text-xl font-poppins-bold text-black dark:text-white">{clientProfile?.diagnostic_data?.bmr || '---'}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">kcal/jour</p>
+                                </div>
+                                <div className="bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                                    <p className="text-xl font-poppins-bold text-blue-500">{imcValue}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Mon IMC</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
-                            <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Préférences</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Préférences & Mesures</p>
                             <form onSubmit={handleSaveProfile} className="space-y-4">
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nom complet</label>
-                                    <input type="text" value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none text-black dark:text-white" />
+                                    <input type="text" value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nouveau Mot de passe</label>
-                                    <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="••••••••" className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none text-black dark:text-white placeholder:text-zinc-400" />
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Âge</label>
+                                    <input type="number" value={profileForm.age} onChange={e => setProfileForm({...profileForm, age: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
                                 </div>
-                                <button type="submit" className="w-full bg-black text-[#39FF14] dark:bg-white dark:text-black font-poppins-bold py-3 rounded-xl text-sm hover:scale-105 transition-transform flex items-center justify-center gap-2 mt-4">
-                                    <Save size={16}/> Enregistrer
-                                </button>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Bio Courte</label>
+                                    <textarea value={profileForm.bio} onChange={e => setProfileForm({...profileForm, bio: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow resize-none h-20" placeholder="Décrivez-vous en quelques mots..." />
+                                </div>
+
+                                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">Mesures Corporelles</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-zinc-500 mb-1 block">Poids Départ (kg)</label>
+                                            <input type="number" value={profileForm.startingWeight} onChange={e => setProfileForm({...profileForm, startingWeight: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-zinc-500 mb-1 block">Poids Actuel (kg)</label>
+                                            <input type="number" value={profileForm.currentWeight} onChange={e => setProfileForm({...profileForm, currentWeight: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-zinc-500 mb-1 block">Poids Cible (kg)</label>
+                                            <input type="number" value={profileForm.goalWeight} onChange={e => setProfileForm({...profileForm, goalWeight: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-zinc-500 mb-1 block">Taille (cm)</label>
+                                            <input type="number" value={profileForm.height} onChange={e => setProfileForm({...profileForm, height: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-zinc-500 mb-1 block">Tour Taille (cm)</label>
+                                            <input type="number" value={profileForm.waist} onChange={e => setProfileForm({...profileForm, waist: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-zinc-500 mb-1 block">Tour Hanches (cm)</label>
+                                            <input type="number" value={profileForm.hips} onChange={e => setProfileForm({...profileForm, hips: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">Réseaux Sociaux</p>
+                                    <div className="space-y-3">
+                                        <input type="text" value={profileForm.instagram} onChange={e => setProfileForm({...profileForm, instagram: e.target.value})} placeholder="Lien Instagram" className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        <input type="text" value={profileForm.facebook} onChange={e => setProfileForm({...profileForm, facebook: e.target.value})} placeholder="Lien Facebook" className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                        <input type="text" value={profileForm.twitter} onChange={e => setProfileForm({...profileForm, twitter: e.target.value})} placeholder="Lien Twitter/X" className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white transition-shadow" />
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nouveau Mot de passe</label>
+                                    <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="•••••••• (Laisser vide si inchangé)" className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#39FF14] text-black dark:text-white placeholder:text-zinc-400 transition-shadow" />
+                                </div>
+
+                                <div className="flex gap-2 pt-4">
+                                    <button type="button" onClick={() => handleTabChange('dashboard')} className="flex-1 bg-black text-white dark:bg-zinc-800 px-6 py-4 rounded-full font-poppins-bold text-xs hover:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors">
+                                        Annuler
+                                    </button>
+                                    <button type="submit" className="flex-1 bg-[#39FF14] text-black font-poppins-extrabold px-6 py-4 rounded-full shadow-lg hover:scale-105 transition-all text-xs flex justify-center items-center gap-2">
+                                        <Save size={16}/> Enregistrer
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -3960,7 +4077,73 @@ export default function NutritionDashboard() {
                                 <button onClick={() => handleTabChange('community')} className="mt-4 px-6 py-2 bg-black text-[#39FF14] dark:bg-white dark:text-black font-bold rounded-full text-sm">Partager un moment</button>
                             </div>
                         )}
+
+                        <div className="grid md:grid-cols-2 gap-6 mt-8">
+                            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-sm font-black uppercase text-black dark:text-white mb-2 flex items-center gap-2"><MessageCircle className="text-[#39FF14]"/> Échange & Support</h3>
+                                    <p className="text-xs font-medium text-zinc-500 mb-4">Rejoignez la communauté pour échanger avec les coachs et autres membres.</p>
+                                </div>
+                                <div className="space-y-2 mt-auto">
+                                    <button onClick={() => window.open('https://chat.whatsapp.com/', '_blank')} className="w-full bg-[#25D366] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-md flex justify-center items-center gap-2">
+                                        Communauté WhatsApp
+                                    </button>
+                                    <button onClick={() => window.open('https://facebook.com/groups/', '_blank')} className="w-full bg-[#1877F2] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-md flex justify-center items-center gap-2">
+                                        Groupe Facebook Privé
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-sm font-black uppercase text-black dark:text-white mb-2 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications</h3>
+                                    <p className="text-xs font-medium text-zinc-500 mb-4">Rappels d'hydratation (Eau). Toutes les 2 heures si objectif non atteint.</p>
+                                </div>
+                                <div className="flex items-center gap-3 mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <button onClick={togglePushNotifications} className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors ${pushEnabled ? 'bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14]' : 'bg-black text-[#39FF14] hover:bg-zinc-800 dark:bg-white dark:text-black'}`}>
+                                        {pushEnabled ? 'Activé' : 'Activer Push'}
+                                    </button>
+                                    <button onClick={sendWaterReminderPush} className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white uppercase transition-colors">Tester</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm mt-6">
+                            <h3 className="text-sm font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Download className="text-[#39FF14]"/> Mes Téléchargements PDF</h3>
+                            {Array.isArray(pdfHistory) && pdfHistory.length > 0 ? (
+                               <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                  {pdfHistory.map((item, idx) => (
+                                     <div key={idx} className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-950 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                        <div>
+                                           <p className="font-bold text-xs text-black dark:text-white">{item.type}</p>
+                                           <p className="text-[9px] font-black uppercase text-zinc-500">{item.date && !isNaN(new Date(item.date).getTime()) ? new Date(item.date).toLocaleDateString('fr-FR', {day: '2-digit', month: 'short', year: 'numeric'}) : 'Inconnu'}</p>
+                                        </div>
+                                        {item.url ? (
+                                           <a href={item.url} target="_blank" rel="noopener noreferrer" className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:scale-105 transition-transform flex items-center gap-1 w-max">
+                                              <ExternalLink size={12}/> Ouvrir
+                                           </a>
+                                        ) : (
+                                           <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 px-3 py-1 rounded-lg text-[9px] font-black uppercase w-max">Local</span>
+                                        )}
+                                     </div>
+                                  ))}
+                               </div>
+                            ) : (
+                               <div className="text-center py-8 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                                   <FileText className="mx-auto text-zinc-300 dark:text-zinc-700 mb-2" size={24} />
+                                   <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">Aucun PDF téléchargé</p>
+                               </div>
+                            )}
+                        </div>
+
                     </div>
+
+                    {/* Illustration Background for desktop */}
+                    <div className="hidden lg:block fixed bottom-0 right-0 pointer-events-none opacity-10 dark:opacity-20 z-[-1] max-w-lg">
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394442/profile_xeijfi.png" className="w-full h-auto dark:hidden" alt="Illustration" />
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394483/profile_blanc_lqoyxi.png" className="w-full h-auto hidden dark:block" alt="Illustration" />
+                    </div>
+
                 </div>
             </div>
           </div>
