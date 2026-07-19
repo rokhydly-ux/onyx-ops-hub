@@ -488,6 +488,7 @@ export default function NutritionDashboard() {
   const [communityStories, setCommunityStories] = useState<any[]>([]);
   const [isCommunityHubOpen, setIsCommunityHubOpen] = useState(false);
   const [isLiking, setIsLiking] = useState<{ [postId: string]: boolean }>({});
+  const [reactions, setReactions] = useState<{ [postId: string]: string | null }>({});
   const [followingMap, setFollowingMap] = useState<{ [userId: string]: boolean }>({});
   const [savedPosts, setSavedPosts] = useState<{ [postId: string]: boolean }>({});
   const [showSavedPostsFilter, setShowSavedPostsFilter] = useState(false);
@@ -2468,10 +2469,12 @@ export default function NutritionDashboard() {
                   .delete()
                   .eq('post_id', postId)
                   .eq('client_id', clientProfile.id);
+              setReactions(prev => ({ ...prev, [postId]: null }));
           } else {
               await supabase
                   .from('nutrition_post_likes')
                   .insert({ post_id: postId, client_id: clientProfile.id });
+              setReactions(prev => ({ ...prev, [postId]: '👍' }));
           }
       } catch (err) {
           console.error("Error liking post:", err);
@@ -2488,6 +2491,40 @@ export default function NutritionDashboard() {
         }));
       } finally {
           setIsLiking(prev => ({ ...prev, [postId]: false }));
+      }
+  };
+
+  const handleReaction = async (postId: string, type: string) => {
+      if (!clientProfile?.id) return;
+
+      const isAlreadyLiked = communityPosts.find(p => p.id === postId)?.isLikedByMe;
+
+      // Optimistic Update
+      setReactions(prev => ({ ...prev, [postId]: type }));
+      if (!isAlreadyLiked) {
+          setCommunityPosts(prev => prev.map(p => {
+              if (p.id === postId) {
+                  return { ...p, isLikedByMe: true, likes_count: (p.likes_count || 0) + 1 };
+              }
+              return p;
+          }));
+      }
+
+      try {
+          // Si on utilise une table séparée `nutrition_reactions`
+          await supabase.from('nutrition_reactions').upsert({
+              post_id: postId,
+              client_id: clientProfile.id,
+              target_type: 'post',
+              reaction_type: type
+          }, { onConflict: 'post_id, client_id' });
+
+          // Fallback sur `nutrition_post_likes` si `nutrition_reactions` n'existe pas encore ou en parallèle
+          if (!isAlreadyLiked) {
+              await supabase.from('nutrition_post_likes').insert({ post_id: postId, client_id: clientProfile.id });
+          }
+      } catch (err) {
+          console.error("Error setting reaction:", err);
       }
   };
 
@@ -5391,8 +5428,8 @@ export default function NutritionDashboard() {
                             <Search size={16} className="text-zinc-400" />
                             <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black dark:text-white outline-none w-full ml-2 placeholder:text-zinc-400" />
                         </div>
-                        <button onClick={() => setIsCommunityHubOpen(true)} className="lg:hidden bg-zinc-100 dark:bg-zinc-800 p-3 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                            <Trophy size={20} className="text-black dark:text-white" />
+                        <button onClick={() => setIsCommunityHubOpen(true)} className="lg:hidden p-2 text-zinc-900 dark:text-white relative z-50 cursor-pointer">
+                            <MenuIcon className="w-6 h-6" />
                         </button>
                      </div>
                  </div>
@@ -5426,6 +5463,37 @@ export default function NutritionDashboard() {
 
                      {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
                      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+
+                         {/* RESTAURATION WIDGET PROFIL */}
+                         <div className="rounded-[2rem] bg-white dark:bg-zinc-900 shadow-sm overflow-hidden mb-2 border border-zinc-100 dark:border-zinc-800">
+                             <div className="h-20 bg-zinc-800 w-full relative">
+                                 <img src={clientProfile?.cover_url || "https://images.unsplash.com/photo-1490818387583-1b5ba47ea8cb?q=80&w=2070&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Cover" />
+                             </div>
+                             <div className="relative px-6 pb-6 pt-2">
+                                 <div className="absolute -top-10 left-6">
+                                     <img src={profileForm.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'User')}&background=random`} className="w-16 h-16 rounded-full border-4 border-white dark:border-zinc-900 object-cover bg-zinc-200 dark:bg-zinc-800" alt="Avatar" />
+                                 </div>
+                                 <div className="mt-8">
+                                     <h3 className="font-poppins-bold text-black dark:text-white text-lg leading-tight">{user?.full_name || 'Membre Onyx'}</h3>
+                                     <p className="text-xs text-zinc-500 font-medium mb-4">{profileForm.bio || "En route vers un mode de vie plus sain avec NXA."}</p>
+                                     <div className="flex items-center gap-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                                         <div className="flex-1 cursor-pointer group" onClick={() => handleTabChange('profile')}>
+                                             <p className="text-xl font-poppins-bold text-[#39FF14]">{jongomaXP}</p>
+                                             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-black dark:group-hover:text-white transition-colors">XP Score</p>
+                                         </div>
+                                         <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-800"></div>
+                                         <div className="flex-1 cursor-pointer group" onClick={() => handleTabChange('profile')}>
+                                             <p className="text-xl font-poppins-bold text-black dark:text-white">{followersCount}</p>
+                                             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-black dark:group-hover:text-white transition-colors">Abonnés</p>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                             <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="w-full py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold transition-all flex items-center justify-center gap-2 border-t border-zinc-100 dark:border-zinc-800">
+                                 <Lock size={16} /> Déconnexion
+                             </button>
+                         </div>
+
                          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
                              <div className="space-y-4">
@@ -5595,9 +5663,9 @@ export default function NutritionDashboard() {
                                                 {post.client_id && post.client_id !== clientProfile?.id && (
                                                     <button
                                                         onClick={() => handleFollow(post.client_id)}
-                                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${followingMap[post.client_id] ? 'bg-zinc-100 text-zinc-500' : 'bg-[#39FF14]/10 text-[#39FF14]'}`}
+                                                        className={`text-xs px-3 py-1 rounded-full font-poppins-bold hover:bg-[#39FF14] hover:text-black transition-all ${followingMap[post.client_id] ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' : 'bg-zinc-100 dark:bg-zinc-800 text-[#39FF14]'}`}
                                                     >
-                                                        {followingMap[post.client_id] ? 'Abonné' : 'Suivre'}
+                                                        {followingMap[post.client_id] ? '✓ Abonné' : '+ Suivre'}
                                                     </button>
                                                 )}
                                             </div>
@@ -5649,14 +5717,39 @@ export default function NutritionDashboard() {
 
                                  <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                      <div className="flex items-center gap-4">
-                                         <button
-                                             onClick={() => handleLike(post.id)}
-                                             disabled={isLiking[post.id]}
-                                             className={`flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] p-2 rounded-xl transition-colors ${post.isLikedByMe ? 'text-red-500' : 'text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
-                                         >
-                                             <Heart size={20} className={post.isLikedByMe ? 'fill-red-500' : ''} />
-                                             <span className="text-xs font-poppins font-semibold">{post.likes_count || 0}</span>
-                                         </button>
+                                         <div className="relative group/reaction">
+                                             <button
+                                                 onClick={() => handleLike(post.id)}
+                                                 disabled={isLiking[post.id]}
+                                                 className={`flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] p-2 rounded-xl transition-colors ${post.isLikedByMe || reactions[post.id] ? 'text-red-500' : 'text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                                             >
+                                                 {reactions[post.id] && reactions[post.id] !== '👍' ? (
+                                                     <span className="text-xl leading-none">{reactions[post.id]}</span>
+                                                 ) : (
+                                                     <Heart size={20} className={post.isLikedByMe || reactions[post.id] === '👍' ? 'fill-red-500' : ''} />
+                                                 )}
+                                                 <span className="text-xs font-poppins font-semibold">{post.likes_count || 0}</span>
+                                             </button>
+
+                                             <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-xl rounded-full p-2 flex gap-3 z-30 border border-zinc-100 opacity-0 invisible group-hover/reaction:opacity-100 group-hover/reaction:visible transition-all duration-200">
+                                                 {[
+                                                     { emoji: '👍', label: 'Like' },
+                                                     { emoji: '❤️', label: 'Amour' },
+                                                     { emoji: '😄', label: 'Contane' },
+                                                     { emoji: '😡', label: 'Faché' },
+                                                     { emoji: '🔥', label: 'Fier' }
+                                                 ].map(reaction => (
+                                                     <button
+                                                         key={reaction.label}
+                                                         onClick={(e) => { e.stopPropagation(); handleReaction(post.id, reaction.emoji); }}
+                                                         className="text-2xl hover:scale-125 transition-transform"
+                                                         title={reaction.label}
+                                                     >
+                                                         {reaction.emoji}
+                                                     </button>
+                                                 ))}
+                                             </div>
+                                         </div>
                                          <button className="flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] p-2 rounded-xl text-zinc-400 hover:text-black hover:bg-zinc-50 transition-colors">
                                              <MessageSquare size={20}/>
                                              <span className="text-xs font-poppins font-semibold">{post.comments_count || 0}</span>
@@ -5815,8 +5908,8 @@ export default function NutritionDashboard() {
                                  </div>
 
                                  <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-auto pb-safe">
-                                     <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="w-full bg-red-50 hover:bg-red-100 text-red-600 p-4 rounded-2xl flex items-center justify-center gap-3 font-bold transition-colors">
-                                         <LogOut size={20} />
+                                     <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="w-full mt-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold rounded-xl transition-all flex items-center justify-center gap-2">
+                                         <Lock size={20} />
                                          Déconnexion
                                      </button>
                                  </div>
