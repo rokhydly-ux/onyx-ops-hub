@@ -83,8 +83,13 @@ export default function AdminNutritionAfricaine() {
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterInactive, setFilterInactive] = useState(false);
-  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'|'blog'|'fitness'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'|'blog'|'fitness'|'challenges'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [isEditingChallenge, setIsEditingChallenge] = useState(false);
+  const [challengeForm, setChallengeForm] = useState<any>({
+      id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: ''
+  });
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided', weekly_budget_tier: 'famille_15k' });
@@ -240,6 +245,21 @@ export default function AdminNutritionAfricaine() {
                   if (settingsRes.data && settingsRes.data.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
                   if (foodsRes.data) setFoods(foodsRes.data);
                   if (articlesRes.data) setArticles(articlesRes.data);
+
+                  // Fetch Challenges
+                  const chRes = await supabase.from('nutrition_challenges').select('*').order('created_at', { ascending: false });
+                  if (chRes.data) {
+                      // Fetch participants count
+                      const pRes = await supabase.from('nutrition_challenge_participants').select('challenge_id', { count: 'exact' });
+                      const countMap: Record<string, number> = {};
+                      if (pRes.data) {
+                          pRes.data.forEach((p: any) => {
+                              countMap[p.challenge_id] = (countMap[p.challenge_id] || 0) + 1;
+                          });
+                      }
+                      const challengesWithCount = chRes.data.map(c => ({ ...c, participantsCount: countMap[c.id] || 0 }));
+                      setChallenges(challengesWithCount);
+                  }
               }
             } catch (err) {
                 console.error("Erreur générale fetch admin:", err);
@@ -1263,6 +1283,46 @@ export default function AdminNutritionAfricaine() {
       if (newStatus === 'Livré') msg = `Bonjour ${clientName}, votre commande a été livrée ✅. Merci pour votre confiance !`;
 
       if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const handleSaveChallenge = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const payload = { ...challengeForm };
+      delete payload.id;
+      delete payload.participantsCount;
+      if (tenantId) payload.tenant_id = tenantId;
+
+      if (isEditingChallenge) {
+          const { error } = await supabase.from('nutrition_challenges').update(payload).eq('id', challengeForm.id);
+          if (!error) {
+              setChallenges(challenges.map(c => c.id === challengeForm.id ? { ...c, ...payload } : c));
+              setIsEditingChallenge(false);
+              setChallengeForm({ id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' });
+              alert("Challenge mis à jour avec succès !");
+          } else alert(error.message);
+      } else {
+          const { data, error } = await supabase.from('nutrition_challenges').insert([payload]).select().single();
+          if (!error && data) {
+              setChallenges([{ ...data, participantsCount: 0 }, ...challenges]);
+              setIsEditingChallenge(false);
+              setChallengeForm({ id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' });
+          } else alert(error?.message);
+      }
+  };
+
+  const handleEditChallenge = (challenge: any) => {
+      setChallengeForm(challenge);
+      setIsEditingChallenge(true);
+  };
+
+  const handleDeleteChallenge = async (id: string) => {
+      if (!confirm("Voulez-vous vraiment supprimer ce challenge ?")) return;
+      const { error } = await supabase.from('nutrition_challenges').delete().eq('id', id);
+      if (!error) {
+          setChallenges(challenges.filter(c => c.id !== id));
+      } else {
+          alert("Erreur lors de la suppression : " + error.message);
+      }
   };
 
   const handleOptimizeShopIA = async () => {
@@ -2502,6 +2562,75 @@ export default function AdminNutritionAfricaine() {
            <AdminFitnessView />
         )}
 
+        {/* --- VUE CHALLENGES (ADMIN) --- */}
+        {activeTab === 'challenges' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <div>
+                  <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Trophy className="text-[#39FF14]"/> Gestion des Challenges</h3>
+                  <p className="text-xs text-zinc-500 font-bold mt-1">Créez et gérez les défis communautaires.</p>
+               </div>
+               <button onClick={() => { setIsEditingChallenge(false); setChallengeForm({ id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' }); document.getElementById('challenge-modal-overlay')?.classList.remove('hidden'); }} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
+                  <Plus size={16}/> Nouveau Challenge
+               </button>
+           </div>
+
+           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-left min-w-[800px]">
+                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Challenge</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Participants</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">XP & Badge</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Statut</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-zinc-50">
+                    {challenges.map(c => (
+                       <tr key={c.id} className="hover:bg-zinc-50 transition-colors group">
+                          <td className="p-4">
+                              <div className="flex items-center gap-4">
+                                  <div className="w-16 h-12 rounded-xl bg-zinc-100 overflow-hidden relative border border-zinc-200 shrink-0">
+                                      {c.cover_url?.includes('.mp4') ? (
+                                          <video src={c.cover_url} className="w-full h-full object-cover" />
+                                      ) : (
+                                          <img src={c.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
+                                      )}
+                                  </div>
+                                  <div>
+                                      <p className="font-bold text-sm text-black">{c.title}</p>
+                                      <p className="text-[10px] text-zinc-500 font-medium line-clamp-1">{c.description}</p>
+                                  </div>
+                              </div>
+                          </td>
+                          <td className="p-4 text-center font-black text-lg">{c.participantsCount || 0}</td>
+                          <td className="p-4 text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">+{c.xp_reward} XP</span>
+                                  <span className="text-[10px] font-bold text-zinc-500">🏅 {c.badge_name}</span>
+                              </div>
+                          </td>
+                          <td className="p-4 text-center">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${c.status === 'active' ? 'bg-[#39FF14]/20 text-green-700' : c.status === 'completed' ? 'bg-zinc-100 text-zinc-500' : 'bg-orange-100 text-orange-600'}`}>
+                                  {c.status}
+                              </span>
+                          </td>
+                          <td className="p-4 text-right">
+                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => { handleEditChallenge(c); document.getElementById('challenge-modal-overlay')?.classList.remove('hidden'); }} className="p-2 text-zinc-400 hover:text-black bg-white rounded-lg border border-zinc-200 shadow-sm hover:shadow transition-all"><Edit3 size={14}/></button>
+                                  <button onClick={() => handleDeleteChallenge(c.id)} className="p-2 text-red-400 hover:text-white bg-white hover:bg-red-500 rounded-lg border border-zinc-200 shadow-sm hover:shadow transition-all"><Trash2 size={14}/></button>
+                              </div>
+                          </td>
+                       </tr>
+                    ))}
+                    {challenges.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-400 font-bold">Aucun challenge enregistré.</td></tr>}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+        )}
+
 
         {activeTab === 'blog' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
@@ -2539,6 +2668,48 @@ export default function AdminNutritionAfricaine() {
           </div>
         )}
       </main>
+
+      {/* MODALE CHALLENGE */}
+      <div id="challenge-modal-overlay" onClick={(e: any) => e.target.id === 'challenge-modal-overlay' && e.currentTarget.classList.add('hidden')} className="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+         <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black">
+            <button onClick={() => document.getElementById('challenge-modal-overlay')?.classList.add('hidden')} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-3`}><Trophy className="text-[#39FF14]"/> {isEditingChallenge ? 'Modifier Challenge' : 'Nouveau Challenge'}</h2>
+
+            <form onSubmit={handleSaveChallenge} className="space-y-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Titre du défi</label><input type="text" required value={challengeForm.title} onChange={e => setChallengeForm({...challengeForm, title: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">URL Cover (Image/Vidéo)</label><input type="text" value={challengeForm.cover_url} onChange={e => setChallengeForm({...challengeForm, cover_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+               </div>
+
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Description</label>
+                  <textarea rows={3} required value={challengeForm.description} onChange={e => setChallengeForm({...challengeForm, description: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black resize-none" />
+               </div>
+
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom du Badge</label><input type="text" required value={challengeForm.badge_name} onChange={e => setChallengeForm({...challengeForm, badge_name: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">XP à Gagner</label><input type="number" required value={challengeForm.xp_reward} onChange={e => setChallengeForm({...challengeForm, xp_reward: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Statut</label>
+                      <select value={challengeForm.status} onChange={e => setChallengeForm({...challengeForm, status: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black">
+                         <option value="draft">Brouillon</option>
+                         <option value="active">Actif</option>
+                         <option value="completed">Terminé</option>
+                      </select>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Date de début</label><input type="date" value={challengeForm.start_date ? challengeForm.start_date.split('T')[0] : ''} onChange={e => setChallengeForm({...challengeForm, start_date: new Date(e.target.value).toISOString()})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Date de fin</label><input type="date" value={challengeForm.end_date ? challengeForm.end_date.split('T')[0] : ''} onChange={e => setChallengeForm({...challengeForm, end_date: new Date(e.target.value).toISOString()})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+               </div>
+
+               <button type="submit" className="w-full mt-6 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition shadow-lg">
+                  {isEditingChallenge ? 'Sauvegarder les modifications' : 'Créer le Challenge'}
+               </button>
+            </form>
+         </div>
+      </div>
 
       {/* MODALE RECETTE */}
       {showRecipeModal && (

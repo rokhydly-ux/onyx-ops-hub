@@ -565,6 +565,11 @@ export default function NutritionDashboard() {
   const [activeReactionPostId, setActiveReactionPostId] = useState<string | null>(null);
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeChallenge, setActiveChallenge] = useState<any>(null);
+  const [isParticipating, setIsParticipating] = useState(false);
+  const [challengeParticipants, setChallengeParticipants] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
@@ -816,6 +821,35 @@ export default function NutritionDashboard() {
                     setStories(DEFAULT_SEED_STORIES);
                 }
 
+                // Fetch Active Challenge
+                const { data: challenges } = await supabase
+                    .from('nutrition_challenges')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (challenges && challenges.length > 0) {
+                    setActiveChallenge(challenges[0]);
+                    const { count } = await supabase
+                        .from('nutrition_challenge_participants')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('challenge_id', challenges[0].id);
+                    setChallengeParticipants(count || 0);
+                } else {
+                    // Fallback Seed Challenge
+                    setActiveChallenge({
+                        id: 'seed-challenge-1',
+                        title: '30 Jours Détox Sans Sucre',
+                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
+                        badge_name: 'Jongoma Détox',
+                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
+                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
+                        xp_reward: 100
+                    });
+                    setChallengeParticipants(27450);
+                }
+
                 // Fetch Foods
                 const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
                 if (dbFoods) setFoodDatabaseDB(dbFoods);
@@ -934,6 +968,18 @@ export default function NutritionDashboard() {
           if (activeProfile.id) {
               const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('followed_id', activeProfile.id);
               if (count !== null) setMyFollowersCount(count);
+
+              // Check challenge participation & badges
+              if (activeChallenge) {
+                  const { data: participation } = await supabase.from('nutrition_challenge_participants').select('*').eq('client_id', activeProfile.id).eq('challenge_id', activeChallenge.id).maybeSingle();
+                  if (participation) setIsParticipating(true);
+              }
+
+              const { data: myBadges } = await supabase.from('nutrition_badges').select('*').eq('client_id', activeProfile.id);
+              if (myBadges) setEarnedBadges(myBadges.map((b: any) => b.badge_name));
+
+              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
+              if (myNotifs) setNotifications(myNotifs);
           }
 
           if (activeProfile.plan_type === 'premium') {
@@ -2604,10 +2650,36 @@ export default function NutritionDashboard() {
                      client_id: clientProfile.id,
                      reaction_type: reactionType
                  }, { onConflict: 'post_id, client_id' });
+
+                 // Silent notification trigger
+                 if (postToUpdate.client_id && postToUpdate.client_id !== clientProfile.id) {
+                     await supabase.from('nutrition_notifications').insert({
+                         client_id: postToUpdate.client_id,
+                         actor_id: clientProfile.id,
+                         type: 'like',
+                         target_id: postId,
+                         message: `a réagi "${reactionType}" à votre publication.`
+                     });
+                 }
              }
           }
       } catch (err) {
           console.warn("Could not sync like to DB", err);
+      }
+  };
+
+  const handleJoinChallenge = async () => {
+      if (!activeChallenge || !clientProfile) return;
+      setIsParticipating(true);
+      setChallengeParticipants(prev => prev + 1);
+      updateXP(10, "Inscription au Challenge");
+      try {
+          await supabase.from('nutrition_challenge_participants').insert({
+              challenge_id: activeChallenge.id,
+              client_id: clientProfile.id
+          });
+      } catch (err) {
+          console.warn("Erreur inscription challenge", err);
       }
   };
 
@@ -2624,6 +2696,15 @@ export default function NutritionDashboard() {
               await supabase.from('nutrition_followers').insert({
                   follower_id: clientProfile.id,
                   followed_id: userIdToFollow
+              });
+
+              // Silent notification trigger
+              await supabase.from('nutrition_notifications').insert({
+                  client_id: userIdToFollow,
+                  actor_id: clientProfile.id,
+                  type: 'follow',
+                  target_id: clientProfile.id,
+                  message: `a commencé à vous suivre.`
               });
           } catch(e) {}
       }
@@ -4141,6 +4222,20 @@ export default function NutritionDashboard() {
                 </div>
              </div>
 
+             {/* Mes Badges */}
+             {earnedBadges.length > 0 && (
+                 <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+                    <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
+                    <div className="flex flex-wrap gap-4">
+                        {earnedBadges.map((badge, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 px-4 py-2 rounded-xl text-yellow-700 dark:text-yellow-400 font-poppins-bold shadow-sm">
+                                <span className="text-xl leading-none">🏅</span> {badge}
+                            </div>
+                        ))}
+                    </div>
+                 </div>
+             )}
+
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-zinc-50 border border-zinc-100 rounded-xl gap-4">
@@ -5430,6 +5525,26 @@ export default function NutritionDashboard() {
                      </div>
                  </div>
 
+                 {/* NAVIGATION DESKTOP HORIZONTALE (PILLS) */}
+                 <div className="hidden lg:flex items-center gap-4 mb-8 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-full w-fit">
+                    <button onClick={() => handleTabChange('community')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'community' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/18_djx2ct.png" className="w-5 h-5 object-cover" alt="Mur" />
+                        Le Mur
+                    </button>
+                    <button onClick={() => handleTabChange('samaMenu')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'samaMenu' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-5 h-5 object-cover" alt="Recettes" />
+                        Recettes & Menus
+                    </button>
+                    <button onClick={() => handleTabChange('challenges')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'challenges' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-5 h-5 object-cover" alt="Challenges" />
+                        Challenges Tendance
+                    </button>
+                    <button onClick={() => handleTabChange('profile')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'profile' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-5 h-5 object-cover" alt="Profil" />
+                        Mon Profil
+                    </button>
+                 </div>
+
                  {/* BARRE DES STORIES (Carrousel Horizontal) */}
                  <div className="flex gap-4 overflow-x-auto pb-4 pt-2 scrollbar-none mb-4 relative z-10">
                      {/* 1er cercle : "Ajouter ma story" */}
@@ -5643,52 +5758,88 @@ export default function NutritionDashboard() {
                      {/* Colonne Droite : Mini Profil & Notifications (3 cols) */}
                      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
 
+                         {/* CHALENGES TENDANCE WIDGET */}
+                         {activeChallenge && (
+                             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-5 shadow-sm">
+                                 <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2"><Trophy className="text-[#39FF14]" size={14}/> Challenge du mois</h3>
+                                 <div className="relative rounded-2xl aspect-video w-full overflow-hidden mb-3">
+                                     {activeChallenge.cover_url?.includes('.mp4') ? (
+                                         <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                                     ) : (
+                                         <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
+                                     )}
+                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4">
+                                         <span className="bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded flex w-fit mb-1">+{activeChallenge.xp_reward || 100} XP</span>
+                                         <p className="text-white font-black text-sm leading-tight line-clamp-2">{activeChallenge.title}</p>
+                                     </div>
+                                 </div>
+                                 <div className="flex justify-between items-center mb-4">
+                                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">🏅 Badge : <span className="text-black dark:text-white font-black">{activeChallenge.badge_name}</span></p>
+                                     <p className="text-[10px] text-zinc-400 font-bold">{challengeParticipants.toLocaleString()} inscrits</p>
+                                 </div>
+                                 {isParticipating ? (
+                                     <div className="space-y-2">
+                                         <button className="w-full bg-transparent border-2 border-[#39FF14] text-[#39FF14] py-2.5 rounded-xl font-poppins-bold text-xs uppercase flex items-center justify-center gap-2 cursor-default">
+                                            <CheckCircle size={14} className="fill-[#39FF14] text-black" /> Défi en cours
+                                         </button>
+                                         <button onClick={() => window.scrollTo(0, 0)} className="w-full text-center text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white transition-colors underline">Poster mon progrès aujourd'hui</button>
+                                     </div>
+                                 ) : (
+                                     <button onClick={handleJoinChallenge} className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-poppins-bold py-2.5 rounded-xl text-xs uppercase hover:scale-[1.02] transition-all shadow-md">
+                                         Relever le défi (+{activeChallenge.xp_reward || 100} XP)
+                                     </button>
+                                 )}
+                             </div>
+                         )}
+
                          {/* Notifications / Reminders */}
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex-1">
+                         <div className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm flex-1 flex flex-col max-h-96">
                              <div className="flex justify-between items-center mb-6">
                                  <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Notifications</p>
-                                 <button className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest hover:text-black transition-colors">See All</button>
+                                 <button className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest hover:text-black dark:hover:text-white transition-colors">See All</button>
                              </div>
 
-                             <div className="space-y-6">
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                                         <Droplet size={14}/>
-                                     </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Time to hydrate!</p>
-                                             <p className="text-[9px] text-zinc-400">1h ago</p>
+                             <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3 pr-2">
+                                 {notifications.length > 0 ? (
+                                     notifications.map((notif: any) => (
+                                         <div
+                                             key={notif.id}
+                                             className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${!notif.is_read ? 'bg-[#39FF14]/5 hover:bg-[#39FF14]/10 border border-[#39FF14]/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 border border-transparent'}`}
+                                             onClick={async () => {
+                                                 if (!notif.is_read) {
+                                                     await supabase.from('nutrition_notifications').update({ is_read: true }).eq('id', notif.id);
+                                                     setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+                                                 }
+                                                 // Example: Scroll or navigate depending on type
+                                                 if (notif.type === 'like' || notif.type === 'comment' || notif.type === 'repost') {
+                                                     window.scrollTo(0, 0); // Placeholder to show it is interactive
+                                                 }
+                                             }}
+                                         >
+                                             {notif.clients ? (
+                                                <img src={notif.clients.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notif.clients.full_name || 'U')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Actor" />
+                                             ) : (
+                                                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                                                    <Bell size={14}/>
+                                                </div>
+                                             )}
+                                             <div className="flex-1">
+                                                 <p className="text-[10px] font-medium text-zinc-800 dark:text-zinc-200 leading-tight">
+                                                     <span className="font-bold text-black dark:text-white">{notif.clients?.full_name || 'Système'}</span> {notif.message}
+                                                 </p>
+                                                 <p className="text-[9px] text-zinc-400 mt-1 uppercase font-bold tracking-widest">
+                                                     {notif.created_at ? new Date(notif.created_at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Récemment'}
+                                                 </p>
+                                             </div>
+                                             {!notif.is_read && <div className="w-2 h-2 rounded-full bg-[#39FF14] shrink-0 mt-2"></div>}
                                          </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il te manque encore {8 - waterGlasses} verres d'eau pour atteindre ton objectif du jour. Bois un verre maintenant !</p>
+                                     ))
+                                 ) : (
+                                     <div className="flex flex-col items-center justify-center h-32 text-center text-zinc-400">
+                                         <Bell size={24} className="mb-2 opacity-50"/>
+                                         <p className="text-xs font-bold">Aucune notification</p>
                                      </div>
-                                 </div>
-
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
-                                         <Activity size={14}/>
-                                     </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Workout Reminder</p>
-                                             <p className="text-[9px] text-zinc-400">2h ago</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Tu as une session "Cardio Intense" prévue dans 30 minutes. Prépare tes baskets !</p>
-                                     </div>
-                                 </div>
-
-                                 <div className="flex items-start gap-4">
-                                     <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center shrink-0">
-                                         <Moon size={14}/>
-                                     </div>
-                                     <div className="flex-1">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <p className="text-xs font-bold text-black">Sleep Reminder</p>
-                                             <p className="text-[9px] text-zinc-400">Hier</p>
-                                         </div>
-                                         <p className="text-[10px] font-medium text-zinc-500 leading-relaxed">Il est temps de se déconnecter des écrans pour un sommeil réparateur.</p>
-                                     </div>
-                                 </div>
+                                 )}
                              </div>
                          </div>
 
