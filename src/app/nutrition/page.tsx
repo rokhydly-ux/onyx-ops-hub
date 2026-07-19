@@ -778,7 +778,7 @@ export default function NutritionDashboard() {
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
                 // Fetch Community Posts
-                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url)').order('created_at', { ascending: false });
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients!client_id(id, full_name, avatar_url)').order('created_at', { ascending: false });
                 if (cPosts && cPosts.length > 0) {
                     setCommunityPosts(cPosts.map((p: any) => ({
                         ...p,
@@ -791,7 +791,7 @@ export default function NutritionDashboard() {
                 // Fetch Stories actives
                 const { data: rawStories } = await supabase
                     .from('nutrition_community_stories')
-                    .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+                    .select('*, clients!client_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
                     .order('created_at', { ascending: true });
                 if (rawStories && rawStories.length > 0) {
                     setStories(rawStories);
@@ -2466,19 +2466,14 @@ export default function NutritionDashboard() {
           setToastMessage("Story publiée avec succès !");
           setTimeout(() => setToastMessage(null), 3000);
 
-          // Mettre à jour l'état local (optimiste)
-          const newStory = {
-              id: Date.now().toString(),
-              client_id: clientProfile.id,
-              media_url: mediaUrl,
-              media_type: mediaType,
-              caption: storyCaption,
-              created_at: new Date().toISOString(),
-              clients: { id: clientProfile.id, full_name: user?.full_name, avatar_url: user?.avatar_url },
-              nutrition_story_views: []
-          };
-
-          setStories(prev => [...prev, newStory]);
+          // Re-fetch stories to ensure persistence and correct grouped IDs
+          const { data: rawStories } = await supabase
+              .from('nutrition_community_stories')
+              .select('*, clients!client_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+              .order('created_at', { ascending: true });
+          if (rawStories && rawStories.length > 0) {
+              setStories(rawStories);
+          }
       } catch (err: any) {
           alert("Erreur lors de l'upload de la story : " + err.message);
       } finally {
@@ -2502,6 +2497,15 @@ export default function NutritionDashboard() {
           if (error) {
               console.error("Erreur lors de la publication :", error.message);
               alert("Erreur de publication. Veuillez vérifier les permissions de la base de données.");
+          } else {
+              // Re-fetch to ensure sync with real IDs and potential triggers
+              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients!client_id(id, full_name, avatar_url)').order('created_at', { ascending: false });
+              if (cPosts && cPosts.length > 0) {
+                  setCommunityPosts(cPosts.map((p: any) => ({
+                      ...p,
+                      client: p.clients?.full_name || 'Membre'
+                  })));
+              }
           }
       }
   };
@@ -2598,13 +2602,16 @@ export default function NutritionDashboard() {
     try {
         setUploadingImage(true);
         const ext = file.name.split('.').pop();
-        const fileName = `posts/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error, data: uploadData } = await supabase.storage.from('avatars').upload(fileName, file);
+        const fileName = `${clientProfile?.id || 'unknown'}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+
+        const { error, data: uploadData } = await supabase.storage.from('community-images').upload(fileName, file);
         if (error) throw error;
-        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+        const { data } = supabase.storage.from('community-images').getPublicUrl(fileName);
         setNewPostImage(data.publicUrl);
     } catch (err: any) {
-        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'avatars' est public et accepte les uploads.");
+        console.error("Erreur d'upload image:", err);
+        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'community-images' existe et est public.");
     } finally {
         setUploadingImage(false);
     }
@@ -5280,12 +5287,12 @@ export default function NutritionDashboard() {
                  </div>
 
                  {/* BARRE DES STORIES (Carrousel Horizontal) */}
-                 <div className="flex gap-4 overflow-x-auto pb-4 pt-2 scrollbar-none mb-4">
+                 <div className="flex gap-4 overflow-x-auto pb-4 pt-2 scrollbar-none mb-4 relative z-10">
                      {/* 1er cercle : "Ajouter ma story" */}
                      <div className="flex flex-col items-center gap-1 cursor-pointer shrink-0" onClick={() => storyInputRef.current?.click()}>
                          <div className="relative w-16 h-16 rounded-full border-2 border-dashed border-zinc-300 p-0.5 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 transition-colors">
-                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-full h-full rounded-full object-cover" alt="Moi" />
-                             <Plus className="w-5 h-5 text-black bg-[#39FF14] rounded-full absolute bottom-0 right-0 border-2 border-white dark:border-zinc-900"/>
+                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-full h-full rounded-full object-cover pointer-events-none" alt="Moi" />
+                             <Plus className="w-5 h-5 text-black bg-[#39FF14] rounded-full absolute bottom-0 right-0 border-2 border-white dark:border-zinc-900 pointer-events-none"/>
                          </div>
                          <span className="text-xs font-poppins text-center mt-1 truncate w-16 text-zinc-600 font-medium">Ajouter</span>
                          <input type="file" accept="image/*,video/mp4" capture="environment" className="hidden" ref={storyInputRef} onChange={(e) => {
@@ -5301,11 +5308,12 @@ export default function NutritionDashboard() {
                      {/* Les cercles des autres membres */}
                      {groupedStories.map((group, idx) => (
                          <div key={group.client.id} className="flex flex-col items-center gap-1 cursor-pointer shrink-0" onClick={() => {
+                             if (!group.stories || group.stories.length === 0) return;
                              setViewerActiveGroupIndex(idx);
                              setViewerActiveStoryIndex(0);
                          }}>
                              <div className={`w-16 h-16 rounded-full p-0.5 relative transition-transform hover:scale-105 ${group.allViewed ? 'border-2 border-zinc-300 dark:border-zinc-700' : 'border-[3px] border-[#39FF14] shadow-md shadow-[#39FF14]/30'}`}>
-                                 <img src={group.client.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.client.full_name || 'Membre')}&background=random`} className="w-full h-full rounded-full object-cover border-2 border-white dark:border-zinc-950" alt={group.client.full_name} />
+                                 <img src={group.client.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.client.full_name || 'Membre')}&background=random`} className="w-full h-full rounded-full object-cover border-2 border-white dark:border-zinc-950 pointer-events-none" alt={group.client.full_name} />
                              </div>
                              <span className="text-xs font-poppins text-center mt-1 truncate w-16 text-zinc-800 font-medium">{group.client.full_name?.split(' ')[0]}</span>
                          </div>
