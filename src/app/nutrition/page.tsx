@@ -472,10 +472,25 @@ export default function NutritionDashboard() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
+  const [newPostVideo, setNewPostVideo] = useState<string | null>(null);
+  const [newPostBgStyle, setNewPostBgStyle] = useState<string | null>(null);
+  const [newPostLocation, setNewPostLocation] = useState("");
+  const [showLocationInput, setShowLocationInput] = useState(false);
+  const [newPostType, setNewPostType] = useState<'standard' | 'video' | 'text_bg'>('standard');
+  const [showTagMenu, setShowTagMenu] = useState(false);
+  const [tagQuery, setTagQuery] = useState("");
+  const [taggedFriends, setTaggedFriends] = useState<any[]>([]);
+  const [availableClientsToTag, setAvailableClientsToTag] = useState<any[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [followersCount, setFollowersCount] = useState<number>(0);
   const [communityPosts, setCommunityPosts] = useState<any[]>([]);
+  const [communityStories, setCommunityStories] = useState<any[]>([]);
   const [isCommunityHubOpen, setIsCommunityHubOpen] = useState(false);
   const [isLiking, setIsLiking] = useState<{ [postId: string]: boolean }>({});
+  const [followingMap, setFollowingMap] = useState<{ [userId: string]: boolean }>({});
+  const [savedPosts, setSavedPosts] = useState<{ [postId: string]: boolean }>({});
+  const [showSavedPostsFilter, setShowSavedPostsFilter] = useState(false);
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -689,6 +704,14 @@ export default function NutritionDashboard() {
                 const promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
                 const { data: dbPromos } = await promoQuery;
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
+
+                // Fetch Community Stories
+                const { data: stories } = await supabase
+                    .from('nutrition_community_stories')
+                    .select('*, clients(full_name)')
+                    .gt('expires_at', new Date().toISOString())
+                    .order('created_at', { ascending: false });
+                if (stories) setCommunityStories(stories);
 
                 // Fetch Community Posts and Likes
                 const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
@@ -914,6 +937,26 @@ export default function NutritionDashboard() {
           // Fetch des commandes du client
           const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
           if (ordersData) setClientOrders(ordersData);
+
+          // Fetch Followers Count
+          const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('following_id', activeProfile.id);
+          setFollowersCount(count || 0);
+
+          // Fetch My Following List
+          const { data: followingData } = await supabase.from('nutrition_followers').select('following_id').eq('follower_id', activeProfile.id);
+          if (followingData) {
+              const fMap: { [key: string]: boolean } = {};
+              followingData.forEach((f: any) => fMap[f.following_id] = true);
+              setFollowingMap(fMap);
+          }
+
+          // Fetch My Saved Posts
+          const { data: savedData } = await supabase.from('nutrition_saved_posts').select('post_id').eq('client_id', activeProfile.id);
+          if (savedData) {
+              const sMap: { [key: string]: boolean } = {};
+              savedData.forEach((s: any) => sMap[s.post_id] = true);
+              setSavedPosts(sMap);
+          }
 
           // Note: Likes are now fetched inside fetchCatalogue instead to avoid race conditions.
 
@@ -2192,13 +2235,17 @@ export default function NutritionDashboard() {
 
   const handlePostCommunity = async () => {
       if (clientProfile?.plan_type !== 'premium' && daysLeft <= 0) return alert("La publication est réservée aux membres Premium pour garantir l'absence de spams.");
-      if (!newPostText && !newPostImage) return;
+      if (!newPostText && !newPostImage && !newPostVideo) return;
 
       const newPostObj = {
           client_id: clientProfile?.id,
           content: newPostText,
           image_url: newPostImage,
-          post_type: 'standard',
+          video_url: newPostVideo,
+          post_type: newPostType,
+          bg_style: newPostBgStyle,
+          location: newPostLocation,
+          tagged_users: taggedFriends.map(f => f.id),
           likes_count: 0,
           comments_count: 0
       };
@@ -2211,6 +2258,11 @@ export default function NutritionDashboard() {
               clients: { full_name: user?.full_name || 'Membre' },
               content: newPostText,
               image_url: newPostImage,
+              video_url: newPostVideo,
+              post_type: newPostType,
+              bg_style: newPostBgStyle,
+              location: newPostLocation,
+              tagged_users: taggedFriends.map(f => f.id),
               created_at: new Date().toISOString(),
               likes_count: 0,
               comments_count: 0
@@ -2218,6 +2270,11 @@ export default function NutritionDashboard() {
           setCommunityPosts([tempPost, ...communityPosts]);
           setNewPostText("");
           setNewPostImage(null);
+          setNewPostVideo(null);
+          setNewPostBgStyle(null);
+          setNewPostLocation("");
+          setTaggedFriends([]);
+          setNewPostType('standard');
 
           // 2. Insert to DB
           const { data, error } = await supabase
@@ -2262,6 +2319,95 @@ export default function NutritionDashboard() {
       } finally {
           setUploadingImage(false);
           if (mealPhotoInputRef.current) mealPhotoInputRef.current.value = '';
+      }
+  };
+
+  const handleFollow = async (targetClientId: string) => {
+      if (!clientProfile?.id || clientProfile.id === targetClientId) return;
+
+      const isAlreadyFollowing = followingMap[targetClientId];
+
+      // Optimistic UI update
+      setFollowingMap(prev => ({
+          ...prev,
+          [targetClientId]: !isAlreadyFollowing
+      }));
+
+      try {
+          if (isAlreadyFollowing) {
+              await supabase
+                  .from('nutrition_followers')
+                  .delete()
+                  .eq('follower_id', clientProfile.id)
+                  .eq('following_id', targetClientId);
+          } else {
+              await supabase
+                  .from('nutrition_followers')
+                  .insert({
+                      follower_id: clientProfile.id,
+                      following_id: targetClientId
+                  });
+          }
+      } catch (err: any) {
+          console.error("Erreur de suivi", err);
+          // Rollback
+          setFollowingMap(prev => ({
+              ...prev,
+              [targetClientId]: isAlreadyFollowing
+          }));
+      }
+  };
+
+  const handleSavePost = async (postId: string) => {
+      if (!clientProfile?.id) return;
+      const isSaved = savedPosts[postId];
+      setSavedPosts(prev => ({ ...prev, [postId]: !isSaved }));
+      try {
+          if (isSaved) {
+              await supabase.from('nutrition_saved_posts').delete().eq('client_id', clientProfile.id).eq('post_id', postId);
+          } else {
+              await supabase.from('nutrition_saved_posts').insert({ client_id: clientProfile.id, post_id: postId });
+          }
+      } catch (err) {
+          console.error(err);
+          setSavedPosts(prev => ({ ...prev, [postId]: isSaved }));
+      }
+  };
+
+  const handleRepost = async (post: any) => {
+      if (!clientProfile?.id) return;
+      if (!confirm("Repartager cette publication sur votre mur ?")) return;
+
+      try {
+          const { error } = await supabase.from('nutrition_community_posts').insert({
+              client_id: clientProfile.id,
+              content: post.content || post.texte,
+              image_url: post.image_url,
+              video_url: post.video_url,
+              post_type: post.post_type,
+              bg_style: post.bg_style,
+              location: post.location,
+              is_repost: true,
+              original_post_id: post.id,
+              likes_count: 0,
+              comments_count: 0,
+              shares_count: 0
+          });
+
+          if (error) throw error;
+
+          // Optimistic original post update
+          setCommunityPosts(prev => prev.map(p => {
+              if (p.id === post.id) return { ...p, shares_count: (p.shares_count || 0) + 1 };
+              return p;
+          }));
+
+          await supabase.from('nutrition_community_posts').update({ shares_count: (post.shares_count || 0) + 1 }).eq('id', post.id);
+
+          alert("Publication repartagée avec succès !");
+          // Optionally trigger a refetch of posts here.
+      } catch (err: any) {
+          alert("Erreur lors du repost : " + err.message);
       }
   };
 
@@ -2324,11 +2470,42 @@ export default function NutritionDashboard() {
         if (error) throw error;
         const { data } = supabase.storage.from('community-images').getPublicUrl(fileName);
         setNewPostImage(data.publicUrl);
+        setNewPostType('standard');
     } catch (err: any) {
         alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'community-images' est public et accepte les uploads.");
     } finally {
         setUploadingImage(false);
     }
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.size > 20 * 1024 * 1024) return alert("La vidéo ne doit pas dépasser 20 Mo.");
+      try {
+          setUploadingImage(true);
+          const ext = file.name.split('.').pop();
+          const fileName = `posts/videos/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+          const { error } = await supabase.storage.from('community-images').upload(fileName, file);
+          if (error) throw error;
+          const { data } = supabase.storage.from('community-images').getPublicUrl(fileName);
+          setNewPostVideo(data.publicUrl);
+          setNewPostType('video');
+      } catch (err: any) {
+          alert("Erreur upload vidéo : " + err.message);
+      } finally {
+          setUploadingImage(false);
+      }
+  };
+
+  const handleSearchFriends = async (query: string) => {
+      setTagQuery(query);
+      if (query.length > 2) {
+          const { data } = await supabase.from('clients').select('id, full_name, avatar_url').ilike('full_name', `%${query}%`).limit(5);
+          setAvailableClientsToTag(data || []);
+      } else {
+          setAvailableClientsToTag([]);
+      }
   };
   const submitDailyReport = async () => {
     if (!clientProfile) return;
@@ -3647,110 +3824,145 @@ export default function NutritionDashboard() {
         )}
 
         {activeTab === 'profile' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-             <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
+          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 w-full">
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white font-black uppercase text-[10px] tracking-widest mb-4"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+
+            {/* Header / Cover */}
+            <div className="relative w-full h-48 sm:h-64 rounded-[2rem] overflow-hidden mb-16 bg-zinc-100 dark:bg-zinc-900 shadow-sm group">
+                <img src={clientProfile?.cover_url || "https://images.unsplash.com/photo-1490818387583-1b5ba47ea8cb?q=80&w=2070&auto=format&fit=crop"} alt="Cover" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer" onClick={() => alert("Changement de couverture à venir")}>
+                    <Camera size={32} className="text-white" />
+                </div>
                 
-                <form onSubmit={handleSaveProfile} className="space-y-6 max-w-xl">
-                   <div className="flex items-center gap-6 mb-8">
-                      <img src={profileForm.avatar_url || "https://ui-avatars.com/api/?name=" + (profileForm.full_name || "M")} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" onClick={handleChangeAvatar} title="Changer l'avatar par URL" />
-                      <div className="flex-1">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">URL de la photo de profil</label>
-                         <input type="url" value={profileForm.avatar_url} onChange={e => setProfileForm({...profileForm, avatar_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" placeholder="https://..." />
-                      </div>
-                   </div>
+                {/* Avatar Overlay */}
+                <div className="absolute -bottom-12 left-8 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-zinc-950 bg-zinc-100 dark:bg-zinc-900 overflow-hidden shadow-lg group/avatar cursor-pointer" onClick={handleChangeAvatar}>
+                    <img src={profileForm.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileForm.full_name || 'User')}&background=random`} className="w-full h-full object-cover" alt="Avatar" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                        <Camera size={24} className="text-white" />
+                    </div>
+                </div>
+            </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nom complet</label>
-                      <input type="text" value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" required />
-                   </div>
-
-                   <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nouveau mot de passe</label>
-                      <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" placeholder="Laissez vide pour ne pas modifier" />
-                   </div>
+            <div className="px-4 sm:px-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
+                    <div>
+                        <h2 className={`${spaceGrotesk.className} text-2xl sm:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center gap-2`}>
+                            {profileForm.full_name} <CheckCircle size={20} className="text-[#39FF14] fill-[#39FF14] text-black dark:text-white" />
+                        </h2>
+                        <p className="text-zinc-500 font-bold text-sm">Membre Premium • Rejoint en {new Date(clientProfile?.created_at || new Date()).getFullYear()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => handleTabChange('dashboard')} className="px-6 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white font-bold rounded-full text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">Retour</button>
+                        <button onClick={() => alert("Partage de profil à venir")} className="px-6 py-2.5 bg-[#39FF14] text-black font-poppins-bold rounded-full text-sm hover:scale-105 transition-transform flex items-center gap-2"><Share2 size={16}/> Partager</button>
+                    </div>
                 </div>
 
-                   <button type="submit" className="bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition shadow-lg flex items-center gap-2">
-                      <Save size={16} /> Enregistrer les modifications
-                   </button>
-                </form>
-             </div>
-
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
-                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
-                  <div className="text-4xl font-black text-black">{clientProfile?.diagnostic_data?.bmr || 0} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
-                </div>
-
-                <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
-                  <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest mb-1">Mon IMC</span>
-                  <div className="text-3xl font-black text-green-700">{imcValue}</div>
-                </div>
-
-                <div className="col-span-1 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center items-center text-center">
-                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Score XP</span>
-                  <div className="text-3xl font-black text-yellow-500">{jongomaXP}</div>
-                </div>
-             </div>
-
-             <div className="grid md:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                   <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><MessageCircle className="text-blue-500"/> Échange & Support</h3>
-                   <p className="text-sm font-medium text-zinc-600 mb-6">Rejoignez notre communauté bienveillante pour partager vos repas, vos victoires et vos questions avec les coachs.</p>
-                   <div className="space-y-3">
-                      <button onClick={() => window.open('https://chat.whatsapp.com/', '_blank')} className="w-full bg-[#25D366] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#1ebd58] transition shadow-md flex justify-center items-center gap-2">
-                         Communauté WhatsApp
-                      </button>
-                      <button onClick={() => window.open('https://facebook.com/groups/', '_blank')} className="w-full bg-[#1877F2] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#155fc0] transition shadow-md flex justify-center items-center gap-2">
-                         Groupe Facebook Privé
-                      </button>
-                   </div>
-                </div>
-             </div>
-
-             <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
-                <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-zinc-50 border border-zinc-100 rounded-xl gap-4">
-                   <div>
-                       <p className="font-bold text-sm text-black">Rappels d'hydratation (Eau)</p>
-                       <p className="text-[10px] font-black uppercase text-zinc-500 mt-1">Toutes les 2 heures si objectif non atteint</p>
-                   </div>
-                   <div className="flex items-center gap-3">
-                       <button onClick={sendWaterReminderPush} className="text-[10px] font-bold text-zinc-400 hover:text-black uppercase underline">Tester</button>
-                       <button onClick={togglePushNotifications} className={`px-4 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest transition-colors ${pushEnabled ? 'bg-green-100 text-green-700' : 'bg-black text-[#39FF14] hover:bg-zinc-800'}`}>
-                           {pushEnabled ? 'Activé' : 'Activer'}
-                       </button>
-                   </div>
-                </div>
-             </div>
-
-             <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
-                <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Download className="text-[#39FF14]"/> Historique des Téléchargements PDF</h3>
-                {Array.isArray(pdfHistory) && pdfHistory.length > 0 ? (
-                   <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                      {pdfHistory.map((item, idx) => (
-                         <div key={idx} className="flex justify-between items-center bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                            <div>
-                               <p className="font-bold text-sm text-black">{item.type}</p>
-                               <p className="text-[10px] font-black uppercase text-zinc-500">{item.date && !isNaN(new Date(item.date).getTime()) ? new Date(item.date).toLocaleDateString('fr-FR', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'Date inconnue'}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    {/* Left Column: Stats & Settings */}
+                    <div className="col-span-1 md:col-span-1 space-y-6">
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+                            <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Statistiques</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-2xl font-poppins-bold text-black dark:text-white">{followersCount}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Followers</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-poppins-bold text-black dark:text-white">{Object.keys(followingMap).length}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Suivis</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-poppins-bold text-[#39FF14]">{jongomaXP}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">XP</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-poppins-bold text-blue-500">{imcValue}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">IMC</p>
+                                </div>
                             </div>
-                            {item.url ? (
-                               <a href={item.url} target="_blank" rel="noopener noreferrer" className="bg-black text-[#39FF14] px-4 py-2 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition-transform flex items-center gap-2 w-max">
-                                  <ExternalLink size={14}/> Ouvrir
-                               </a>
-                            ) : (
-                               <span className="bg-zinc-200 text-zinc-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase w-max">Local</span>
-                            )}
-                         </div>
-                      ))}
-                   </div>
-                ) : (
-                   <p className="text-sm font-medium text-zinc-500 italic">Aucun PDF téléchargé ou partagé pour le moment.</p>
-                )}
-             </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+                            <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Préférences</p>
+                            <form onSubmit={handleSaveProfile} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nom complet</label>
+                                    <input type="text" value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none text-black dark:text-white" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nouveau Mot de passe</label>
+                                    <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="••••••••" className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none text-black dark:text-white placeholder:text-zinc-400" />
+                                </div>
+                                <button type="submit" className="w-full bg-black text-[#39FF14] dark:bg-white dark:text-black font-poppins-bold py-3 rounded-xl text-sm hover:scale-105 transition-transform flex items-center justify-center gap-2 mt-4">
+                                    <Save size={16}/> Enregistrer
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Line Art Layout for Content */}
+                    <div className="col-span-1 md:col-span-2 space-y-6">
+                        {/* Publications Header */}
+                        <div className="border-b-2 border-black dark:border-white flex items-center justify-between pb-4 mb-6">
+                            <h3 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tight text-black dark:text-white`}>{showSavedPostsFilter ? 'Mes Favoris' : 'Mes Publications'}</h3>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setShowSavedPostsFilter(!showSavedPostsFilter)} className={`text-xs font-black uppercase tracking-widest hover:text-[#39FF14] transition-colors flex items-center gap-1 ${showSavedPostsFilter ? 'text-[#39FF14]' : 'text-black dark:text-white'}`}>
+                                    <Bookmark size={14} className={showSavedPostsFilter ? 'fill-[#39FF14]' : 'fill-transparent'}/> Mes Favoris Sauvegardés
+                                </button>
+                            </div>
+                        </div>
+
+                        {communityPosts.filter(p => showSavedPostsFilter ? savedPosts[p.id] : p.client_id === clientProfile?.id).length > 0 ? (
+                            <div className="space-y-6">
+                                {communityPosts.filter(p => showSavedPostsFilter ? savedPosts[p.id] : p.client_id === clientProfile?.id).map((post, idx) => (
+                                    <div key={post.id || idx} className="bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 group hover:border-black dark:hover:border-white transition-colors">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">
+                                                <img src={profileForm.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileForm.full_name)}&background=random`} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div>
+                                                <p className="font-poppins-bold text-sm text-black dark:text-white">{profileForm.full_name}</p>
+                                                <p className="text-[10px] text-zinc-400 font-bold uppercase">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR') : 'Récemment'}</p>
+                                            </div>
+                                        </div>
+
+                                        {post.post_type === 'text_bg' && post.bg_style ? (
+                                            <div className={`w-full aspect-video rounded-2xl flex items-center justify-center p-8 mb-4 ${post.bg_style.includes('http') ? 'bg-cover bg-center' : post.bg_style} relative overflow-hidden`} style={post.bg_style.includes('http') ? { backgroundImage: `url(${post.bg_style})` } : {}}>
+                                                {post.bg_style.includes('http') && <div className="absolute inset-0 bg-black/40"></div>}
+                                                <p className="font-poppins-bold text-white text-xl text-center drop-shadow-md relative z-10">{post.content || post.texte}</p>
+                                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111719_ozvobf.jpg" alt="Onyx Nutrition" className="absolute bottom-3 right-3 w-16 h-auto opacity-70 pointer-events-none select-none z-10 rounded-lg mix-blend-screen" />
+                                            </div>
+                                        ) : (
+                                            <p className="font-poppins text-zinc-800 dark:text-zinc-200 my-3 text-sm whitespace-pre-wrap">{post.content || post.texte}</p>
+                                        )}
+
+                                        {post.image_url && post.post_type !== 'transformation' && (
+                                            <div className="w-full aspect-video rounded-2xl overflow-hidden mt-4 bg-zinc-100 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+                                                <img src={post.image_url} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-6 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                            <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold">
+                                                <Heart size={16} className={post.isLikedByMe ? "fill-red-500 text-red-500" : ""} /> {post.likes_count || 0}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold">
+                                                <MessageSquare size={16} /> {post.comments_count || 0}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[2rem]">
+                                <Camera size={48} className="mx-auto text-zinc-300 dark:text-zinc-700 mb-4" />
+                                <p className="text-zinc-500 font-poppins-bold">Vous n'avez pas encore publié.</p>
+                                <button onClick={() => handleTabChange('community')} className="mt-4 px-6 py-2 bg-black text-[#39FF14] dark:bg-white dark:text-black font-bold rounded-full text-sm">Partager un moment</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
           </div>
         )}
       </div>
@@ -5067,27 +5279,118 @@ export default function NutritionDashboard() {
                      {/* Colonne Centrale : Feed (6 cols) */}
                      <div className="col-span-1 lg:col-span-6 space-y-6">
                         {/* Zone de Création */}
-                        <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm focus-within:border-[#39FF14] transition-all mb-8">
+                        <div className={`bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm focus-within:border-[#39FF14] transition-all mb-8 ${newPostType === 'text_bg' && newPostBgStyle && !newPostBgStyle.includes('http') ? newPostBgStyle : ''} relative overflow-hidden`} style={newPostType === 'text_bg' && newPostBgStyle?.includes('http') ? { backgroundImage: `url(${newPostBgStyle})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                           {newPostType === 'text_bg' && newPostBgStyle?.includes('http') && <div className="absolute inset-0 bg-black/40"></div>}
+
                            {newPostImage && (
-                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative z-10">
                                   <img src={newPostImage} className="w-full h-full object-cover" />
-                                  <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-red-500"><X size={20}/></button>
+                                  <button onClick={() => { setNewPostImage(null); setNewPostType('standard'); }} className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-red-500"><X size={20}/></button>
                                </div>
                            )}
-                           <div className="flex items-start gap-4">
+                           {newPostVideo && (
+                               <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-black relative z-10">
+                                  <video src={newPostVideo} controls className="w-full h-full object-contain" />
+                                  <button onClick={() => { setNewPostVideo(null); setNewPostType('standard'); }} className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-red-500 z-10"><X size={20}/></button>
+                               </div>
+                           )}
+                           <div className="flex items-start gap-4 relative z-10">
                                <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=39FF14`} className="w-12 h-12 rounded-full border border-zinc-200 dark:border-zinc-700" alt="Moi" />
-                               <div className="flex-1">
-                                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Partagez votre plat santé, une transformation ou une question..." className="w-full bg-transparent resize-none outline-none font-poppins font-medium text-sm min-h-[60px] placeholder:text-zinc-400 mt-2 text-black dark:text-white" />
+                               <div className="flex-1 relative">
+                                   <textarea
+                                       value={newPostText}
+                                       onChange={e => {
+                                           setNewPostText(e.target.value);
+                                           if (e.target.value.endsWith('@')) {
+                                               setShowTagMenu(true);
+                                           } else if (!e.target.value.includes('@')) {
+                                               setShowTagMenu(false);
+                                           }
+                                       }}
+                                       placeholder={newPostType === 'text_bg' ? "Exprimez-vous..." : "Partagez votre plat santé, une transformation ou une question..."}
+                                       maxLength={newPostType === 'text_bg' ? 280 : undefined}
+                                       className={`w-full bg-transparent resize-none outline-none font-poppins font-medium min-h-[60px] placeholder:text-zinc-400 mt-2 ${newPostType === 'text_bg' && newPostBgStyle ? 'text-white text-xl text-center pt-8 placeholder:text-white/70' : 'text-black dark:text-white text-sm'}`}
+                                   />
+
+                                   {/* Tag Menu */}
+                                   {showTagMenu && (
+                                       <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700 z-50 p-2">
+                                           <input type="text" placeholder="Rechercher un membre..." value={tagQuery} onChange={(e) => handleSearchFriends(e.target.value)} className="w-full bg-zinc-100 dark:bg-zinc-900 rounded-lg px-3 py-2 text-xs mb-2 outline-none" autoFocus />
+                                           <div className="max-h-40 overflow-y-auto">
+                                               {availableClientsToTag.map(client => (
+                                                   <div key={client.id} onClick={() => {
+                                                       setTaggedFriends([...taggedFriends, client]);
+                                                       setNewPostText(newPostText.replace(/@\w*$/, `@${client.full_name} `));
+                                                       setShowTagMenu(false);
+                                                       setTagQuery("");
+                                                   }} className="flex items-center gap-2 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg cursor-pointer">
+                                                       <img src={client.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.full_name)}&background=random`} className="w-6 h-6 rounded-full" />
+                                                       <span className="text-xs font-bold text-black dark:text-white">{client.full_name}</span>
+                                                   </div>
+                                               ))}
+                                               {tagQuery.length > 2 && availableClientsToTag.length === 0 && <p className="text-[10px] text-zinc-500 text-center py-2">Aucun membre trouvé</p>}
+                                           </div>
+                                       </div>
+                                   )}
                                </div>
                            </div>
-                           <div className="flex justify-between items-center mt-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                              <div className="flex gap-2">
-                                  <label className="text-zinc-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px]">
-                                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                                     {uploadingImage ? <Activity size={24} className="animate-spin" /> : <Camera size={24}/>}
+
+                           {/* Branding Filigrane en Text BG Mode */}
+                           {newPostType === 'text_bg' && newPostBgStyle && (
+                               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111719_ozvobf.jpg" alt="Onyx Nutrition" className="absolute bottom-4 right-4 w-12 sm:w-16 h-auto opacity-70 pointer-events-none select-none z-10 rounded-lg mix-blend-screen" />
+                           )}
+
+                           {/* Location Input */}
+                           {showLocationInput && (
+                               <div className="flex items-center gap-2 mt-2 px-4 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 relative z-10">
+                                   <MapPin size={16} className="text-zinc-500" />
+                                   <input type="text" value={newPostLocation} onChange={(e) => setNewPostLocation(e.target.value)} placeholder="Ajouter un lieu..." className="bg-transparent border-none outline-none text-xs w-full text-black dark:text-white" autoFocus onBlur={() => !newPostLocation && setShowLocationInput(false)} />
+                                   {newPostLocation && <button onClick={() => { setNewPostLocation(""); setShowLocationInput(false); }} className="text-zinc-400 hover:text-red-500"><X size={14}/></button>}
+                               </div>
+                           )}
+
+                           {/* Background Styles (if selected) */}
+                           {newPostType === 'text_bg' && (
+                               <div className="flex items-center gap-2 mt-4 pb-2 overflow-x-auto hide-scrollbar relative z-10">
+                                   {[
+                                       'bg-gradient-to-r from-purple-500 to-indigo-500',
+                                       'bg-gradient-to-r from-pink-500 to-orange-400',
+                                       'bg-gradient-to-r from-green-400 to-[#39FF14]',
+                                       'bg-gradient-to-r from-blue-500 to-cyan-400',
+                                       'bg-zinc-900',
+                                       'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_African_pattern_neon_lines_202607191030_dzkpqx.jpg',
+                                       'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_luxury_kitchen_countertop_s__202607191030_knxbcx.jpg',
+                                       'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Woven_fabric_texture_charcoal_green_202607191031_hrc1bw.jpg',
+                                       'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Man_drinking_from_water_bottle_202607191034_c4ck7p.jpg',
+                                       'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Baobab_leaves__hibiscus_flowers__2K_202607191031_gfkclt.jpg'
+                                   ].map(bg => (
+                                       <button key={bg} onClick={() => setNewPostBgStyle(bg)} className={`w-8 h-8 shrink-0 rounded-full border-2 ${newPostBgStyle === bg ? 'border-white shadow-lg scale-110' : 'border-transparent'} ${bg.includes('http') ? 'bg-cover bg-center' : bg} transition-all`} style={bg.includes('http') ? { backgroundImage: `url(${bg})` } : {}}></button>
+                                   ))}
+                                   <button onClick={() => { setNewPostType('standard'); setNewPostBgStyle(null); }} className="w-8 h-8 shrink-0 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-600"><X size={14}/></button>
+                               </div>
+                           )}
+
+                           <div className="flex justify-between items-center mt-2 pt-4 border-t border-zinc-100 dark:border-zinc-800 relative z-10">
+                              <div className="flex gap-1 overflow-x-auto hide-scrollbar max-w-[calc(100%-100px)]">
+                                  <label className="text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px]">
+                                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                                     {uploadingImage && newPostType !== 'video' ? <Activity size={20} className="animate-spin" /> : <Camera size={20}/>}
                                   </label>
+                                  <label className="text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px]">
+                                     <input type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleVideoUpload} disabled={uploadingImage} />
+                                     {uploadingImage && newPostType === 'video' ? <Activity size={20} className="animate-spin" /> : <Video size={20}/>}
+                                  </label>
+                                  <button onClick={() => { setNewPostType('text_bg'); setNewPostBgStyle('bg-gradient-to-r from-purple-500 to-indigo-500'); }} className="text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px]">
+                                      <Type size={20}/>
+                                  </button>
+                                  <button onClick={() => setShowLocationInput(true)} className={`text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px] ${newPostLocation ? 'text-[#39FF14]' : ''}`}>
+                                      <MapPin size={20}/>
+                                  </button>
+                                  <button onClick={() => setShowTagMenu(!showTagMenu)} className="text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors rounded-xl flex items-center justify-center min-w-[44px] min-h-[44px]">
+                                      <AtSign size={20}/>
+                                  </button>
                               </div>
-                              <button onClick={handlePostCommunity} disabled={!newPostText.trim() && !newPostImage} className="bg-[#39FF14] text-black px-6 py-2.5 rounded-full font-poppins-bold text-sm tracking-wide hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]">Publier</button>
+                              <button onClick={handlePostCommunity} disabled={(!newPostText.trim() && !newPostImage && !newPostVideo) || uploadingImage} className="bg-[#39FF14] text-black px-6 py-2.5 rounded-full font-poppins-bold text-sm tracking-wide hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] shrink-0">Publier</button>
                            </div>
                         </div>
 
@@ -5095,33 +5398,71 @@ export default function NutritionDashboard() {
                         <div className="space-y-6">
                            {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.map((post, idx) => (
                               <div key={post.id || idx} className="bg-white dark:bg-zinc-900 border border-zinc-100/80 dark:border-zinc-800/80 rounded-[2rem] p-6 shadow-sm mb-6 flex flex-col group">
+                                 {post.is_repost && (
+                                     <div className="flex items-center gap-2 text-xs text-zinc-500 font-poppins-medium mb-4">
+                                         <Repeat className="w-3.5 h-3.5 text-[#39FF14]"/> Repartagé par {post.clients?.full_name || post.client || 'Membre Onyx'}
+                                     </div>
+                                 )}
                                  <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-3">
                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(post.client || post.clients?.full_name || 'Membre')}&background=random`} className="w-12 h-12 rounded-full border border-zinc-200 dark:border-zinc-700" alt={post.client || post.clients?.full_name || 'Membre'} />
                                         <div>
-                                            <p className="font-poppins-bold text-sm text-black dark:text-white flex items-center gap-1">{post.client || post.clients?.full_name || 'Membre'} <CheckCircle size={14} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-poppins-bold text-sm text-black dark:text-white flex items-center gap-1">{post.client || post.clients?.full_name || 'Membre'} <CheckCircle size={14} className="text-[#39FF14] fill-[#39FF14] text-black"/></p>
+                                                {post.client_id && post.client_id !== clientProfile?.id && (
+                                                    <button
+                                                        onClick={() => handleFollow(post.client_id)}
+                                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${followingMap[post.client_id] ? 'bg-zinc-100 text-zinc-500' : 'bg-[#39FF14]/10 text-[#39FF14]'}`}
+                                                    >
+                                                        {followingMap[post.client_id] ? 'Abonné' : 'Suivre'}
+                                                    </button>
+                                                )}
+                                            </div>
                                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
                                         </div>
                                      </div>
                                      <MoreHorizontal size={18} className="text-zinc-400 cursor-pointer hover:text-black dark:hover:text-white transition-colors" />
                                  </div>
 
-                                 <p className="font-poppins text-zinc-800 dark:text-zinc-200 my-3 whitespace-pre-wrap leading-relaxed">{post.content || post.texte}</p>
-
-                                 {post.image_url && post.post_type !== 'transformation' && (
-                                     <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
-                                         <img src={post.image_url} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
-                                     </div>
-                                 )}
-
-                                 {post.image_url && post.post_type === 'transformation' && (
-                                     <div className="w-full bg-[#39FF14] p-4 rounded-2xl text-black font-poppins mb-4 cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
-                                         <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-black relative mb-2">
-                                            <img src={post.image_url} className="w-full h-full object-cover opacity-90 group-hover:scale-[1.02] transition-transform duration-700" alt="Transformation" />
+                                 <div className={post.is_repost ? "border border-zinc-200 dark:border-zinc-700 rounded-[1.5rem] p-4 bg-zinc-50/50 dark:bg-zinc-800/50 mt-2" : ""}>
+                                     {post.post_type === 'text_bg' && post.bg_style ? (
+                                         <div className={`w-full aspect-video rounded-2xl flex items-center justify-center p-8 mb-4 ${post.bg_style.includes('http') ? 'bg-cover bg-center' : post.bg_style} relative overflow-hidden`} style={post.bg_style.includes('http') ? { backgroundImage: `url(${post.bg_style})` } : {}}>
+                                             {post.bg_style.includes('http') && <div className="absolute inset-0 bg-black/40"></div>}
+                                             <p className="font-poppins-bold text-white text-2xl text-center leading-relaxed drop-shadow-md relative z-10">{post.content || post.texte}</p>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111719_ozvobf.jpg" alt="Onyx Nutrition" className="absolute bottom-3 right-3 w-16 h-auto opacity-70 pointer-events-none select-none z-10 rounded-lg mix-blend-screen" />
                                          </div>
-                                         <p className="text-center font-black uppercase text-xs tracking-widest">Transformation</p>
-                                     </div>
-                                 )}
+                                     ) : (
+                                         <p className="font-poppins text-zinc-800 dark:text-zinc-200 my-3 whitespace-pre-wrap leading-relaxed">{post.content || post.texte}</p>
+                                     )}
+
+                                     {post.location && (
+                                         <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold mb-3 uppercase tracking-widest">
+                                             <MapPin size={12} className="text-[#39FF14]" />
+                                             {post.location}
+                                         </div>
+                                     )}
+
+                                     {post.image_url && post.post_type !== 'transformation' && (
+                                         <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
+                                             <img src={post.image_url} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
+                                         </div>
+                                     )}
+
+                                     {post.video_url && (
+                                         <div className="w-full aspect-video rounded-2xl overflow-hidden mb-4 border border-zinc-100 dark:border-zinc-800 bg-black relative">
+                                             <video src={post.video_url} controls className="w-full h-full object-contain" />
+                                         </div>
+                                     )}
+
+                                     {post.image_url && post.post_type === 'transformation' && (
+                                         <div className="w-full bg-[#39FF14] p-4 rounded-2xl text-black font-poppins mb-4 cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
+                                             <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-black relative mb-2">
+                                                <img src={post.image_url} className="w-full h-full object-cover opacity-90 group-hover:scale-[1.02] transition-transform duration-700" alt="Transformation" />
+                                             </div>
+                                             <p className="text-center font-black uppercase text-xs tracking-widest">Transformation</p>
+                                         </div>
+                                     )}
+                                 </div>
 
                                  <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                      <div className="flex items-center gap-4">
@@ -5138,9 +5479,15 @@ export default function NutritionDashboard() {
                                              <span className="text-xs font-poppins font-semibold">{post.comments_count || 0}</span>
                                          </button>
                                      </div>
-                                     <button className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-zinc-400 hover:text-black hover:bg-zinc-50 transition-colors">
-                                         <Share2 size={20} />
-                                     </button>
+                                     <div className="flex items-center gap-2">
+                                         <button onClick={() => handleRepost(post)} className="flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] p-2 rounded-xl text-zinc-400 hover:text-[#39FF14] hover:bg-[#39FF14]/10 transition-colors group">
+                                             <Repeat size={20} className="group-hover:text-[#39FF14]" />
+                                             <span className="text-xs font-poppins font-semibold">{post.shares_count || 0}</span>
+                                         </button>
+                                         <button onClick={() => handleSavePost(post.id)} className={`flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl transition-colors ${savedPosts[post.id] ? 'text-[#39FF14] hover:bg-[#39FF14]/10' : 'text-zinc-400 hover:text-black hover:bg-zinc-50 dark:hover:text-white dark:hover:bg-zinc-800'}`}>
+                                             <Bookmark size={20} className={savedPosts[post.id] ? 'fill-[#39FF14]' : ''} />
+                                         </button>
+                                     </div>
                                  </div>
                               </div>
                            )) : (
@@ -5236,22 +5583,29 @@ export default function NutritionDashboard() {
                                      </button>
                                  </div>
 
-                                 {/* Widgets inside drawer */}
-                                 <div className="flex flex-col gap-8 pb-20">
-                                     <div>
-                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris & Abonnements</p>
-                                         <div className="space-y-4">
-                                             {['Coach Rokhy', 'Dr. Thierno', 'Sophie Diop'].map((name, i) => (
-                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 p-2 -mx-2 rounded-xl transition-colors">
-                                                     <div className="flex items-center gap-3">
-                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-700" alt={name} />
-                                                         <p className="text-xs font-bold text-black dark:text-white">{name}</p>
-                                                     </div>
-                                                 </div>
-                                             ))}
-                                         </div>
-                                     </div>
+                                 {/* Navigation Links inside drawer */}
+                                 <div className="flex flex-col gap-2 pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                                     <button onClick={() => { setIsCommunityHubOpen(false); handleTabChange('dashboard'); }} className="flex items-center gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-2xl transition-colors text-left">
+                                         <Home size={20} className="text-zinc-500" />
+                                         <span className="font-bold text-black dark:text-white">Accueil</span>
+                                     </button>
+                                     <button onClick={() => { setIsCommunityHubOpen(false); handleTabChange('gallery'); }} className="flex items-center gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-2xl transition-colors text-left">
+                                         <BookOpen size={20} className="text-zinc-500" />
+                                         <span className="font-bold text-black dark:text-white">Recettes</span>
+                                     </button>
+                                     <button onClick={() => { setIsCommunityHubOpen(false); }} className="flex items-center gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-2xl transition-colors text-left relative">
+                                         <Trophy size={20} className="text-zinc-500" />
+                                         <span className="font-bold text-black dark:text-white">Challenges</span>
+                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#39FF14] text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Hot</span>
+                                     </button>
+                                     <button onClick={() => { setIsCommunityHubOpen(false); handleTabChange('profile'); }} className="flex items-center gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-2xl transition-colors text-left">
+                                         <UserIcon size={20} className="text-zinc-500" />
+                                         <span className="font-bold text-black dark:text-white">Profil</span>
+                                     </button>
+                                 </div>
 
+                                 {/* Widgets inside drawer */}
+                                 <div className="flex flex-col gap-8 pb-6 flex-1">
                                      <div>
                                          <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Trending Challenges</p>
                                          <div className="space-y-6">
@@ -5275,6 +5629,13 @@ export default function NutritionDashboard() {
                                              </div>
                                          </div>
                                      </div>
+                                 </div>
+
+                                 <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-auto pb-safe">
+                                     <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="w-full bg-red-50 hover:bg-red-100 text-red-600 p-4 rounded-2xl flex items-center justify-center gap-3 font-bold transition-colors">
+                                         <LogOut size={20} />
+                                         Déconnexion
+                                     </button>
                                  </div>
                              </motion.div>
                          </>
