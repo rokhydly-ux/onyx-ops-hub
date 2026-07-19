@@ -5836,7 +5836,7 @@ export default function NutritionDashboard() {
 
                  {/* Offcanvas Drawer pour Mobile */}
                  <AnimatePresence>
-                     {isCommunityHubOpen && (
+                     {isCommunityHubOpen ? (
                          <>
                              <motion.div
                                  initial={{ opacity: 0 }}
@@ -5915,7 +5915,7 @@ export default function NutritionDashboard() {
                                  </div>
                              </motion.div>
                          </>
-                     )}
+                     ) : null}
                  </AnimatePresence>
           </div>
         )}
