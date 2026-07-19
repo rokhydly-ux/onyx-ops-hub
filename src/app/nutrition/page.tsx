@@ -2596,6 +2596,40 @@ export default function NutritionDashboard() {
       }
   };
 
+  const handleReaction = async (postId: string, type: string) => {
+      if (!clientProfile?.id) return;
+
+      const isAlreadyLiked = communityPosts.find(p => p.id === postId)?.isLikedByMe;
+
+      // Optimistic Update
+      setReactions(prev => ({ ...prev, [postId]: type }));
+      if (!isAlreadyLiked) {
+          setCommunityPosts(prev => prev.map(p => {
+              if (p.id === postId) {
+                  return { ...p, isLikedByMe: true, likes_count: (p.likes_count || 0) + 1 };
+              }
+              return p;
+          }));
+      }
+
+      try {
+          // Si on utilise une table séparée `nutrition_reactions`
+          await supabase.from('nutrition_reactions').upsert({
+              post_id: postId,
+              client_id: clientProfile.id,
+              target_type: 'post',
+              reaction_type: type
+          }, { onConflict: 'post_id, client_id' });
+
+          // Fallback sur `nutrition_post_likes` si `nutrition_reactions` n'existe pas encore ou en parallèle
+          if (!isAlreadyLiked) {
+              await supabase.from('nutrition_post_likes').insert({ post_id: postId, client_id: clientProfile.id });
+          }
+      } catch (err) {
+          console.error("Error setting reaction:", err);
+      }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
