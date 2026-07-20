@@ -4238,27 +4238,36 @@ export default function NutritionDashboard() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
 
-             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                 {/* Left Column: Forms */}
-                 <div className="lg:col-span-4 space-y-8">
-                     <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
+{/* GRANDE CARTE UNIFIÉE DU PROFIL */}
+<div className="w-full bg-white dark:bg-zinc-900 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_40px_rgba(57,255,20,0.08)] border border-zinc-200/80 dark:border-zinc-800/80 relative overflow-hidden mb-8">
 
-                        <div className="flex items-center gap-6 mb-8">
-                           <div className="relative">
-                               <img src={profileForm.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(profileForm.firstName || "M")} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100 shadow-sm cursor-pointer hover:opacity-80 transition-opacity bg-zinc-100" onClick={handleChangeAvatar} title="Changer l'avatar par URL" />
-                           </div>
-                           <div className="flex-1">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">URL de la photo de couverture (Optionnel)</label>
-                              <input type="url" value={profileForm.cover_url} onChange={e => setProfileForm({...profileForm, cover_url: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" placeholder="https://..." />
-                           </div>
-                        </div>
+  {/* A. EN-TÊTE : LA BANNIÈRE DE COUVERTURE & AVATAR */}
+  <div className="w-full h-40 sm:h-48 rounded-3xl bg-zinc-800 relative overflow-hidden mb-12 group">
+    {profileForm.cover_url || clientProfile?.cover_url ? (
+      <img src={profileForm.cover_url || clientProfile?.cover_url} alt="Cover" className="w-full h-full object-cover" />
+    ) : (
+      <div className="w-full h-full bg-gradient-to-r from-zinc-800 to-zinc-900 flex items-center justify-center text-zinc-600 text-sm font-poppins">Bannière par défaut • Ajoutez une URL ci-dessous</div>
+    )}
 
-                        <form className="space-y-6">
-                            {/* Personal Information */}
-                            <div>
-                                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-2">Personal Information</h3>
-                                <div className="grid grid-cols-2 gap-4 mb-4">
+    {/* Avatar superposé en bas à gauche */}
+    <div className="absolute -bottom-6 left-6 z-20" onClick={handleChangeAvatar} title="Changer l'avatar par URL">
+      <img src={profileForm.avatar_url || clientProfile?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(profileForm.firstName || "M")} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-white dark:border-zinc-900 object-cover shadow-lg cursor-pointer hover:opacity-80 transition-opacity bg-zinc-100" />
+    </div>
+  </div>
+
+  <div className="mb-8 max-w-2xl">
+     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">URL de la photo de couverture (Optionnel)</label>
+     <input type="url" value={profileForm.cover_url} onChange={e => setProfileForm({...profileForm, cover_url: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-zinc-50 dark:bg-zinc-950 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" placeholder="https://..." />
+  </div>
+
+  {/* B. LE GRILLE 3 COLONNES À L'INTÉRIEUR DE LA CARTE UNIFIÉE */}
+  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mt-6">
+
+    {/* COLONNE 1 - GAUCHE (4/12) : Personal Info */}
+    <div className="lg:col-span-4 space-y-4 order-1">
+      <h3 className="font-poppins-bold text-lg text-zinc-900 dark:text-white mb-4 uppercase">Personal Information</h3>
+      <div className="space-y-4">
+         <div className="grid grid-cols-2 gap-4 mb-4">
                                    <div>
                                       <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">First Name</label>
                                       <input type="text" value={profileForm.firstName} onChange={e => setProfileForm({...profileForm, firstName: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" required />
@@ -4293,26 +4302,8 @@ export default function NutritionDashboard() {
                                 </div>
                             </div>
 
-                            </form>
-                     </div>
-                 </div>
-
-
-                                  {/* Center Column: Line-Art Illustration */}
-                 <div className="lg:col-span-4 hidden lg:flex justify-center items-center relative h-full min-h-[600px]">
-                     <img
-                        src={theme === 'dark' ? "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394483/profile_blanc_lqoyxi.png" : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394442/profile_xeijfi.png"}
-                        alt="NXA Warrior"
-                        className={`w-full max-w-md object-contain sticky top-24 ${theme === 'dark' ? 'drop-shadow-md' : 'drop-shadow-sm'}`}
-                     />
-                 </div>
-
-
-                 {/* Right Column: Body Measures */}
-                 <div className="lg:col-span-4 space-y-8">
-                    <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        {/* Body Measures */}
-                        <div className="mt-8">
+                            {/* Body Measures */}
+                            <div className="mt-8">
                                 <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-2">Body Measures</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -4340,18 +4331,67 @@ export default function NutritionDashboard() {
                                         <input type="number" value={profileForm.hips} onChange={e => setProfileForm({...profileForm, hips: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                 </div>
-                            </div>
+      </div>
+    </div>
 
-                        <div className="flex flex-col items-center gap-4 mt-8 pt-8 border-t border-zinc-100 dark:border-zinc-800">
-                           <button onClick={handleSaveProfile} disabled={isSaving} className="w-full bg-[#39FF14] text-black font-poppins-extrabold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all">
+    {/* COLONNE 2 - CENTRE (4/12) : L'Illustration NXA avec Halo Néon */}
+    <div className="lg:col-span-4 flex justify-center items-center py-6 relative order-3 lg:order-2">
+      {/* Halo lumineux d'arrière-plan */}
+      <div className="absolute inset-0 bg-[#39FF14]/20 dark:bg-[#39FF14]/15 rounded-full filter blur-3xl animate-pulse pointer-events-none" />
+
+      {/* Illustration NXA */}
+      <img
+        src={theme === 'dark'
+          ? "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394483/profile_blanc_lqoyxi.png"
+          : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394442/profile_xeijfi.png"
+        }
+        alt="NXA Wellness Warrior"
+        className="relative z-10 w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-[0_0_25px_rgba(57,255,20,0.5)] select-none transition-all duration-500"
+      />
+    </div>
+
+    {/* COLONNE 3 - DROITE (4/12) : Body Measures & Boutons */}
+    <div className="lg:col-span-4 space-y-4 order-2 lg:order-3">
+      <h3 className="font-poppins-bold text-lg text-zinc-900 dark:text-white mb-4 uppercase">Body Measures</h3>
+      <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Starting Weight (kg)</label>
+                                        <input type="number" value={profileForm.startingWeight} onChange={e => setProfileForm({...profileForm, startingWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Current Weight (kg)</label>
+                                        <input type="number" value={profileForm.currentWeight} onChange={e => setProfileForm({...profileForm, currentWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Goal Weight (kg)</label>
+                                        <input type="number" value={profileForm.goalWeight} onChange={e => setProfileForm({...profileForm, goalWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Height (cm)</label>
+                                        <input type="number" value={profileForm.height} onChange={e => setProfileForm({...profileForm, height: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Waist (cm)</label>
+                                        <input type="number" value={profileForm.waist} onChange={e => setProfileForm({...profileForm, waist: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Hips (cm)</label>
+                                        <input type="number" value={profileForm.hips} onChange={e => setProfileForm({...profileForm, hips: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
+                                    </div>
+                                </div>
+          <div className="flex flex-col  items-center gap-4 mt-8 pt-8 border-t border-zinc-100 dark:border-zinc-800">
+                           <button onClick={handleSaveProfile} disabled={isSaving} className="w-full w-full bg-[#39FF14] text-black font-poppins-extrabold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all">
                               {isSaving ? "SAVING..." : "SAVE CHANGES"}
                            </button>
-                           <button className="w-full bg-black text-white dark:bg-zinc-800 px-6 py-4 rounded-full font-poppins-bold hover:opacity-80 transition-opacity">
+                           <button className="w-full w-full bg-black text-white dark:bg-zinc-800 px-6 py-4 rounded-full font-poppins-bold hover:opacity-80 transition-opacity">
                               CANCEL
                            </button>
                         </div>
-                    </div>
-                 </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
              {/* Bottom Bento & Services */}
@@ -4368,7 +4408,7 @@ export default function NutritionDashboard() {
 
                 <div className="col-span-1 bg-zinc-50 dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200/60 dark:border-zinc-800 flex flex-col justify-center items-center text-center">
                   <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Score XP</span>
-                  <div className="text-3xl font-black text-yellow-500">{clientProfile?.jongoma_xp || jongomaXP || 0}</div>
+                  <div className="text-3xl font-black text-[#39FF14]">{clientProfile?.jongoma_xp || clientProfile?.nutrition_profiles?.jongoma_xp || 0}</div>
                 </div>
              </div>
 
