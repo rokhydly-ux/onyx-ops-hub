@@ -5667,24 +5667,61 @@ export default function NutritionDashboard() {
                      </div>
                  </div>
 
-                 {/* NAVIGATION DESKTOP HORIZONTALE (PILLS) */}
-                 <div className="hidden lg:flex items-center gap-4 mb-8 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-full w-fit">
-                    <button onClick={() => handleTabChange('community')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'community' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/18_djx2ct.png" className="w-5 h-5 object-cover" alt="Mur" />
-                        Le Mur
+                 {/* NAVIGATION HORIZONTALE DESKTOP (PILLS SUB-NAV) */}
+                 <div className="hidden lg:flex items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50">
+
+                    {/* 1. Bouton Le Mur */}
+                    <button
+                      onClick={() => handleTabChange('community')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
+                        activeTab === 'community'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>🌟 Le Mur</span>
                     </button>
-                    <button onClick={() => handleTabChange('samaMenu')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'samaMenu' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-5 h-5 object-cover" alt="Recettes" />
-                        Recettes & Menus
+
+                    {/* 2. Bouton Recettes & Menus */}
+                    <button
+                      onClick={() => handleTabChange('samaMenu')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
+                        activeTab === 'samaMenu'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
+                      }`}
+                    >
+                      <Utensils className="w-4 h-4" />
+                      <span>🍲 Recettes & Menus</span>
                     </button>
-                    <button onClick={() => handleTabChange('challenges')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'challenges' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-5 h-5 object-cover" alt="Challenges" />
-                        Challenges Tendance
+
+                    {/* 3. Bouton Challenges Tendance */}
+                    <button
+                      onClick={() => {
+                        window.scrollTo(0, document.body.scrollHeight);
+                        // Future action to explicitly pop up the challenge modal if implemented.
+                        // We scroll to it for now since it is part of the right column.
+                      }}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50 transition-all duration-300 cursor-pointer"
+                    >
+                      <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+                      <span>🏆 Challenges Tendance</span>
                     </button>
-                    <button onClick={() => handleTabChange('profile')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm ${activeTab === 'profile' ? 'bg-[#39FF14] text-black font-poppins-bold shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:text-black hover:bg-white/50'}`}>
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-5 h-5 object-cover" alt="Profil" />
-                        Mon Profil
+
+                    {/* 4. Bouton Mon Profil */}
+                    <button
+                      onClick={() => handleTabChange('profile')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
+                        activeTab === 'profile'
+                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
+                      }`}
+                    >
+                      <User className="w-4 h-4" />
+                      <span>⚙️ Mon Profil</span>
                     </button>
+
                  </div>
 
                  {/* BARRE DES STORIES (Carrousel Horizontal) */}
