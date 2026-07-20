@@ -4240,7 +4240,7 @@ export default function NutritionDashboard() {
 
              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                  {/* Left Column: Forms */}
-                 <div className="lg:col-span-7 space-y-8">
+                 <div className="lg:col-span-4 space-y-8">
                      <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                         <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
 
@@ -4293,8 +4293,26 @@ export default function NutritionDashboard() {
                                 </div>
                             </div>
 
-                            {/* Body Measures */}
-                            <div className="mt-8">
+                            </form>
+                     </div>
+                 </div>
+
+
+                                  {/* Center Column: Line-Art Illustration */}
+                 <div className="lg:col-span-4 hidden lg:flex justify-center items-center relative h-full min-h-[600px]">
+                     <img
+                        src={theme === 'dark' ? "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394483/profile_blanc_lqoyxi.png" : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394442/profile_xeijfi.png"}
+                        alt="NXA Warrior"
+                        className={`w-full max-w-md object-contain sticky top-24 ${theme === 'dark' ? 'drop-shadow-md' : 'drop-shadow-sm'}`}
+                     />
+                 </div>
+
+
+                 {/* Right Column: Body Measures */}
+                 <div className="lg:col-span-4 space-y-8">
+                    <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        {/* Body Measures */}
+                        <div className="mt-8">
                                 <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-2">Body Measures</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -4323,28 +4341,18 @@ export default function NutritionDashboard() {
                                     </div>
                                 </div>
                             </div>
-                        </form>
 
-                        <div className="flex flex-col sm:flex-row items-center gap-4 mt-8 pt-8 border-t border-zinc-100 dark:border-zinc-800">
-                           <button onClick={handleSaveProfile} disabled={isSaving} className="w-full sm:w-auto bg-[#39FF14] text-black font-poppins-extrabold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all">
+                        <div className="flex flex-col items-center gap-4 mt-8 pt-8 border-t border-zinc-100 dark:border-zinc-800">
+                           <button onClick={handleSaveProfile} disabled={isSaving} className="w-full bg-[#39FF14] text-black font-poppins-extrabold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all">
                               {isSaving ? "SAVING..." : "SAVE CHANGES"}
                            </button>
-                           <button className="w-full sm:w-auto bg-black text-white dark:bg-zinc-800 px-6 py-4 rounded-full font-poppins-bold hover:opacity-80 transition-opacity">
+                           <button className="w-full bg-black text-white dark:bg-zinc-800 px-6 py-4 rounded-full font-poppins-bold hover:opacity-80 transition-opacity">
                               CANCEL
                            </button>
                         </div>
-                     </div>
+                    </div>
                  </div>
-
-                 {/* Right Column: Line-Art Illustration */}
-                 <div className="lg:col-span-5 hidden lg:flex justify-center items-center relative h-full min-h-[600px]">
-                     <img
-                        src={theme === 'dark' ? "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394483/profile_blanc_lqoyxi.png" : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394442/profile_xeijfi.png"}
-                        alt="NXA Warrior"
-                        className={`w-full max-w-md object-contain sticky top-24 ${theme === 'dark' ? 'drop-shadow-md' : 'drop-shadow-sm'}`}
-                     />
-                 </div>
-             </div>
+</div>
 
              {/* Bottom Bento & Services */}
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
