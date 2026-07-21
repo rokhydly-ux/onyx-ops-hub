@@ -725,7 +725,7 @@ export default function NutritionDashboard() {
                 // Fetch Community Stories
                 const { data: stories } = await supabase
                     .from('nutrition_community_stories')
-                    .select('*, clients(full_name)')
+                    .select('*, clients!client_id(full_name)')
                     .gt('expires_at', new Date().toISOString())
                     .order('created_at', { ascending: false });
 
@@ -748,7 +748,7 @@ export default function NutritionDashboard() {
                 setCommunityStories([...formattedDBStories, ...defaultSeedStories]);
 
                 // Fetch Community Posts and Likes
-                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients!client_id(full_name)').order('created_at', { ascending: false });
 
                 let likedPostIds = new Set();
                 const { data: { session } } = await supabase.auth.getSession();
@@ -1152,7 +1152,7 @@ export default function NutritionDashboard() {
   const fetchLeaderboard = async () => {
     const { data } = await supabase
       .from('nutrition_profiles')
-      .select('jongoma_xp, client:clients(id, full_name, avatar_url)')
+      .select('jongoma_xp, client:clients!client_id(id, full_name, avatar_url)')
       .order('jongoma_xp', { ascending: false, nullsFirst: false })
       .limit(10);
       
