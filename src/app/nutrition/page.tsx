@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter } from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -4239,7 +4239,7 @@ export default function NutritionDashboard() {
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
 
 {/* GRANDE CARTE UNIFIÉE DU PROFIL */}
-<div className="w-full bg-white dark:bg-zinc-900 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_40px_rgba(57,255,20,0.08)] border border-zinc-200/80 dark:border-zinc-800/80 relative overflow-hidden mb-8">
+<div className="w-full bg-white dark:bg-zinc-950 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_40px_rgba(57,255,20,0.08)] border border-zinc-200/80 dark:border-zinc-800/80 relative overflow-hidden mb-8">
 
   {/* A. EN-TÊTE : LA BANNIÈRE DE COUVERTURE & AVATAR */}
   <div className="w-full h-40 sm:h-48 rounded-3xl bg-zinc-800 relative overflow-hidden mb-12 group">
@@ -4257,7 +4257,7 @@ export default function NutritionDashboard() {
 
   <div className="mb-8 max-w-2xl">
      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">URL de la photo de couverture (Optionnel)</label>
-     <input type="url" value={profileForm.cover_url} onChange={e => setProfileForm({...profileForm, cover_url: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-zinc-50 dark:bg-zinc-950 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" placeholder="https://..." />
+     <input type="url" value={profileForm.cover_url} onChange={e => setProfileForm({...profileForm, cover_url: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-zinc-50 dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" placeholder="https://..." />
   </div>
 
   {/* B. LE GRILLE 3 COLONNES À L'INTÉRIEUR DE LA CARTE UNIFIÉE */}
@@ -4265,20 +4265,20 @@ export default function NutritionDashboard() {
 
     {/* COLONNE 1 - GAUCHE (4/12) : Personal Info */}
     <div className="lg:col-span-4 space-y-4 order-1">
-      <h3 className="font-poppins-bold text-lg text-zinc-900 dark:text-white mb-4 uppercase">Personal Information</h3>
+      <h3 className="font-poppins-bold text-lg text-zinc-900 dark:text-white mb-4 uppercase">Informations Personnelles</h3>
       <div className="space-y-4">
          <div className="grid grid-cols-2 gap-4 mb-4">
                                    <div>
-                                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">First Name</label>
+                                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Prénom</label>
                                       <input type="text" value={profileForm.firstName} onChange={e => setProfileForm({...profileForm, firstName: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" required />
                                    </div>
                                    <div>
-                                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Last Name</label>
+                                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nom</label>
                                       <input type="text" value={profileForm.lastName} onChange={e => setProfileForm({...profileForm, lastName: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" required />
                                    </div>
                                 </div>
                                 <div className="mb-4">
-                                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Age</label>
+                                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Âge</label>
                                    <input type="number" value={profileForm.age} onChange={e => setProfileForm({...profileForm, age: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" placeholder="Ex: 30" />
                                 </div>
                                 <div className="mb-4">
@@ -4300,37 +4300,6 @@ export default function NutritionDashboard() {
                                       <input type="text" value={profileForm.twitter} onChange={e => setProfileForm({...profileForm, twitter: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-3 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" placeholder="@username" />
                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Body Measures */}
-                            <div className="mt-8">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-2">Body Measures</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Starting Weight (kg)</label>
-                                        <input type="number" value={profileForm.startingWeight} onChange={e => setProfileForm({...profileForm, startingWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Current Weight (kg)</label>
-                                        <input type="number" value={profileForm.currentWeight} onChange={e => setProfileForm({...profileForm, currentWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Goal Weight (kg)</label>
-                                        <input type="number" value={profileForm.goalWeight} onChange={e => setProfileForm({...profileForm, goalWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Height (cm)</label>
-                                        <input type="number" value={profileForm.height} onChange={e => setProfileForm({...profileForm, height: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Waist (cm)</label>
-                                        <input type="number" value={profileForm.waist} onChange={e => setProfileForm({...profileForm, waist: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Hips (cm)</label>
-                                        <input type="number" value={profileForm.hips} onChange={e => setProfileForm({...profileForm, hips: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
-                                    </div>
-                                </div>
       </div>
     </div>
 
@@ -4346,46 +4315,46 @@ export default function NutritionDashboard() {
           : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784394442/profile_xeijfi.png"
         }
         alt="NXA Wellness Warrior"
-        className="relative z-10 w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-[0_0_25px_rgba(57,255,20,0.5)] select-none transition-all duration-500"
+        className="relative z-10 w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-[0_0_25px_rgba(57,255,20,0.5)] select-none transition-all duration-500 animate-pulse"
       />
     </div>
 
     {/* COLONNE 3 - DROITE (4/12) : Body Measures & Boutons */}
     <div className="lg:col-span-4 space-y-4 order-2 lg:order-3">
-      <h3 className="font-poppins-bold text-lg text-zinc-900 dark:text-white mb-4 uppercase">Body Measures</h3>
+      <h3 className="font-poppins-bold text-lg text-zinc-900 dark:text-white mb-4 uppercase">Mesures Corporelles</h3>
       <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Starting Weight (kg)</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Poids initial (kg)</label>
                                         <input type="number" value={profileForm.startingWeight} onChange={e => setProfileForm({...profileForm, startingWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Current Weight (kg)</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Poids actuel (kg)</label>
                                         <input type="number" value={profileForm.currentWeight} onChange={e => setProfileForm({...profileForm, currentWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Goal Weight (kg)</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Poids cible (kg)</label>
                                         <input type="number" value={profileForm.goalWeight} onChange={e => setProfileForm({...profileForm, goalWeight: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Height (cm)</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Taille (cm)</label>
                                         <input type="number" value={profileForm.height} onChange={e => setProfileForm({...profileForm, height: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Waist (cm)</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Tour de taille (cm)</label>
                                         <input type="number" value={profileForm.waist} onChange={e => setProfileForm({...profileForm, waist: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Hips (cm)</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Tour de hanches (cm)</label>
                                         <input type="number" value={profileForm.hips} onChange={e => setProfileForm({...profileForm, hips: e.target.value})} className="w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 focus:border-[#39FF14] bg-white dark:bg-zinc-900 p-4 text-zinc-900 dark:text-white font-poppins text-sm transition-colors outline-none" />
                                     </div>
                                 </div>
           <div className="flex flex-col  items-center gap-4 mt-8 pt-8 border-t border-zinc-100 dark:border-zinc-800">
                            <button onClick={handleSaveProfile} disabled={isSaving} className="w-full w-full bg-[#39FF14] text-black font-poppins-extrabold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all">
-                              {isSaving ? "SAVING..." : "SAVE CHANGES"}
+                              {isSaving ? "ENREGISTREMENT..." : "ENREGISTRER"}
                            </button>
                            <button className="w-full w-full bg-black text-white dark:bg-zinc-800 px-6 py-4 rounded-full font-poppins-bold hover:opacity-80 transition-opacity">
-                              CANCEL
+                              ANNULER
                            </button>
                         </div>
       </div>
@@ -4393,8 +4362,7 @@ export default function NutritionDashboard() {
 
   </div>
 </div>
-
-             {/* Bottom Bento & Services */}
+{/* Bottom Bento & Services */}
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-zinc-50 dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200/60 dark:border-zinc-800 flex flex-col justify-center">
                   <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
@@ -6013,6 +5981,28 @@ export default function NutritionDashboard() {
                                                     ) : (
                                                         <button onClick={() => handleFollowUser(post.client_id)} className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-[#39FF14] px-2 py-0.5 rounded-full font-poppins-bold hover:bg-[#39FF14] hover:text-black transition-all shadow-sm">+ Suivre</button>
                                                     )
+                                                )}
+                                                {post.client_id && post.client_id !== clientProfile?.id && (
+                                                    <div className="flex items-center gap-2 ml-2">
+                                                        <button className="text-zinc-400 hover:text-[#39FF14] transition-colors" title="Message Privé" onClick={() => alert("La messagerie privée arrive bientôt !")}>
+                                                            <MessageSquare size={14} />
+                                                        </button>
+                                                        {post.clients?.nutrition_profiles?.[0]?.diagnostic_data?.instagram && (
+                                                            <a href={`https://instagram.com/${post.clients.nutrition_profiles[0].diagnostic_data.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-pink-500 transition-colors" title="Instagram">
+                                                                <Instagram size={14} />
+                                                            </a>
+                                                        )}
+                                                        {post.clients?.nutrition_profiles?.[0]?.diagnostic_data?.facebook && (
+                                                            <a href={`https://facebook.com/${post.clients.nutrition_profiles[0].diagnostic_data.facebook.replace('/','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-blue-500 transition-colors" title="Facebook">
+                                                                <Facebook size={14} />
+                                                            </a>
+                                                        )}
+                                                        {post.clients?.nutrition_profiles?.[0]?.diagnostic_data?.twitter && (
+                                                            <a href={`https://twitter.com/${post.clients.nutrition_profiles[0].diagnostic_data.twitter.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-sky-500 transition-colors" title="Twitter / X">
+                                                                <Twitter size={14} />
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
