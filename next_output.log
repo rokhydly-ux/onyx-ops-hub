@@ -6,4 +6,5 @@ Error: listen EADDRINUSE: address already in use :::3000
   errno: -98,
   syscall: 'listen',
   address: '::',
-  p[Middleware Executed] Detected Host: localhost | Path: /nutrition
+  port: 3000
+}
