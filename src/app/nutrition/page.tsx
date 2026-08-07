@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter , LayoutDashboard} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf } from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -424,6 +424,10 @@ export default function NutritionDashboard() {
   const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
   const [recipeFilter, setRecipeFilter] = useState("Tous");
 
+  // Immersive Recipe Modal
+  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<any>(null);
+  const [recipeDetailTab, setRecipeDetailTab] = useState<'apercu'|'ingredients'|'preparation'>('apercu');
+
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
 
@@ -573,6 +577,7 @@ export default function NutritionDashboard() {
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
   const [isParticipating, setIsParticipating] = useState(false);
   const [challengeParticipants, setChallengeParticipants] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
@@ -833,36 +838,6 @@ export default function NutritionDashboard() {
                 } else {
                     setStories(DEFAULT_SEED_STORIES);
                 }
-
-                // Fetch Active Challenge
-                const { data: challenges } = await supabase
-                    .from('nutrition_challenges')
-                    .select('*')
-                    .eq('status', 'active')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-
-                if (challenges && challenges.length > 0) {
-                    setActiveChallenge(challenges[0]);
-                    const { count } = await supabase
-                        .from('nutrition_challenge_participants')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('challenge_id', challenges[0].id);
-                    setChallengeParticipants(count || 0);
-                } else {
-                    // Fallback Seed Challenge
-                    setActiveChallenge({
-                        id: 'seed-challenge-1',
-                        title: '30 Jours Détox Sans Sucre',
-                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
-                        badge_name: 'Jongoma Détox',
-                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
-                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
-                        xp_reward: 100
-                    });
-                    setChallengeParticipants(27450);
-                }
-
                 // Fetch Foods
                 const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
                 if (dbFoods) setFoodDatabaseDB(dbFoods);
@@ -977,17 +952,8 @@ export default function NutritionDashboard() {
               twitter: activeProfile.twitter || ""
           }));
 
-          // Fetch follower count
+          // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
-              const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('followed_id', activeProfile.id);
-              if (count !== null) setMyFollowersCount(count);
-
-              // Check challenge participation & badges
-              if (activeChallenge) {
-                  const { data: participation } = await supabase.from('nutrition_challenge_participants').select('*').eq('client_id', activeProfile.id).eq('challenge_id', activeChallenge.id).maybeSingle();
-                  if (participation) setIsParticipating(true);
-              }
-
               const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
           }
@@ -3443,6 +3409,108 @@ export default function NutritionDashboard() {
 
   return (
     <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
+
+      {/* IMMERSIVE RECIPE MODAL */}
+      <AnimatePresence>
+        {selectedRecipeDetail && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center sm:p-6"
+          >
+            <div className="w-full sm:max-w-2xl bg-white dark:bg-zinc-950 h-[90vh] sm:h-[85vh] sm:rounded-[3rem] rounded-t-[3rem] overflow-hidden flex flex-col relative shadow-2xl">
+              {/* Image Hero Section */}
+              <div className="relative w-full h-1/3 sm:h-2/5 shrink-0">
+                <img src={selectedRecipeDetail.image_url || 'https://placehold.co/800x600/111/39FF14?text=Recette'} alt={selectedRecipeDetail.nom} className="absolute inset-0 w-full h-full object-cover" />
+                <button onClick={() => setSelectedRecipeDetail(null)} className="absolute top-6 right-6 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Glassmorphism Container over Image */}
+              <div className="flex-1 overflow-y-auto bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md rounded-t-[40px] -mt-10 relative z-10 p-8 flex flex-col custom-scrollbar pb-32 border-t border-white/20">
+                <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-6 shrink-0"></div>
+
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-none`}>{selectedRecipeDetail.nom}</h2>
+                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500 mb-6">
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.preparation_time || 15} min</span>
+                    <span className="flex items-center gap-1.5"><Eye size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.views || 0} vues</span>
+                </div>
+
+                {/* Macro Pills */}
+                <div className="flex flex-wrap gap-3 mb-8">
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CALS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.calories} kcal</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={PROTEINS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.proteins}g Prot</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CARBS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.carbs || 0}g Gluc</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={FATS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.fats || 0}g Lip</span>
+                </div>
+
+                {/* Navigation Pills */}
+                <div className="flex gap-2 mb-6 bg-zinc-100/50 dark:bg-zinc-900/50 p-1.5 rounded-2xl">
+                    {['apercu', 'ingredients', 'preparation'].map((tab) => (
+                        <button key={tab} onClick={() => setRecipeDetailTab(tab as any)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${recipeDetailTab === tab ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>
+                            {tab === 'apercu' ? 'Aperçu' : tab === 'ingredients' ? 'Ingrédients' : 'Préparation'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 animate-in fade-in">
+                    {recipeDetailTab === 'apercu' && (
+                        <div className="space-y-4">
+                            <p className="text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                                {selectedRecipeDetail.description_courte || "Une recette délicieuse et saine, parfaitement équilibrée pour vous aider à atteindre vos objectifs nutritionnels."}
+                            </p>
+                        </div>
+                    )}
+
+                    {recipeDetailTab === 'ingredients' && (
+                        <div className="space-y-3">
+                            {selectedRecipeDetail.ingredients && selectedRecipeDetail.ingredients.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {selectedRecipeDetail.ingredients.map((ing: any, idx: number) => (
+                                        <li key={idx} className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-xl">
+                                            <div className="w-2 h-2 bg-[#39FF14] rounded-full shrink-0"></div>
+                                            <span className="text-sm font-bold text-black dark:text-white">{ing.nom || ing}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-zinc-500 italic text-sm">Liste détaillée des ingrédients à venir.</p>
+                            )}
+                        </div>
+                    )}
+
+                    {recipeDetailTab === 'preparation' && (
+                        <div className="space-y-4">
+                            {selectedRecipeDetail.instructions ? (
+                                <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400 leading-loose whitespace-pre-line bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[2rem]">
+                                    {selectedRecipeDetail.instructions}
+                                </div>
+                            ) : (
+                                <p className="text-zinc-500 italic text-sm">Instructions de préparation à venir.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+              </div>
+
+              {/* Fixed Action Footer */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
+                  <button onClick={() => {
+                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories, selectedRecipeDetail.proteins, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
+                      alert("Ajouté au tracker du jour !");
+                      setSelectedRecipeDetail(null);
+                  }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
+                      <PlusCircle size={20}/> Ajouter au repas
+                  </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -4377,67 +4445,18 @@ export default function NutritionDashboard() {
              </div>
 
              {/* Mes Badges */}
-             {(() => {
-                const userXP = clientProfile?.diagnostic_data?.xp || clientProfile?.jongoma_xp || clientProfile?.nutrition_profiles?.jongoma_xp || 0;
-
-                const BADGES = [
-                    {
-                        name: "Force Baobab",
-                        threshold: 0,
-                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png"
-                    },
-                    {
-                        name: "Maître du Fonio",
-                        threshold: 100,
-                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png"
-                    },
-                    {
-                        name: "Lekkologue Or",
-                        threshold: 500,
-                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png"
-                    },
-                    {
-                        name: "Légende",
-                        threshold: 1000,
-                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png"
-                    }
-                ];
-
-                return (
-                    <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
-                        <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2">
-                            <Trophy className="text-yellow-500"/> Mes Badges
-                        </h3>
-
-                        <div className="flex flex-row overflow-x-auto scrollbar-hide gap-4 pb-4">
-                            {BADGES.map((badge, index) => {
-                                const isUnlocked = userXP >= badge.threshold;
-                                const pointsNeeded = badge.threshold - userXP;
-
-                                return (
-                                    <div key={index} className="flex-shrink-0 w-36 sm:w-44 flex flex-col items-center bg-white/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm text-center">
-                                        <div className="relative mb-3 h-20 sm:h-24 flex items-center justify-center">
-                                            <img
-                                                src={badge.url}
-                                                alt={badge.name}
-                                                className={`w-full h-full object-contain transition-all duration-300 ${isUnlocked ? 'drop-shadow-xl' : 'opacity-50 grayscale'}`}
-                                                loading="lazy"
-                                            />
-                                        </div>
-                                        <h4 className="font-poppins-bold text-sm sm:text-base text-zinc-900 dark:text-white mb-1 leading-tight">{badge.name}</h4>
-
-                                        {isUnlocked ? (
-                                            <span className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest bg-[#39FF14]/10 px-2 py-1 rounded-md">Débloqué</span>
-                                        ) : (
-                                            <span className="text-[10px] font-bold text-zinc-500">Plus que {pointsNeeded} XP</span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+             {earnedBadges.length > 0 && (
+                 <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+                    <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
+                    <div className="flex flex-wrap gap-4">
+                        {earnedBadges.map((badge, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 px-4 py-2 rounded-xl text-yellow-700 dark:text-yellow-400 font-poppins-bold shadow-sm">
+                                <span className="text-xl leading-none">🏅</span> {badge}
+                            </div>
+                        ))}
                     </div>
-                );
-             })()}
+                 </div>
+             )}
 
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>
@@ -4551,9 +4570,17 @@ export default function NutritionDashboard() {
       )}
 
         {activeTab === 'favorites' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full relative min-h-screen pb-24 bg-slate-50 rounded-[3rem]">
+            {/* Mesh Gradient Background for Glassmorphism */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[3rem]">
+               <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#39FF14] opacity-20 blur-[120px]"></div>
+               <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-orange-300 opacity-20 blur-[120px]"></div>
+               <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-400 opacity-10 blur-[120px]"></div>
+            </div>
+
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6 relative z-10"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+
+             <div className="w-full relative z-10">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
                 <div className="relative mb-6">
@@ -4580,7 +4607,7 @@ export default function NutritionDashboard() {
                    ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+                <div className="w-full">
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
@@ -4589,6 +4616,12 @@ export default function NutritionDashboard() {
                          const matchSearch = r.nom?.toLowerCase().includes(query) || 
                                              (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) || 
                                              (numericQuery !== "" && r.proteins?.toString().includes(numericQuery));
+
+                         // Exclude raw store products and invalid items
+                         const isProduct = r.is_boutique || r.is_product;
+                         const isInvalid = !r.image_url && !r.instructions && !r.ingredients;
+                         if (isProduct || isInvalid) return false;
+
                          if (!matchSearch) return false;
                          if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
                          if (recipeFilter === 'Populaire') return true;
@@ -4599,68 +4632,109 @@ export default function NutritionDashboard() {
                          return true;
                       });
                       
+                      // Sort remaining by popularity if selected
                       if (recipeFilter === 'Populaire') {
                          filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
                       }
                       
-                      return filteredRecipes.map((fav, i) => {
-                       const name = fav.nom;
-                       const cals = fav.calories;
-                       const prots = fav.proteins;
-                       const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
-                       const isTop10 = top10RecipeIds.includes(fav.id);
+                      // Extract Featured Recipe (Randomly selected from filtered list)
+                      const featuredRecipe = filteredRecipes.length > 0 ?
+                           filteredRecipes[Math.floor(Math.random() * filteredRecipes.length)]
+                           : null;
 
-                       const tags = [];
-                       if (prots >= 20) tags.push("Protéiné");
-                       if (fav.carbs <= 30) tags.push("Low Carb");
-                       if (cals <= 350) tags.push("Léger");
-                       if (fav.fats <= 15) tags.push("Low Fat");
+                      const gridRecipes = filteredRecipes.filter(r => r.id !== featuredRecipe?.id);
 
-                       return (
-                       <div key={fav.id || i} className="w-full flex flex-col bg-zinc-50 p-5 rounded-2xl border border-zinc-100 justify-between hover:border-[#39FF14] transition-colors group">
-                           <div className="w-full">
-                               {fav.image_url && <img src={fav.image_url} alt={name} className="w-full h-32 object-cover rounded-xl mb-3" />}
-                               <div className="flex justify-between items-start mb-2">
-                                   <div className="flex flex-col">
-                                       <p className="font-bold text-sm text-black line-clamp-1" title={name}>{name}</p>
-                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Eye size={12}/> {fav.views || 0} vues</p>
-                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Heart size={12} className={isFav ? "text-red-500 fill-current" : ""}/> {fav.likes || 0} likes</p>
-                                       <p className={`text-[10px] font-bold flex items-center gap-1 mt-0.5 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-500'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
+                      // Reusable Card Renderer
+                      const renderCard = (fav, isFeatured = false) => {
+                         const name = fav.nom;
+                         const cals = fav.calories;
+                         const prots = fav.proteins;
+                         const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
+                         const isTop10 = top10RecipeIds.includes(fav.id);
+
+                         const tags = [];
+                         if (prots >= 20) tags.push("Protéiné");
+                         if (fav.carbs <= 30) tags.push("Low Carb");
+                         if (cals <= 350) tags.push("Léger");
+                         if (fav.fats <= 15) tags.push("Low Fat");
+
+                         return (
+                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
+                             <div className="w-full h-full flex flex-col">
+                                 <img src={fav.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt={name} onError={(e) => { e.currentTarget.src = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'; }} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />
+                                 <div className="flex justify-between items-start mb-2">
+                                     <div className="flex flex-col">
+                                         {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
+                                         <p className={`font-black text-black ${isFeatured ? 'text-2xl' : 'text-sm line-clamp-1'}`} title={name}>{name}</p>
+                                         <div className="flex gap-3 mt-1.5">
+                                             <p className="text-[10px] font-bold text-zinc-600 flex items-center gap-1"><Eye size={12}/> {fav.views || 0}</p>
+                                             <p className={`text-[10px] font-bold flex items-center gap-1 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-600'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
+                                         </div>
+                                     </div>
+                                     <button onClick={(e) => { e.stopPropagation(); toggleFavorite(fav); }} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-500 hover:text-red-500'} shrink-0 bg-white/80 p-2 rounded-full backdrop-blur-sm shadow-sm`}>
+                                        <HeartPulse size={16} className={isFav ? "fill-current" : ""}/>
+                                     </button>
+                                 </div>
+                                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto pt-2">
+                                     {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
+                                     {tags.map(t => <span key={t} className="bg-white text-black border border-zinc-200 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">{t}</span>)}
+                                 </div>
+                                 <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase text-zinc-700 mb-2">
+                                     <span className="flex items-center gap-1"><img src={CALS_ICON} className="w-3.5 h-3.5 rounded-full shadow-sm"/> {cals} kcal</span>
+                                     <span className="flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3.5 h-3.5 rounded-full shadow-sm"/> {prots}g prot</span>
+                                 </div>
+                             </div>
+                         </div>
+                         )
+                      };
+
+                      return (
+                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+                            {/* Left: Featured Recipe (Cols 1-4) */}
+                            {featuredRecipe && (
+                               <div className="col-span-1 lg:col-span-4 h-full">
+                                  {renderCard(featuredRecipe, true)}
+                               </div>
+                            )}
+
+                            {/* Center: Grid of smaller recipes (Cols 5-9) with fixed height */}
+                            <div className="col-span-1 lg:col-span-5 max-h-[750px] overflow-y-auto scrollbar-hide grid grid-cols-1 sm:grid-cols-2 gap-4 pb-12">
+                               {gridRecipes.map(r => renderCard(r, false))}
+                            </div>
+
+                            {/* Right: Interactive Widgets (Cols 10-12) */}
+                            <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
+                               <button onClick={() => setRecipeFilter('Favoris')} className="bg-white/60 hover:bg-white/90 transition-all backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5 flex flex-col items-center justify-center text-center cursor-pointer group">
+                                   <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-inner">
+                                       <HeartPulse size={32} className="fill-current"/>
                                    </div>
-                                   <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'} shrink-0`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
+                                   <h3 className="font-black text-black uppercase text-sm mb-1">Mes Favoris</h3>
+                                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{favoriteMeals.length} recettes sauvegardées</p>
+                               </button>
+
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5 relative overflow-hidden group cursor-pointer" onClick={() => handleTabChange('community')}>
+                                   <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783098237/8_v1l6ms.png" className="w-48 h-48 object-contain" />
+                                   </div>
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4 relative z-10"><Users size={16} className="text-blue-500"/> En direct de la communauté</h3>
+                                   <div className="flex flex-col gap-3 relative z-10">
+                                       {stories.slice(0, 3).map((story, idx) => (
+                                          <div key={idx} className="flex items-center gap-3 bg-white/80 p-2 rounded-xl shadow-sm border border-white">
+                                              <img src={story.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.username)}&background=random`} className="w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover" />
+                                              <div>
+                                                  <p className="text-xs font-black text-black line-clamp-1">{story.username}</p>
+                                                  <p className="text-[10px] text-zinc-500 flex items-center gap-1"><Clock size={10}/> Il y a {Math.floor(Math.random() * 5) + 1}h</p>
+                                              </div>
+                                          </div>
+                                       ))}
+                                   </div>
                                </div>
-                               <div className="flex flex-wrap gap-1 mb-3">
-                                   {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
-                                   {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
-                                   {fav.budget_tier && (
-                                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm ${
-                                           fav.budget_tier === 'Serré 8k' ? 'bg-green-500 text-white' :
-                                           fav.budget_tier === 'Famille 15k' ? 'bg-orange-500 text-white' :
-                                           'bg-purple-600 text-white'
-                                       }`}>
-                                           {fav.budget_tier === 'Serré 8k' ? '💰 Serré' :
-                                            fav.budget_tier === 'Famille 15k' ? '🥗 Famille' : '💎 Confort'}
-                                       </span>
-                                   )}
-                               </div>
-                               <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {prots}g prot</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.carbs || 0}g</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.fats || 0}g</span>
-                               </div>
-                           </div>
-                           <button onClick={() => {
-                               confirmMealLog(fav.type || 'Déjeuner', name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
-                               alert("Ajouté au tracker du jour !");
-                           }} className="w-full bg-zinc-200 text-black py-3 rounded-xl text-[10px] font-black uppercase hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
-                               <CheckCircle size={14}/> Ajouter au menu du jour
-                           </button>
-                       </div>
-                   )});
+                            </div>
+                         </div>
+                      );
                    })()}
                    {allRecipesDB.length === 0 && (
-                      <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette disponible.</div>
+                      <div className="col-span-full py-8 text-center text-zinc-500 font-black">Aucune recette disponible.</div>
                    )}
                 </div>
              </div>
@@ -5722,25 +5796,14 @@ export default function NutritionDashboard() {
                             <Search size={16} className="text-zinc-400" />
                             <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
                         </div>
-
+                        <button onClick={() => setShowMobileHub(true)} className="lg:hidden flex items-center gap-2 bg-zinc-100 hover:bg-[#39FF14] text-zinc-900 px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm shrink-0">
+                            <Trophy className="w-4 h-4 text-[#39FF14]"/> Hub Club
+                        </button>
                      </div>
                  </div>
 
-                 {/* NAVIGATION HORIZONTALE DESKTOP & MOBILE (PILLS SUB-NAV) */}
-                 <div className="flex flex-row overflow-x-auto whitespace-nowrap scrollbar-hide items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50 max-w-full">
-
-                    {/* 0. Bouton Accueil / Dashboard */}
-                    <button
-                      onClick={() => handleTabChange('dashboard')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
-                        activeTab === 'dashboard'
-                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
-                      }`}
-                    >
-                      <LayoutDashboard size={20} />
-                      <span>Dashboard</span>
-                    </button>
+                 {/* NAVIGATION HORIZONTALE DESKTOP (PILLS SUB-NAV) */}
+                 <div className="hidden lg:flex items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50">
 
                     {/* 1. Bouton Le Mur */}
                     <button
@@ -5751,8 +5814,8 @@ export default function NutritionDashboard() {
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <Sparkles size={20} />
-                      <span>Le Mur</span>
+                      <Sparkles className="w-4 h-4" />
+                      <span>🌟 Le Mur</span>
                     </button>
 
                     {/* 2. Bouton Recettes & Menus */}
@@ -5764,19 +5827,21 @@ export default function NutritionDashboard() {
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <Utensils size={20} />
-                      <span>Recettes & Menus</span>
+                      <Utensils className="w-4 h-4" />
+                      <span>🍲 Recettes & Menus</span>
                     </button>
 
                     {/* 3. Bouton Challenges Tendance */}
                     <button
                       onClick={() => {
                         window.scrollTo(0, document.body.scrollHeight);
+                        // Future action to explicitly pop up the challenge modal if implemented.
+                        // We scroll to it for now since it is part of the right column.
                       }}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50 transition-all duration-300 cursor-pointer"
                     >
-                      <Flame size={20} className="text-amber-500" />
-                      <span>Challenges Tendance</span>
+                      <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+                      <span>🏆 Challenges Tendance</span>
                     </button>
 
                     {/* 4. Bouton Mon Profil */}
@@ -5788,8 +5853,8 @@ export default function NutritionDashboard() {
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <User size={20} />
-                      <span>Mon Profil</span>
+                      <User className="w-4 h-4" />
+                      <span>⚙️ Mon Profil</span>
                     </button>
 
                  </div>
@@ -6250,7 +6315,120 @@ export default function NutritionDashboard() {
 
                  {/* MODALE TIROIR HUB MOBILE */}
                  <AnimatePresence>
+                     {showMobileHub && (
+                         <>
+                             <motion.div
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 exit={{ opacity: 0 }}
+                                 onClick={() => setShowMobileHub(false)}
+                                 className="fixed inset-0 bg-black/60 z-[400] lg:hidden"
+                             />
+                             <motion.div
+                                 initial={{ x: '100%' }}
+                                 animate={{ x: 0 }}
+                                 exit={{ x: '100%' }}
+                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                 className="fixed inset-y-0 right-0 z-[450] w-[85vw] max-w-sm bg-white shadow-2xl overflow-y-auto custom-scrollbar flex flex-col lg:hidden"
+                             >
+                                 <div className="p-6 border-b border-zinc-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                                     <h3 className="font-black text-xl uppercase tracking-tighter flex items-center gap-2">
+                                         <Trophy className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={28}/> Hub Club
+                                     </h3>
+                                     <button onClick={() => setShowMobileHub(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
+                                         <X size={18}/>
+                                     </button>
+                                 </div>
+                                 <div className="p-6 space-y-6 flex-1">
+                                     {/* Navigation Mobile Hub */}
+                                     <div className="space-y-2 mb-6">
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('dashboard'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'dashboard' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src={MENU_ICONS.dashboard} className="w-6 h-6 object-cover rounded-md" alt="Accueil" />
+                                             <span className="font-poppins-bold text-sm">Accueil</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('samaMenu'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'samaMenu' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-6 h-6 object-cover rounded-md" alt="Recettes" />
+                                             <span className="font-poppins-bold text-sm">Recettes & Menus</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors hover:bg-zinc-50 text-zinc-700`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-6 h-6 object-cover rounded-md" alt="Challenges" />
+                                             <span className="font-poppins-bold text-sm">Challenges Tendance</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('profile'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-6 h-6 object-cover rounded-md" alt="Profil" />
+                                             <span className="font-poppins-bold text-sm">Mon Profil & Réglages</span>
+                                         </button>
+                                     </div>
 
+                                     {/* Mini Profile Card */}
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
+                                         <div className="h-24 bg-zinc-800 w-full relative">
+                                             {clientProfile?.cover_url ? (
+                                                 <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" />
+                                             ) : (
+                                                 <div className="absolute inset-0 bg-gradient-to-r from-black to-zinc-800"><div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div></div>
+                                             )}
+                                         </div>
+                                         <div className="px-6 pb-6 relative flex flex-col items-center">
+                                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-16 h-16 rounded-full border-4 border-white shadow-md -mt-8 mb-3 bg-zinc-100 object-cover" alt="Moi" />
+                                             <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
+
+                                             <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
+                                             <p className="text-xs text-zinc-500 font-poppins mt-1 line-clamp-2 text-center">{clientProfile?.bio || "Ajoutez une bio dans vos réglages..."}</p>
+
+                                             <div className="grid grid-cols-2 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-2 mt-4">
+                                                 <div onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                                     <p className="text-lg font-black text-black">{jongomaXP}</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
+                                                 </div>
+                                                 <div className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                                     <p className="text-lg font-black text-black">{myFollowersCount}</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Abonnés</p>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
+                                         <div className="space-y-4">
+                                             {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
+                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                                     </div>
+                                                     <Heart size={14} className="text-red-500 fill-red-500" />
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
+                                         <div className="space-y-4">
+                                             {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
+                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                                     </div>
+                                                     <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <button
+                                       onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }}
+                                       className="w-full mt-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold rounded-xl transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                                     >
+                                       Déconnexion
+                                     </button>
+                                 </div>
+                             </motion.div>
+                         </>
+                     )}
                  </AnimatePresence>
           </div>
         )}
