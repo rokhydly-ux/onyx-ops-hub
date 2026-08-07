@@ -5724,25 +5724,14 @@ export default function NutritionDashboard() {
                             <Search size={16} className="text-zinc-400" />
                             <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
                         </div>
-
+                        <button onClick={() => setShowMobileHub(true)} className="lg:hidden flex items-center gap-2 bg-zinc-100 hover:bg-[#39FF14] text-zinc-900 px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm shrink-0">
+                            <Trophy className="w-4 h-4 text-[#39FF14]"/> Hub Club
+                        </button>
                      </div>
                  </div>
 
-                 {/* NAVIGATION HORIZONTALE DESKTOP & MOBILE (PILLS SUB-NAV) */}
-                 <div className="flex flex-row overflow-x-auto whitespace-nowrap scrollbar-hide items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50 max-w-full">
-
-                    {/* 0. Bouton Accueil / Dashboard */}
-                    <button
-                      onClick={() => handleTabChange('dashboard')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
-                        activeTab === 'dashboard'
-                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
-                      }`}
-                    >
-                      <LayoutDashboard size={20} />
-                      <span>Dashboard</span>
-                    </button>
+                 {/* NAVIGATION HORIZONTALE DESKTOP (PILLS SUB-NAV) */}
+                 <div className="hidden lg:flex items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50">
 
                     {/* 1. Bouton Le Mur */}
                     <button
@@ -5753,8 +5742,8 @@ export default function NutritionDashboard() {
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <Sparkles size={20} />
-                      <span>Le Mur</span>
+                      <Sparkles className="w-4 h-4" />
+                      <span>🌟 Le Mur</span>
                     </button>
 
                     {/* 2. Bouton Recettes & Menus */}
@@ -5766,19 +5755,21 @@ export default function NutritionDashboard() {
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <Utensils size={20} />
-                      <span>Recettes & Menus</span>
+                      <Utensils className="w-4 h-4" />
+                      <span>🍲 Recettes & Menus</span>
                     </button>
 
                     {/* 3. Bouton Challenges Tendance */}
                     <button
                       onClick={() => {
                         window.scrollTo(0, document.body.scrollHeight);
+                        // Future action to explicitly pop up the challenge modal if implemented.
+                        // We scroll to it for now since it is part of the right column.
                       }}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50 transition-all duration-300 cursor-pointer"
                     >
-                      <Flame size={20} className="text-amber-500" />
-                      <span>Challenges Tendance</span>
+                      <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+                      <span>🏆 Challenges Tendance</span>
                     </button>
 
                     {/* 4. Bouton Mon Profil */}
@@ -5790,8 +5781,8 @@ export default function NutritionDashboard() {
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <User size={20} />
-                      <span>Mon Profil</span>
+                      <User className="w-4 h-4" />
+                      <span>⚙️ Mon Profil</span>
                     </button>
 
                  </div>
@@ -6252,7 +6243,120 @@ export default function NutritionDashboard() {
 
                  {/* MODALE TIROIR HUB MOBILE */}
                  <AnimatePresence>
+                     {showMobileHub && (
+                         <>
+                             <motion.div
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 exit={{ opacity: 0 }}
+                                 onClick={() => setShowMobileHub(false)}
+                                 className="fixed inset-0 bg-black/60 z-[400] lg:hidden"
+                             />
+                             <motion.div
+                                 initial={{ x: '100%' }}
+                                 animate={{ x: 0 }}
+                                 exit={{ x: '100%' }}
+                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                 className="fixed inset-y-0 right-0 z-[450] w-[85vw] max-w-sm bg-white shadow-2xl overflow-y-auto custom-scrollbar flex flex-col lg:hidden"
+                             >
+                                 <div className="p-6 border-b border-zinc-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                                     <h3 className="font-black text-xl uppercase tracking-tighter flex items-center gap-2">
+                                         <Trophy className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={28}/> Hub Club
+                                     </h3>
+                                     <button onClick={() => setShowMobileHub(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
+                                         <X size={18}/>
+                                     </button>
+                                 </div>
+                                 <div className="p-6 space-y-6 flex-1">
+                                     {/* Navigation Mobile Hub */}
+                                     <div className="space-y-2 mb-6">
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('dashboard'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'dashboard' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src={MENU_ICONS.dashboard} className="w-6 h-6 object-cover rounded-md" alt="Accueil" />
+                                             <span className="font-poppins-bold text-sm">Accueil</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('samaMenu'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'samaMenu' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-6 h-6 object-cover rounded-md" alt="Recettes" />
+                                             <span className="font-poppins-bold text-sm">Recettes & Menus</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors hover:bg-zinc-50 text-zinc-700`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-6 h-6 object-cover rounded-md" alt="Challenges" />
+                                             <span className="font-poppins-bold text-sm">Challenges Tendance</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('profile'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-6 h-6 object-cover rounded-md" alt="Profil" />
+                                             <span className="font-poppins-bold text-sm">Mon Profil & Réglages</span>
+                                         </button>
+                                     </div>
 
+                                     {/* Mini Profile Card */}
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
+                                         <div className="h-24 bg-zinc-800 w-full relative">
+                                             {clientProfile?.cover_url ? (
+                                                 <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" />
+                                             ) : (
+                                                 <div className="absolute inset-0 bg-gradient-to-r from-black to-zinc-800"><div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div></div>
+                                             )}
+                                         </div>
+                                         <div className="px-6 pb-6 relative flex flex-col items-center">
+                                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-16 h-16 rounded-full border-4 border-white shadow-md -mt-8 mb-3 bg-zinc-100 object-cover" alt="Moi" />
+                                             <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
+
+                                             <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
+                                             <p className="text-xs text-zinc-500 font-poppins mt-1 line-clamp-2 text-center">{clientProfile?.bio || "Ajoutez une bio dans vos réglages..."}</p>
+
+                                             <div className="grid grid-cols-2 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-2 mt-4">
+                                                 <div onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                                     <p className="text-lg font-black text-black">{jongomaXP}</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
+                                                 </div>
+                                                 <div className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                                     <p className="text-lg font-black text-black">{myFollowersCount}</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Abonnés</p>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
+                                         <div className="space-y-4">
+                                             {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
+                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                                     </div>
+                                                     <Heart size={14} className="text-red-500 fill-red-500" />
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
+                                         <div className="space-y-4">
+                                             {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
+                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                                     </div>
+                                                     <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <button
+                                       onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }}
+                                       className="w-full mt-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold rounded-xl transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                                     >
+                                       Déconnexion
+                                     </button>
+                                 </div>
+                             </motion.div>
+                         </>
+                     )}
                  </AnimatePresence>
           </div>
         )}
