@@ -4,6 +4,8 @@ import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight,
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
+import { SearchFoodModal } from '@/components/nutrition/SearchFoodModal';
+import { useNutritionStore } from '@/store/useNutritionStore';
 import { useRouter, useSearchParams } from "next/navigation";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
@@ -352,7 +354,27 @@ const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: a
            </div>
         </div>
         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">{label}<br/><span className="text-xs font-bold normal-case text-black">/ {max} {unit}</span></p>
-     </div>
+
+      <SearchFoodModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
+          mealType={activeMealType}
+          clientProfile={clientProfile}
+          currentCalories={calories}
+          currentProteins={proteins}
+          currentCarbs={carbs}
+          currentFats={fats}
+          setCalories={setCalories}
+          setProteins={setProteins}
+          setCarbs={setCarbs}
+          setFats={setFats}
+          reportData={reportData}
+          setReportData={setReportData}
+          waterGlasses={waterGlasses}
+          newlyCompletedGaugesCheck={newlyCompletedGaugesCheck}
+      />
+    </div>
   );
 };
 
@@ -406,7 +428,7 @@ export default function NutritionDashboard() {
   const [intendedTab, setIntendedTab] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>({ followedMenu: false, cravedRice: false, drankWater: false });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
+  const { consumedMeals, setConsumedMeals, addConsumedMeal, removeConsumedMeal } = useNutritionStore();
   const [moods, setMoods] = useState<string[]>([]);
   const [moodNotes, setMoodNotes] = useState<string>('');
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
@@ -415,6 +437,8 @@ export default function NutritionDashboard() {
   
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [activeMealType, setActiveMealType] = useState('Collation');
   const [offResults, setOffResults] = useState<any[]>([]);
   const [isSearchingOFF, setIsSearchingOFF] = useState(false);
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
@@ -1709,18 +1733,7 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      let currentRecipes: any[] = [];
-      try {
-          const recipeQuery = supabase.from('nutrition_recipes').select('*');
-          const { data } = await recipeQuery;
-          if (data && data.length > 0) {
-              currentRecipes = data;
-          } else {
-              currentRecipes = DEFAULT_RECIPES;
-          }
-      } catch(e) {
-          currentRecipes = DEFAULT_RECIPES;
-      }
+      let currentRecipes: any[] = allRecipesDB.length > 0 ? allRecipesDB : DEFAULT_RECIPES;
       
       currentRecipes = currentRecipes.filter(r => {
           const cat = r.categorie?.toLowerCase() || '';
@@ -2200,7 +2213,19 @@ export default function NutritionDashboard() {
       }
   };
 
-  const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
+    const newlyCompletedGaugesCheck = (newCals?: number, newProts?: number, newCarbs?: number, newWater?: number) => {
+      const c = newCals !== undefined ? newCals : calories;
+      const p = newProts !== undefined ? newProts : proteins;
+      const cb = newCarbs !== undefined ? newCarbs : carbs;
+      const w = newWater !== undefined ? newWater : waterGlasses;
+      const isNowCompleted = (calorieGoal > 0) && c >= (calorieGoal * 0.85) && p >= (proteinGoal * 0.8) && cb >= (carbsGoal * 0.8) && w >= 8;
+      if (isNowCompleted && !reportData.gaugesCompletedXP) {
+          updateXP(50, "Toutes les jauges complétées ! 🎯");
+          setReportData((prev: any) => ({ ...prev, gaugesCompletedXP: true }));
+      }
+  };
+
+const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
       // Éviter les doublons exacts si l'utilisateur clique plusieurs fois rapidement
       if (consumedMeals.some(m => m.name === mealName && m.type === mealType)) {
           setSelectedMealModal(null);
@@ -2230,13 +2255,13 @@ export default function NutritionDashboard() {
          photo_url: selectedMealPhoto || foodObj?.image_url || null
       };
 
+      addConsumedMeal(newConsumedItem);
       const updatedConsumedMeals = [...consumedMeals, newConsumedItem];
 
       setCalories(newCals);
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
-      setConsumedMeals(updatedConsumedMeals);
       
       if (updatedConsumedMeals.length === 3 && consumedMeals.length === 2) {
           updateXP(10, "3 repas logués aujourd'hui !");
@@ -2319,7 +2344,8 @@ export default function NutritionDashboard() {
   };
 
   const deleteMealLog = async (itemToDelete: any) => {
-      const updatedConsumedMeals = consumedMeals.filter(m => m.id !== itemToDelete.id);
+      removeConsumedMeal(itemToDelete.id);
+      const updatedConsumedMeals = useNutritionStore.getState().consumedMeals.filter((m:any) => m.id !== itemToDelete.id);
       
       const newCals = Math.max(0, calories - itemToDelete.cals);
       const newProts = Math.max(0, proteins - itemToDelete.prots);
@@ -2330,7 +2356,6 @@ export default function NutritionDashboard() {
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
-      setConsumedMeals(updatedConsumedMeals);
 
       if (clientProfile) {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
@@ -3918,9 +3943,24 @@ export default function NutritionDashboard() {
                                              </div>
 
                                              {!isConsumed ? (
-                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
+                                                <div className="flex flex-col gap-1 items-end mt-1">
+                                                   <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform w-full">➕ Loguer</button>
+                                                   <div className="flex gap-1">
+                                                      <button onClick={(e) => { e.stopPropagation(); const dIdx = weeklyGeneratedMenu.findIndex(d => d.day === formattedCurrentDay); if(dIdx>=0) handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
+                                                      <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
+                                                   </div>
+                                                </div>
                                              ) : (
-                                                <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                <div className="flex gap-1 mt-1">
+                                                   <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                   <button onClick={(e) => {
+                                                       e.stopPropagation();
+                                                       const consumedLog = useNutritionStore.getState().consumedMeals.find(m => m.name === recipe.nom && m.type === mealType);
+                                                       if(consumedLog) deleteMealLog(consumedLog);
+                                                   }} className="bg-red-50 text-red-500 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1">
+                                                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" />
+                                                   </button>
+                                                </div>
                                              )}
                                           </div>
                                        </div>
@@ -3940,7 +3980,7 @@ export default function NutritionDashboard() {
                      {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                          const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
                          return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }}>
+                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setActiveMealType(mealType); setIsSearchModalOpen(true); }}>
                              <div className="flex justify-between items-center">
                                  <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
                                  <button className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -4153,7 +4193,19 @@ export default function NutritionDashboard() {
                                                 <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
                                              )}
                                              {!isConsumed && isToday && (
-                                                <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
+                                                <div className="flex gap-1">
+                                                   <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
+                                                   <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
+                                                </div>
+                                             )}
+                                             {isConsumed && isToday && (
+                                                <button onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const consumedLog = useNutritionStore.getState().consumedMeals.find(m => m.name === recipe.nom && m.type === mealType);
+                                                    if(consumedLog) deleteMealLog(consumedLog);
+                                                }} className="bg-red-50 text-red-500 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1">
+                                                   <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" /> Supprimer
+                                                </button>
                                              )}
                                           </div>
                                        </div>
@@ -7643,6 +7695,26 @@ export default function NutritionDashboard() {
          <button onClick={() => setShowMobileHub(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
       </div>
 
+
+      <SearchFoodModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
+          mealType={activeMealType}
+          clientProfile={clientProfile}
+          currentCalories={calories}
+          currentProteins={proteins}
+          currentCarbs={carbs}
+          currentFats={fats}
+          setCalories={setCalories}
+          setProteins={setProteins}
+          setCarbs={setCarbs}
+          setFats={setFats}
+          reportData={reportData}
+          setReportData={setReportData}
+          waterGlasses={waterGlasses}
+          newlyCompletedGaugesCheck={newlyCompletedGaugesCheck}
+      />
     </div>
   );
 }
