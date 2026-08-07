@@ -573,7 +573,6 @@ export default function NutritionDashboard() {
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
   const [isParticipating, setIsParticipating] = useState(false);
   const [challengeParticipants, setChallengeParticipants] = useState(0);
-  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
@@ -988,9 +987,6 @@ export default function NutritionDashboard() {
                   const { data: participation } = await supabase.from('nutrition_challenge_participants').select('*').eq('client_id', activeProfile.id).eq('challenge_id', activeChallenge.id).maybeSingle();
                   if (participation) setIsParticipating(true);
               }
-
-              const { data: myBadges } = await supabase.from('nutrition_badges').select('*').eq('client_id', activeProfile.id);
-              if (myBadges) setEarnedBadges(myBadges.map((b: any) => b.badge_name));
 
               const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
@@ -4381,18 +4377,67 @@ export default function NutritionDashboard() {
              </div>
 
              {/* Mes Badges */}
-             {earnedBadges.length > 0 && (
-                 <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
-                    <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
-                    <div className="flex flex-wrap gap-4">
-                        {earnedBadges.map((badge, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 px-4 py-2 rounded-xl text-yellow-700 dark:text-yellow-400 font-poppins-bold shadow-sm">
-                                <span className="text-xl leading-none">🏅</span> {badge}
-                            </div>
-                        ))}
+             {(() => {
+                const userXP = clientProfile?.diagnostic_data?.xp || clientProfile?.jongoma_xp || clientProfile?.nutrition_profiles?.jongoma_xp || 0;
+
+                const BADGES = [
+                    {
+                        name: "Force Baobab",
+                        threshold: 0,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png"
+                    },
+                    {
+                        name: "Maître du Fonio",
+                        threshold: 100,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png"
+                    },
+                    {
+                        name: "Lekkologue Or",
+                        threshold: 500,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png"
+                    },
+                    {
+                        name: "Légende",
+                        threshold: 1000,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png"
+                    }
+                ];
+
+                return (
+                    <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+                        <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2">
+                            <Trophy className="text-yellow-500"/> Mes Badges
+                        </h3>
+
+                        <div className="flex flex-row overflow-x-auto scrollbar-hide gap-4 pb-4">
+                            {BADGES.map((badge, index) => {
+                                const isUnlocked = userXP >= badge.threshold;
+                                const pointsNeeded = badge.threshold - userXP;
+
+                                return (
+                                    <div key={index} className="flex-shrink-0 w-36 sm:w-44 flex flex-col items-center bg-white/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm text-center">
+                                        <div className="relative mb-3 h-20 sm:h-24 flex items-center justify-center">
+                                            <img
+                                                src={badge.url}
+                                                alt={badge.name}
+                                                className={`w-full h-full object-contain transition-all duration-300 ${isUnlocked ? 'drop-shadow-xl' : 'opacity-50 grayscale'}`}
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                        <h4 className="font-poppins-bold text-sm sm:text-base text-zinc-900 dark:text-white mb-1 leading-tight">{badge.name}</h4>
+
+                                        {isUnlocked ? (
+                                            <span className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest bg-[#39FF14]/10 px-2 py-1 rounded-md">Débloqué</span>
+                                        ) : (
+                                            <span className="text-[10px] font-bold text-zinc-500">Plus que {pointsNeeded} XP</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                 </div>
-             )}
+                );
+             })()}
 
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>
