@@ -86,7 +86,8 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <div className="relative z-20 flex flex-col h-full justify-between">
                             <div className="flex justify-between items-start cursor-pointer" onClick={() => setActiveTab('today')}>
                                 <div>
-                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Hydratation</p>
+                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Hydratation (2.5L / Jour)</p>
+                                    <p className="text-[9px] font-bold text-blue-500 tracking-widest uppercase mb-1">{(waterGlasses * 312.5).toFixed(0)} ml bus</p>
                                     <p className="text-[9px] font-medium text-zinc-400 max-w-[80%] leading-tight">{dailyWaterTip}</p>
                                 </div>
                                 <Droplet size={16} className="text-blue-400 shrink-0" />
@@ -135,8 +136,8 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <div className="relative w-32 h-32 rounded-full border-8 border-zinc-100 flex items-center justify-center">
                             <div className="absolute inset-0 rounded-full border-8 border-[#39FF14] border-t-transparent border-r-transparent rotate-45"></div>
                             <div className="text-center">
-                                <p className="text-2xl font-black text-black">1240</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">/ {clientProfile?.daily_calorie_goal || 1500} Kcal</p>
+                                <p className="text-2xl font-black text-black">{currentCalories}</p>
+                                <p className="text-[10px] text-zinc-500 uppercase">/ {clientProfile?.diagnostic_data?.daily_calorie_goal || clientProfile?.daily_calorie_goal || 1500} Kcal</p>
                             </div>
                         </div>
 
