@@ -3990,14 +3990,19 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                              {loggedMeals.length > 0 && (
                                  <div className="mt-2 space-y-1">
                                     {loggedMeals.map((m: any, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100">
-                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name}</span>
+                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 cursor-default" onClick={(e) => e.stopPropagation()}>
+                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name} <span className="text-[10px] text-zinc-400 font-normal">({m.ux_unit || m.time})</span></span>
 
-                                           <div className="flex items-center gap-2 shrink-0">
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.calories || 0} kcal</span>
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
+                                           <div className="flex items-center gap-3 shrink-0">
+                                              <div className="flex items-center gap-2">
+                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.cals || m.calories || 0} kcal</span>
+                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
+                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
+                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
+                                              </div>
+                                              <button onClick={(e) => { e.stopPropagation(); deleteMealLog(m); }} className="bg-red-50 text-red-500 p-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-colors" title="Supprimer ce repas">
+                                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" />
+                                              </button>
                                            </div>
 
                                         </div>
