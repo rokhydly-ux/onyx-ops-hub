@@ -1,11 +1,9 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf } from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter , LayoutDashboard} from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
-import { SearchFoodModal } from '@/components/nutrition/SearchFoodModal';
-import { useNutritionStore } from '@/store/useNutritionStore';
 import { useRouter, useSearchParams } from "next/navigation";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
@@ -354,27 +352,7 @@ const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: a
            </div>
         </div>
         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">{label}<br/><span className="text-xs font-bold normal-case text-black">/ {max} {unit}</span></p>
-
-      <SearchFoodModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
-          mealType={activeMealType}
-          clientProfile={clientProfile}
-          currentCalories={calories}
-          currentProteins={proteins}
-          currentCarbs={carbs}
-          currentFats={fats}
-          setCalories={setCalories}
-          setProteins={setProteins}
-          setCarbs={setCarbs}
-          setFats={setFats}
-          reportData={reportData}
-          setReportData={setReportData}
-          waterGlasses={waterGlasses}
-          newlyCompletedGaugesCheck={newlyCompletedGaugesCheck}
-      />
-    </div>
+     </div>
   );
 };
 
@@ -428,7 +406,7 @@ export default function NutritionDashboard() {
   const [intendedTab, setIntendedTab] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>({ followedMenu: false, cravedRice: false, drankWater: false });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const { consumedMeals, setConsumedMeals, addConsumedMeal, removeConsumedMeal } = useNutritionStore();
+  const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
   const [moods, setMoods] = useState<string[]>([]);
   const [moodNotes, setMoodNotes] = useState<string>('');
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
@@ -437,8 +415,6 @@ export default function NutritionDashboard() {
   
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [activeMealType, setActiveMealType] = useState('Collation');
   const [offResults, setOffResults] = useState<any[]>([]);
   const [isSearchingOFF, setIsSearchingOFF] = useState(false);
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
@@ -447,10 +423,6 @@ export default function NutritionDashboard() {
   const [foodUnit, setFoodUnit] = useState("portion");
   const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
   const [recipeFilter, setRecipeFilter] = useState("Tous");
-
-  // Immersive Recipe Modal
-  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<any>(null);
-  const [recipeDetailTab, setRecipeDetailTab] = useState<'apercu'|'ingredients'|'preparation'>('apercu');
 
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
@@ -1005,7 +977,7 @@ export default function NutritionDashboard() {
               twitter: activeProfile.twitter || ""
           }));
 
-          // Fetch follower count & related notifications conditionally
+          // Fetch follower count
           if (activeProfile.id) {
               const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('followed_id', activeProfile.id);
               if (count !== null) setMyFollowersCount(count);
@@ -1729,7 +1701,18 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      let currentRecipes: any[] = allRecipesDB.length > 0 ? allRecipesDB : DEFAULT_RECIPES;
+      let currentRecipes: any[] = [];
+      try {
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const { data } = await recipeQuery;
+          if (data && data.length > 0) {
+              currentRecipes = data;
+          } else {
+              currentRecipes = DEFAULT_RECIPES;
+          }
+      } catch(e) {
+          currentRecipes = DEFAULT_RECIPES;
+      }
       
       currentRecipes = currentRecipes.filter(r => {
           const cat = r.categorie?.toLowerCase() || '';
@@ -2209,19 +2192,7 @@ export default function NutritionDashboard() {
       }
   };
 
-    const newlyCompletedGaugesCheck = (newCals?: number, newProts?: number, newCarbs?: number, newWater?: number) => {
-      const c = newCals !== undefined ? newCals : calories;
-      const p = newProts !== undefined ? newProts : proteins;
-      const cb = newCarbs !== undefined ? newCarbs : carbs;
-      const w = newWater !== undefined ? newWater : waterGlasses;
-      const isNowCompleted = (calorieGoal > 0) && c >= (calorieGoal * 0.85) && p >= (proteinGoal * 0.8) && cb >= (carbsGoal * 0.8) && w >= 8;
-      if (isNowCompleted && !reportData.gaugesCompletedXP) {
-          updateXP(50, "Toutes les jauges complétées ! 🎯");
-          setReportData((prev: any) => ({ ...prev, gaugesCompletedXP: true }));
-      }
-  };
-
-const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
+  const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
       // Éviter les doublons exacts si l'utilisateur clique plusieurs fois rapidement
       if (consumedMeals.some(m => m.name === mealName && m.type === mealType)) {
           setSelectedMealModal(null);
@@ -2251,13 +2222,13 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
          photo_url: selectedMealPhoto || foodObj?.image_url || null
       };
 
-      addConsumedMeal(newConsumedItem);
       const updatedConsumedMeals = [...consumedMeals, newConsumedItem];
 
       setCalories(newCals);
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
+      setConsumedMeals(updatedConsumedMeals);
       
       if (updatedConsumedMeals.length === 3 && consumedMeals.length === 2) {
           updateXP(10, "3 repas logués aujourd'hui !");
@@ -2340,8 +2311,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
   };
 
   const deleteMealLog = async (itemToDelete: any) => {
-      removeConsumedMeal(itemToDelete.id);
-      const updatedConsumedMeals = useNutritionStore.getState().consumedMeals.filter((m:any) => m.id !== itemToDelete.id);
+      const updatedConsumedMeals = consumedMeals.filter(m => m.id !== itemToDelete.id);
       
       const newCals = Math.max(0, calories - itemToDelete.cals);
       const newProts = Math.max(0, proteins - itemToDelete.prots);
@@ -2352,6 +2322,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
+      setConsumedMeals(updatedConsumedMeals);
 
       if (clientProfile) {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
@@ -3472,108 +3443,6 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
 
   return (
     <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
-
-      {/* IMMERSIVE RECIPE MODAL */}
-      <AnimatePresence>
-        {selectedRecipeDetail && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center sm:p-6"
-          >
-            <div className="w-full sm:max-w-2xl bg-white dark:bg-zinc-950 h-[90vh] sm:h-[85vh] sm:rounded-[3rem] rounded-t-[3rem] overflow-hidden flex flex-col relative shadow-2xl">
-              {/* Image Hero Section */}
-              <div className="relative w-full h-1/3 sm:h-2/5 shrink-0">
-                <img src={selectedRecipeDetail.image_url || 'https://placehold.co/800x600/111/39FF14?text=Recette'} alt={selectedRecipeDetail.nom} className="absolute inset-0 w-full h-full object-cover" />
-                <button onClick={() => setSelectedRecipeDetail(null)} className="absolute top-6 right-6 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg">
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Glassmorphism Container over Image */}
-              <div className="flex-1 overflow-y-auto bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md rounded-t-[40px] -mt-10 relative z-10 p-8 flex flex-col custom-scrollbar pb-32 border-t border-white/20">
-                <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-6 shrink-0"></div>
-
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-none`}>{selectedRecipeDetail.nom}</h2>
-                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500 mb-6">
-                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.preparation_time || 15} min</span>
-                    <span className="flex items-center gap-1.5"><Eye size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.views || 0} vues</span>
-                </div>
-
-                {/* Macro Pills */}
-                <div className="flex flex-wrap gap-3 mb-8">
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CALS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.calories} kcal</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={PROTEINS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.proteins}g Prot</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CARBS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.carbs || 0}g Gluc</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={FATS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.fats || 0}g Lip</span>
-                </div>
-
-                {/* Navigation Pills */}
-                <div className="flex gap-2 mb-6 bg-zinc-100/50 dark:bg-zinc-900/50 p-1.5 rounded-2xl">
-                    {['apercu', 'ingredients', 'preparation'].map((tab) => (
-                        <button key={tab} onClick={() => setRecipeDetailTab(tab as any)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${recipeDetailTab === tab ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>
-                            {tab === 'apercu' ? 'Aperçu' : tab === 'ingredients' ? 'Ingrédients' : 'Préparation'}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Content Area */}
-                <div className="flex-1 animate-in fade-in">
-                    {recipeDetailTab === 'apercu' && (
-                        <div className="space-y-4">
-                            <p className="text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
-                                {selectedRecipeDetail.description_courte || "Une recette délicieuse et saine, parfaitement équilibrée pour vous aider à atteindre vos objectifs nutritionnels."}
-                            </p>
-                        </div>
-                    )}
-
-                    {recipeDetailTab === 'ingredients' && (
-                        <div className="space-y-3">
-                            {selectedRecipeDetail.ingredients && selectedRecipeDetail.ingredients.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {selectedRecipeDetail.ingredients.map((ing: any, idx: number) => (
-                                        <li key={idx} className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-xl">
-                                            <div className="w-2 h-2 bg-[#39FF14] rounded-full shrink-0"></div>
-                                            <span className="text-sm font-bold text-black dark:text-white">{ing.nom || ing}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-zinc-500 italic text-sm">Liste détaillée des ingrédients à venir.</p>
-                            )}
-                        </div>
-                    )}
-
-                    {recipeDetailTab === 'preparation' && (
-                        <div className="space-y-4">
-                            {selectedRecipeDetail.instructions ? (
-                                <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400 leading-loose whitespace-pre-line bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[2rem]">
-                                    {selectedRecipeDetail.instructions}
-                                </div>
-                            ) : (
-                                <p className="text-zinc-500 italic text-sm">Instructions de préparation à venir.</p>
-                            )}
-                        </div>
-                    )}
-                </div>
-              </div>
-
-              {/* Fixed Action Footer */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
-                  <button onClick={() => {
-                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories, selectedRecipeDetail.proteins, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
-                      alert("Ajouté au tracker du jour !");
-                      setSelectedRecipeDetail(null);
-                  }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
-                      <PlusCircle size={20}/> Ajouter au repas
-                  </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -3939,24 +3808,9 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                                              </div>
 
                                              {!isConsumed ? (
-                                                <div className="flex flex-col gap-1 items-end mt-1">
-                                                   <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform w-full">➕ Loguer</button>
-                                                   <div className="flex gap-1">
-                                                      <button onClick={(e) => { e.stopPropagation(); const dIdx = weeklyGeneratedMenu.findIndex(d => d.day === formattedCurrentDay); if(dIdx>=0) handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
-                                                      <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
-                                                   </div>
-                                                </div>
+                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
                                              ) : (
-                                                <div className="flex gap-1 mt-1">
-                                                   <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
-                                                   <button onClick={(e) => {
-                                                       e.stopPropagation();
-                                                       const consumedLog = useNutritionStore.getState().consumedMeals.find(m => m.name === recipe.nom && m.type === mealType);
-                                                       if(consumedLog) deleteMealLog(consumedLog);
-                                                   }} className="bg-red-50 text-red-500 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1">
-                                                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" />
-                                                   </button>
-                                                </div>
+                                                <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
                                              )}
                                           </div>
                                        </div>
@@ -3976,7 +3830,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                      {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                          const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
                          return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setActiveMealType(mealType); setIsSearchModalOpen(true); }}>
+                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }}>
                              <div className="flex justify-between items-center">
                                  <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
                                  <button className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -3986,19 +3840,14 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                              {loggedMeals.length > 0 && (
                                  <div className="mt-2 space-y-1">
                                     {loggedMeals.map((m: any, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 cursor-default" onClick={(e) => e.stopPropagation()}>
-                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name} <span className="text-[10px] text-zinc-400 font-normal">({m.ux_unit || m.time})</span></span>
+                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100">
+                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name}</span>
 
-                                           <div className="flex items-center gap-3 shrink-0">
-                                              <div className="flex items-center gap-2">
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.cals || m.calories || 0} kcal</span>
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
-                                              </div>
-                                              <button onClick={(e) => { e.stopPropagation(); deleteMealLog(m); }} className="bg-red-50 text-red-500 p-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-colors" title="Supprimer ce repas">
-                                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" />
-                                              </button>
+                                           <div className="flex items-center gap-2 shrink-0">
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.calories || 0} kcal</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
                                            </div>
 
                                         </div>
@@ -4194,19 +4043,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                                                 <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
                                              )}
                                              {!isConsumed && isToday && (
-                                                <div className="flex gap-1">
-                                                   <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
-                                                   <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
-                                                </div>
-                                             )}
-                                             {isConsumed && isToday && (
-                                                <button onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const consumedLog = useNutritionStore.getState().consumedMeals.find(m => m.name === recipe.nom && m.type === mealType);
-                                                    if(consumedLog) deleteMealLog(consumedLog);
-                                                }} className="bg-red-50 text-red-500 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1">
-                                                   <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" /> Supprimer
-                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
                                              )}
                                           </div>
                                        </div>
@@ -4714,17 +4551,9 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
       )}
 
         {activeTab === 'favorites' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full relative min-h-screen pb-24 bg-slate-50 rounded-[3rem]">
-            {/* Mesh Gradient Background for Glassmorphism */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[3rem]">
-               <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#39FF14] opacity-20 blur-[120px]"></div>
-               <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-orange-300 opacity-20 blur-[120px]"></div>
-               <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-400 opacity-10 blur-[120px]"></div>
-            </div>
-
-            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6 relative z-10"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-
-             <div className="w-full relative z-10">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm w-full">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
                 <div className="relative mb-6">
@@ -4751,7 +4580,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                    ))}
                 </div>
 
-                <div className="w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
@@ -4770,112 +4599,68 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                          return true;
                       });
                       
-                      // Sort remaining by popularity if selected
                       if (recipeFilter === 'Populaire') {
                          filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
                       }
                       
-                      // Extract Featured Recipe (Randomly selected from filtered list)
-                      const featuredRecipe = filteredRecipes.length > 0 ?
-                           filteredRecipes[Math.floor(Math.random() * filteredRecipes.length)]
-                           : null;
+                      return filteredRecipes.map((fav, i) => {
+                       const name = fav.nom;
+                       const cals = fav.calories;
+                       const prots = fav.proteins;
+                       const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
+                       const isTop10 = top10RecipeIds.includes(fav.id);
 
-                      const gridRecipes = filteredRecipes.filter(r => r.id !== featuredRecipe?.id);
+                       const tags = [];
+                       if (prots >= 20) tags.push("Protéiné");
+                       if (fav.carbs <= 30) tags.push("Low Carb");
+                       if (cals <= 350) tags.push("Léger");
+                       if (fav.fats <= 15) tags.push("Low Fat");
 
-                      // Reusable Card Renderer
-                      const renderCard = (fav, isFeatured = false) => {
-                         const name = fav.nom;
-                         const cals = fav.calories;
-                         const prots = fav.proteins;
-                         const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
-                         const isTop10 = top10RecipeIds.includes(fav.id);
-
-                         const tags = [];
-                         if (prots >= 20) tags.push("Protéiné");
-                         if (fav.carbs <= 30) tags.push("Low Carb");
-                         if (cals <= 350) tags.push("Léger");
-                         if (fav.fats <= 15) tags.push("Low Fat");
-
-                         return (
-                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
-                             <div className="w-full h-full flex flex-col">
-                                 {fav.image_url && <img src={fav.image_url} alt={name} onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'; }} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
-                                 <div className="flex justify-between items-start mb-2">
-                                     <div className="flex flex-col">
-                                         {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
-                                         <p className={`font-black text-black ${isFeatured ? 'text-2xl' : 'text-sm line-clamp-1'}`} title={name}>{name}</p>
-                                         <div className="flex gap-3 mt-1.5">
-                                             <p className="text-[10px] font-bold text-zinc-600 flex items-center gap-1"><Eye size={12}/> {fav.views || 0}</p>
-                                             <p className={`text-[10px] font-bold flex items-center gap-1 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-600'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
-                                         </div>
-                                     </div>
-                                     <button onClick={(e) => { e.stopPropagation(); toggleFavorite(fav); }} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-500 hover:text-red-500'} shrink-0 bg-white/80 p-2 rounded-full backdrop-blur-sm shadow-sm`}>
-                                        <HeartPulse size={16} className={isFav ? "fill-current" : ""}/>
-                                     </button>
-                                 </div>
-                                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto pt-2">
-                                     {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
-                                     {tags.map(t => <span key={t} className="bg-white text-black border border-zinc-200 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">{t}</span>)}
-                                 </div>
-                                 <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase text-zinc-700 mb-2">
-                                     <span className="flex items-center gap-1"><img src={CALS_ICON} className="w-3.5 h-3.5 rounded-full shadow-sm"/> {cals} kcal</span>
-                                     <span className="flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3.5 h-3.5 rounded-full shadow-sm"/> {prots}g prot</span>
-                                 </div>
-                             </div>
-                         </div>
-                         )
-                      };
-
-                      return (
-                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
-                            {/* Left: Featured Recipe (Cols 1-4) */}
-                            {featuredRecipe && (
-                               <div className="col-span-1 lg:col-span-4 h-full">
-                                  {renderCard(featuredRecipe, true)}
-                               </div>
-                            )}
-
-                            {/* Center: Grid of smaller recipes (Cols 5-9) */}
-                            <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                               {gridRecipes.map(r => renderCard(r, false))}
-                            </div>
-
-                            {/* Right: Static Widgets (Cols 10-12) */}
-                            <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
-                                   <div className="flex flex-col gap-2">
-                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
-                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
-                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
-                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
+                       return (
+                       <div key={fav.id || i} className="w-full flex flex-col bg-zinc-50 p-5 rounded-2xl border border-zinc-100 justify-between hover:border-[#39FF14] transition-colors group">
+                           <div className="w-full">
+                               {fav.image_url && <img src={fav.image_url} alt={name} className="w-full h-32 object-cover rounded-xl mb-3" />}
+                               <div className="flex justify-between items-start mb-2">
+                                   <div className="flex flex-col">
+                                       <p className="font-bold text-sm text-black line-clamp-1" title={name}>{name}</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Eye size={12}/> {fav.views || 0} vues</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Heart size={12} className={isFav ? "text-red-500 fill-current" : ""}/> {fav.likes || 0} likes</p>
+                                       <p className={`text-[10px] font-bold flex items-center gap-1 mt-0.5 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-500'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
                                    </div>
+                                   <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'} shrink-0`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
                                </div>
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
-                                   <div className="flex flex-col gap-3">
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
-                                           </div>
-                                       </div>
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Healthy Fats</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
-                                           </div>
-                                       </div>
-                                   </div>
+                               <div className="flex flex-wrap gap-1 mb-3">
+                                   {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
+                                   {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
+                                   {fav.budget_tier && (
+                                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm ${
+                                           fav.budget_tier === 'Serré 8k' ? 'bg-green-500 text-white' :
+                                           fav.budget_tier === 'Famille 15k' ? 'bg-orange-500 text-white' :
+                                           'bg-purple-600 text-white'
+                                       }`}>
+                                           {fav.budget_tier === 'Serré 8k' ? '💰 Serré' :
+                                            fav.budget_tier === 'Famille 15k' ? '🥗 Famille' : '💎 Confort'}
+                                       </span>
+                                   )}
                                </div>
-                            </div>
-                         </div>
-                      );
+                               <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {prots}g prot</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.carbs || 0}g</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.fats || 0}g</span>
+                               </div>
+                           </div>
+                           <button onClick={() => {
+                               confirmMealLog(fav.type || 'Déjeuner', name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
+                               alert("Ajouté au tracker du jour !");
+                           }} className="w-full bg-zinc-200 text-black py-3 rounded-xl text-[10px] font-black uppercase hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
+                               <CheckCircle size={14}/> Ajouter au menu du jour
+                           </button>
+                       </div>
+                   )});
                    })()}
                    {allRecipesDB.length === 0 && (
-                      <div className="col-span-full py-8 text-center text-zinc-500 font-black">Aucune recette disponible.</div>
+                      <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette disponible.</div>
                    )}
                 </div>
              </div>
@@ -7776,26 +7561,6 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
          <button onClick={() => setShowMobileHub(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
       </div>
 
-
-      <SearchFoodModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
-          mealType={activeMealType}
-          clientProfile={clientProfile}
-          currentCalories={calories}
-          currentProteins={proteins}
-          currentCarbs={carbs}
-          currentFats={fats}
-          setCalories={setCalories}
-          setProteins={setProteins}
-          setCarbs={setCarbs}
-          setFats={setFats}
-          reportData={reportData}
-          setReportData={setReportData}
-          waterGlasses={waterGlasses}
-          newlyCompletedGaugesCheck={newlyCompletedGaugesCheck}
-      />
     </div>
   );
 }
