@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter , LayoutDashboard} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf } from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -1006,20 +1006,8 @@ export default function NutritionDashboard() {
               twitter: activeProfile.twitter || ""
           }));
 
-          // Fetch follower count
+          // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
-              const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('followed_id', activeProfile.id);
-              if (count !== null) setMyFollowersCount(count);
-
-              // Check challenge participation & badges
-              if (activeChallenge) {
-                  const { data: participation } = await supabase.from('nutrition_challenge_participants').select('*').eq('client_id', activeProfile.id).eq('challenge_id', activeChallenge.id).maybeSingle();
-                  if (participation) setIsParticipating(true);
-              }
-
-              const { data: myBadges } = await supabase.from('nutrition_badges').select('*').eq('client_id', activeProfile.id);
-              if (myBadges) setEarnedBadges(myBadges.map((b: any) => b.badge_name));
-
               const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
           }
@@ -3496,7 +3484,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               </div>
 
               {/* Glassmorphism Container over Image */}
-              <div className="flex-1 overflow-y-auto bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl rounded-t-[3rem] -mt-10 relative z-10 p-8 flex flex-col custom-scrollbar pb-32 border-t border-white/20">
+              <div className="flex-1 overflow-y-auto bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md rounded-t-[40px] -mt-10 relative z-10 p-8 flex flex-col custom-scrollbar pb-32 border-t border-white/20">
                 <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-6 shrink-0"></div>
 
                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-none`}>{selectedRecipeDetail.nom}</h2>
@@ -3564,13 +3552,13 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               </div>
 
               {/* Fixed Action Footer */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-zinc-950 dark:via-zinc-950/90 z-20 pb-safe">
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
                   <button onClick={() => {
                       confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories, selectedRecipeDetail.proteins, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
                       alert("Ajouté au tracker du jour !");
                       setSelectedRecipeDetail(null);
                   }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
-                      <PlusCircle size={20}/> ➕ Ajouter au repas
+                      <PlusCircle size={20}/> Ajouter au repas
                   </button>
               </div>
             </div>
@@ -4669,13 +4657,12 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
       )}
 
         {activeTab === 'favorites' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full relative min-h-screen pb-24">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full relative min-h-screen pb-24 bg-slate-50 rounded-[3rem]">
             {/* Mesh Gradient Background for Glassmorphism */}
-            <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden rounded-[3rem]">
-               <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#39FF14]/10 blur-[100px]"></div>
-               <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[100px]"></div>
-               <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-400/5 blur-[80px]"></div>
-               <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[2px]"></div>
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[3rem]">
+               <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#39FF14] opacity-20 blur-[120px]"></div>
+               <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-orange-300 opacity-20 blur-[120px]"></div>
+               <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-400 opacity-10 blur-[120px]"></div>
             </div>
 
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6 relative z-10"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
@@ -4731,9 +4718,9 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                          filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
                       }
                       
-                      // Extract Featured Recipe (most views among filtered, or fallback to absolute top 1)
+                      // Extract Featured Recipe (Randomly selected from filtered list)
                       const featuredRecipe = filteredRecipes.length > 0 ?
-                           [...filteredRecipes].sort((a, b) => (b.views || 0) - (a.views || 0))[0]
+                           filteredRecipes[Math.floor(Math.random() * filteredRecipes.length)]
                            : null;
 
                       const gridRecipes = filteredRecipes.filter(r => r.id !== featuredRecipe?.id);
@@ -4753,9 +4740,9 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                          if (fav.fats <= 15) tags.push("Low Fat");
 
                          return (
-                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/40 backdrop-blur-md border border-white/60 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/60 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
+                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
                              <div className="w-full h-full flex flex-col">
-                                 {fav.image_url && <img src={fav.image_url} alt={name} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
+                                 {fav.image_url && <img src={fav.image_url} alt={name} onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'; }} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
                                  <div className="flex justify-between items-start mb-2">
                                      <div className="flex flex-col">
                                          {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
@@ -4783,17 +4770,49 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                       };
 
                       return (
-                         <div className="flex flex-col lg:flex-row gap-6 w-full">
-                            {/* Left: Featured Recipe (Asymmetric Large Card) */}
+                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+                            {/* Left: Featured Recipe (Cols 1-4) */}
                             {featuredRecipe && (
-                               <div className="w-full lg:w-5/12 shrink-0">
+                               <div className="col-span-1 lg:col-span-4 h-full">
                                   {renderCard(featuredRecipe, true)}
                                </div>
                             )}
 
-                            {/* Right: Grid of smaller recipes */}
-                            <div className="w-full lg:w-7/12 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Center: Grid of smaller recipes (Cols 5-9) */}
+                            <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                {gridRecipes.map(r => renderCard(r, false))}
+                            </div>
+
+                            {/* Right: Static Widgets (Cols 10-12) */}
+                            <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
+                                   <div className="flex flex-col gap-2">
+                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
+                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
+                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
+                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
+                                   </div>
+                               </div>
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
+                                   <div className="flex flex-col gap-3">
+                                       <div className="flex items-start gap-3">
+                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
+                                           <div>
+                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
+                                           </div>
+                                       </div>
+                                       <div className="flex items-start gap-3">
+                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
+                                           <div>
+                                               <p className="text-xs font-black text-black">Healthy Fats</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
                             </div>
                          </div>
                       );
