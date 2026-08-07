@@ -3693,6 +3693,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
               setShowDailyReport={setShowDailyReport}
+              currentCalories={calories}
           />
         )}
 
@@ -3921,9 +3922,10 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/80 to-transparent"></div>
                         <div className="relative z-10">
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                               <Droplet size={10} className="fill-blue-500"/> Objectif Eau
+                               <Droplet size={10} className="fill-blue-500"/> Objectif Eau (2.5L)
                             </p>
-                            <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
+                            <p className="text-xl font-black text-black mb-0 leading-none">{waterGlasses} <span className="text-sm text-zinc-500">/ 8 Btlls</span></p>
+                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">{(waterGlasses * 312.5).toFixed(0)} ml</p>
                             <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
                                 {waterGlasses === 0 && [
                                     "L'eau booste votre métabolisme de 30% en 10 min.",
