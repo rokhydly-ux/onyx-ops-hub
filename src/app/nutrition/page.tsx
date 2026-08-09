@@ -2729,19 +2729,25 @@ export default function NutritionDashboard() {
   };
 
   const getJongomaLevel = (xp: number) => {
-    if (xp >= 2000)
+    if (xp >= 1000)
       return {
-        name: "Star Nutrition",
-        badge: "🌟",
-        desc: "Code promo boutique débloqué !",
+        name: "Légende",
+        badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png",
+        desc: "Niveau maximal",
       };
     if (xp >= 500)
       return {
-        name: "Adhérente",
-        badge: "💎",
-        desc: "Badge de profil débloqué",
+        name: "Lekkologue Or",
+        badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png",
+        desc: "Super membre",
       };
-    return { name: "Novice", badge: "🌱", desc: "En apprentissage" };
+    if (xp >= 100)
+      return {
+        name: "Maître du Fonio",
+        badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png",
+        desc: "En progression",
+      };
+    return { name: "Force Baobab", badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png", desc: "Novice" };
   };
 
   const fetchLeaderboard = async () => {
@@ -6245,10 +6251,8 @@ export default function NutritionDashboard() {
                   title={lvlInfo.desc + " - Cliquez pour voir le classement"}
                   onClick={openLeaderboard}
                 >
-                  <div
-                    className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? "border-[#39FF14] animate-pulse" : "border-zinc-800"}`}
-                  >
-                    {lvlInfo.badge}
+                  <div className={`w-10 h-10 rounded-xl overflow-hidden shadow-md border ${xpAnimation ? "border-[#39FF14] animate-pulse" : "border-zinc-200"}`}>
+                    <img src={lvlInfo.badgeUrl} alt={lvlInfo.name} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
@@ -9233,150 +9237,40 @@ export default function NutritionDashboard() {
 
         {activeTab === "history" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
-            {/* BADGES ET GAMIFICATION */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2">
-                  <Award className="text-yellow-500" size={24} /> Badges &
-                  Récompenses
-                </h3>
-                <p className="text-sm text-zinc-500 font-medium mb-4">
-                  Cumulez de l'XP et des jours parfaits pour débloquer des
-                  trophées.
-                </p>
-                <div className="flex gap-2">
-                  {Array.from({ length: 7 }, (_, i) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - (6 - i));
-                    const dateStr = d.toISOString().split("T")[0];
-                    const log = (
-                      Array.isArray(dailyLogs) ? dailyLogs : []
-                    ).find((l) => l.log_date === dateStr);
-                    const isPerfect =
-                      log?.report_data?.followedMenu && log?.water_glasses >= 6;
-                    return (
-                      <div
-                        key={i}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? "bg-[#39FF14] text-black shadow-sm" : "bg-zinc-100 text-zinc-400"}`}
-                      >
-                        {d.toLocaleDateString("fr-FR", { weekday: "narrow" })}
-                      </div>
-                    );
-                  })}
+            {/* BADGES & RECOMPENSES (TOP) */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-lg font-black uppercase flex items-center gap-2"><Trophy className="text-[#39FF14]"/> Badges & Récompenses</h3>
+                        <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Votre progression de Lekkologue</p>
+                    </div>
+                    <div className="bg-black text-[#39FF14] px-4 py-2 rounded-xl flex flex-col items-center justify-center shadow-lg border border-[#39FF14]/20">
+                        <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Total</span>
+                        <span className="text-xl font-black">{jongomaXP} XP</span>
+                    </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-4 justify-center md:justify-end">
-                <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
-                  <span className="text-2xl mb-2">🌱</span>
-                  <span className="text-[10px] font-black uppercase text-center leading-tight">
-                    Novice
-                    <br />
-                    <span className="text-[8px] text-green-700/70">0 XP</span>
-                  </span>
-                </div>
-                <div
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? "bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105" : "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale"}`}
-                >
-                  {jongomaXP < 500 && (
-                    <Lock
-                      size={12}
-                      className="absolute top-2 right-2 text-zinc-300"
-                    />
-                  )}
-                  <span className="text-2xl mb-2">💎</span>
-                  <span className="text-[10px] font-black uppercase text-center leading-tight">
-                    Adhérente
-                    <br />
-                    <span className="text-[8px] opacity-70">500 XP</span>
-                  </span>
-                </div>
-                <div
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? "bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105" : "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale"}`}
-                >
-                  {jongomaXP < 2000 && (
-                    <Lock
-                      size={12}
-                      className="absolute top-2 right-2 text-zinc-300"
-                    />
-                  )}
-                  <span className="text-2xl mb-2">🌟</span>
-                  <span className="text-[10px] font-black uppercase text-center leading-tight">
-                    Star Nutrition
-                    <br />
-                    <span className="text-[8px] opacity-70">2000 XP</span>
-                  </span>
-                </div>
-                <div
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter((l) => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? "bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105" : "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale"}`}
-                >
-                  {(Array.isArray(dailyLogs) ? dailyLogs : []).filter(
-                    (l) => l.report_data?.followedMenu && l.water_glasses >= 6,
-                  ).length < 5 && (
-                    <Lock
-                      size={12}
-                      className="absolute top-2 right-2 text-zinc-300"
-                    />
-                  )}
-                  <Award size={28} className="mb-2" />
-                  <span className="text-[10px] font-black uppercase text-center leading-tight">
-                    Semaine
-                    <br />
-                    Parfaite
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-              <h2
-                className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}
-              >
-                <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7
-                jours
-              </h2>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                {/* GRAPHIQUE : Hydratation */}
-                <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                  <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2">
-                    <Droplet size={16} /> Hydratation (Verres)
-                  </h3>
-                  <div className="flex items-end justify-between h-40 gap-2">
-                    {Array.from({ length: 7 }, (_, i) => {
-                      const d = new Date();
-                      d.setDate(d.getDate() - (6 - i));
-                      const dateStr = d.toISOString().split("T")[0];
-                      const log = (
-                        Array.isArray(dailyLogs) ? dailyLogs : []
-                      ).find((l) => l.log_date === dateStr);
-                      const count = log?.water_glasses || 0;
-                      const heightPct = Math.min((count / 8) * 100, 100);
-                      return (
-                        <div
-                          key={i}
-                          className="flex flex-col items-center flex-1 h-full justify-end group"
-                        >
-                          <div
-                            className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400"
-                            style={{
-                              height: `${heightPct}%`,
-                              minHeight: "4px",
-                            }}
-                          >
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                              {count} verres
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                        { level: 1, name: "Force Baobab", xp: 0, url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png" },
+                        { level: 2, name: "Maître du Fonio", xp: 100, url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png" },
+                        { level: 3, name: "Lekkologue Or", xp: 500, url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png" },
+                        { level: 4, name: "Légende", xp: 1000, url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png" }
+                    ].map((badge, idx) => {
+                        const isUnlocked = jongomaXP >= badge.xp;
+                        return (
+                            <div key={idx} className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center text-center transition-all ${isUnlocked ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_5px_15px_rgba(57,255,20,0.15)] scale-105 relative z-10' : 'border-zinc-100 bg-zinc-50 opacity-60 grayscale'}`}>
+                                <div className="w-16 h-16 mb-3 relative">
+                                    <img src={badge.url} alt={badge.name} className="w-full h-full object-contain" />
+                                    {isUnlocked && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-black rounded-full border border-[#39FF14] flex items-center justify-center"><Check size={10} className="text-[#39FF14]"/></div>}
+                                </div>
+                                <h4 className={`text-[10px] font-black uppercase tracking-widest ${isUnlocked ? 'text-black dark:text-white' : 'text-zinc-400'}`}>{badge.name}</h4>
+                                <p className={`text-[9px] font-bold mt-1 ${isUnlocked ? 'text-[#39FF14]' : 'text-zinc-400'}`}>{badge.xp} XP {isUnlocked ? 'Atteint' : 'Requis'}</p>
                             </div>
-                          </div>
-                          <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">
-                            {d.toLocaleDateString("fr-FR", {
-                              weekday: "short",
-                            })}
-                          </span>
-                        </div>
-                      );
+                        )
                     })}
-                  </div>
                 </div>
+            </div>
 
                 {/* GRAPHIQUE : Calories */}
                 <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
@@ -9421,8 +9315,6 @@ export default function NutritionDashboard() {
                     })}
                   </div>
                 </div>
-              </div>
-            </div>
 
             {/* LISTE DES BILANS */}
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
@@ -11709,16 +11601,19 @@ export default function NutritionDashboard() {
                 <div className="flex items-end justify-center gap-4 mb-10 pt-4">
                   {leaderboardData.length > 1 && (
                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
-                      <div className="w-12 h-12 rounded-full border-2 border-zinc-300 overflow-hidden mb-2 relative">
-                        <img
-                          src={
-                            leaderboardData[1].avatar_url ||
-                            `https://ui-avatars.com/api/?name=${leaderboardData[1].full_name}&background=random`
-                          }
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute -bottom-1 -right-1 bg-zinc-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                      <div className="relative mb-2">
+                        <div className="w-12 h-12 rounded-full border-2 border-zinc-300 overflow-hidden relative">
+                          <img
+                            src={
+                              leaderboardData[1].avatar_url ||
+                              `https://ui-avatars.com/api/?name=${leaderboardData[1].full_name}&background=random`
+                            }
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <img src={getJongomaLevel(leaderboardData[1].xp).badgeUrl} className="absolute -bottom-2 -right-2 w-6 h-6 object-contain drop-shadow-md z-10" alt="badge" />
+                        <div className="absolute -top-2 -left-2 bg-zinc-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white z-20">
                           2
                         </div>
                       </div>
@@ -11734,16 +11629,19 @@ export default function NutritionDashboard() {
                   )}
                   {leaderboardData.length > 0 && (
                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700">
-                      <div className="w-16 h-16 rounded-full border-4 border-yellow-400 overflow-hidden mb-2 relative shadow-[0_0_20px_rgba(250,204,21,0.5)]">
-                        <img
-                          src={
-                            leaderboardData[0].avatar_url ||
-                            `https://ui-avatars.com/api/?name=${leaderboardData[0].full_name}&background=random`
-                          }
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white">
+                      <div className="relative mb-2">
+                        <div className="w-16 h-16 rounded-full border-4 border-yellow-400 overflow-hidden relative shadow-[0_0_20px_rgba(250,204,21,0.5)]">
+                          <img
+                            src={
+                              leaderboardData[0].avatar_url ||
+                              `https://ui-avatars.com/api/?name=${leaderboardData[0].full_name}&background=random`
+                            }
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <img src={getJongomaLevel(leaderboardData[0].xp).badgeUrl} className="absolute -bottom-3 -right-3 w-8 h-8 object-contain drop-shadow-lg z-10" alt="badge" />
+                        <div className="absolute -top-2 -left-2 bg-yellow-400 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white z-20">
                           1
                         </div>
                       </div>
@@ -11759,16 +11657,19 @@ export default function NutritionDashboard() {
                   )}
                   {leaderboardData.length > 2 && (
                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
-                      <div className="w-12 h-12 rounded-full border-2 border-orange-400 overflow-hidden mb-2 relative">
-                        <img
-                          src={
-                            leaderboardData[2].avatar_url ||
-                            `https://ui-avatars.com/api/?name=${leaderboardData[2].full_name}&background=random`
-                          }
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute -bottom-1 -right-1 bg-orange-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                      <div className="relative mb-2">
+                        <div className="w-12 h-12 rounded-full border-2 border-orange-400 overflow-hidden relative">
+                          <img
+                            src={
+                              leaderboardData[2].avatar_url ||
+                              `https://ui-avatars.com/api/?name=${leaderboardData[2].full_name}&background=random`
+                            }
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <img src={getJongomaLevel(leaderboardData[2].xp).badgeUrl} className="absolute -bottom-2 -right-2 w-6 h-6 object-contain drop-shadow-md z-10" alt="badge" />
+                        <div className="absolute -top-2 -left-2 bg-orange-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white z-20">
                           3
                         </div>
                       </div>
@@ -11797,14 +11698,20 @@ export default function NutritionDashboard() {
                           <span className="font-black text-zinc-400 w-4 text-xs">
                             {idx + 4}
                           </span>
-                          <img
-                            src={
-                              student.avatar_url ||
-                              `https://ui-avatars.com/api/?name=${student.full_name}&background=random`
-                            }
-                            alt="Avatar"
-                            className="w-8 h-8 rounded-full border border-zinc-200 object-cover"
-                          />
+                          <div className="relative">
+                            <div className="relative">
+                            <img
+                              src={
+                                student.avatar_url ||
+                                `https://ui-avatars.com/api/?name=${student.full_name}&background=random`
+                              }
+                              alt="Avatar"
+                              className="w-8 h-8 rounded-full border border-zinc-200 object-cover"
+                            />
+                            <img src={getJongomaLevel(student.xp).badgeUrl} className="absolute -bottom-1 -right-1 w-4 h-4 object-contain drop-shadow-sm" alt="badge" />
+                          </div>
+                            <img src={getJongomaLevel(student.xp).badgeUrl} className="absolute -bottom-1 -right-1 w-4 h-4 object-contain drop-shadow-sm" alt="badge" />
+                          </div>
                           <p
                             className={`font-bold text-sm ${student.id === clientProfile?.id ? "text-[#39FF14]" : "text-black"}`}
                           >
