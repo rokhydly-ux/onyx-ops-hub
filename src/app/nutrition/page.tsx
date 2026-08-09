@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter , LayoutDashboard, Users} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf , Users} from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -426,7 +426,12 @@ export default function NutritionDashboard() {
 
   // Immersive Recipe Modal
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<any>(null);
-  const [recipeDetailTab, setRecipeDetailTab] = useState<'apercu'|'ingredients'|'preparation'>('apercu');
+  const [recipeDetailTab, setRecipeDetailTab] = useState<'apercu'|'ingredients'|'preparation'|'avis'>('apercu');
+  const [recipeReviews, setRecipeReviews] = useState<any[]>([]);
+  const [userRating, setUserRating] = useState(5);
+  const [userComment, setUserComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
@@ -3103,7 +3108,51 @@ export default function NutritionDashboard() {
   const lvlInfo = getJongomaLevel(jongomaXP);
 
 
-  const currentHour = new Date().getHours();
+
+  useEffect(() => {
+    if (selectedRecipeDetail?.id) {
+        const fetchReviews = async () => {
+            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+            if (data) {
+                setRecipeReviews(data);
+                const userReview = data.find(r => r.client_id === authUser?.id);
+                if (userReview) {
+                    setHasUserReviewed(true);
+                    setUserRating(userReview.rating);
+                    setUserComment(userReview.comment);
+                } else {
+                    setHasUserReviewed(false);
+                    setUserRating(5);
+                    setUserComment('');
+                }
+            }
+        };
+        fetchReviews();
+    }
+  }, [selectedRecipeDetail?.id, authUser?.id]);
+
+  const submitReview = async () => {
+      if (!userComment.trim() || !selectedRecipeDetail) return;
+      setIsSubmittingReview(true);
+      try {
+          await supabase.from('nutrition_recipe_reviews').upsert({
+              recipe_id: selectedRecipeDetail.id,
+              client_id: authUser?.id,
+              rating: userRating,
+              comment: userComment
+          }, { onConflict: 'recipe_id,client_id' });
+
+          setHasUserReviewed(true);
+          // Refetch reviews
+          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+          if (data) setRecipeReviews(data);
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setIsSubmittingReview(false);
+      }
+  };
+const currentHour = new Date().getHours();
   const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
 
   // Logic for contextual personalized subtext
@@ -3453,6 +3502,19 @@ export default function NutritionDashboard() {
               {/* Image Hero Section */}
               <div className="relative w-full h-1/3 sm:h-2/5 shrink-0">
                 <img src={selectedRecipeDetail.image_url || 'https://placehold.co/800x600/111/39FF14?text=Recette'} alt={selectedRecipeDetail.nom} className="absolute inset-0 w-full h-full object-cover" />
+
+                <button onClick={() => {
+                    const shareText = `Je viens de découvrir la recette de ${selectedRecipeDetail.nom} sur l'app NutriAfro ! 🔥 Télécharge l'app pour voir les ingrédients et cuisiner avec moi : https://nutriafro.app`;
+                    if (navigator.share) {
+                        navigator.share({ title: selectedRecipeDetail.nom, text: shareText, url: 'https://nutriafro.app' }).catch(console.error);
+                    } else {
+                        navigator.clipboard.writeText(shareText);
+                        alert("Lien de partage copié !");
+                    }
+                }} className="absolute top-6 right-20 bg-white/20 hover:bg-white text-white hover:text-black p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg border border-white/50">
+                  <Share2 size={20} />
+                </button>
+
                 <button onClick={() => setSelectedRecipeDetail(null)} className="absolute top-6 right-6 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg">
                   <X size={20} />
                 </button>
@@ -4613,10 +4675,12 @@ export default function NutritionDashboard() {
                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-400 opacity-10 blur-[120px]"></div>
             </div>
 
-            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6 relative z-10"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+            <div className="w-full px-6">
+                <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6 relative z-10"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
+             </div>
 
-             <div className="w-full relative z-10">
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
+             <div className="w-full relative z-10 px-6">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-12 h-12 object-contain drop-shadow-md" alt="Galerie" /> GALERIE DE RECETTES</h2>
                 
                 <div className="relative mb-6">
                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
@@ -4646,17 +4710,13 @@ export default function NutritionDashboard() {
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
+                         if (r.is_boutique === true || r.is_product === true) return false;
+                         if (!r.instructions && !r.ingredients) return false;
                          const query = favoriteSearchQuery.toLowerCase();
                          const numericQuery = query.replace(/\D/g, '');
                          const matchSearch = r.nom?.toLowerCase().includes(query) || 
                                              (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) || 
                                              (numericQuery !== "" && r.proteins?.toString().includes(numericQuery));
-
-                         // Exclude raw store products and invalid items
-                         const isProduct = r.is_boutique || r.is_product;
-                         const isInvalid = !r.image_url && !r.instructions && !r.ingredients;
-                         if (isProduct || isInvalid) return false;
-
                          if (!matchSearch) return false;
                          if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
                          if (recipeFilter === 'Populaire') return true;
@@ -4732,36 +4792,39 @@ export default function NutritionDashboard() {
                                </div>
                             )}
 
-                            {/* Center: Grid of smaller recipes (Cols 5-9) with fixed height */}
-                            <div className="col-span-1 lg:col-span-5 max-h-[750px] overflow-y-auto scrollbar-hide grid grid-cols-1 sm:grid-cols-2 gap-4 pb-12">
+                            {/* Center: Grid of smaller recipes (Cols 5-9) */}
+                            <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                {gridRecipes.map(r => renderCard(r, false))}
                             </div>
 
-                            {/* Right: Interactive Widgets (Cols 10-12) */}
+                            {/* Right: Static Widgets (Cols 10-12) */}
                             <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
-                               <button onClick={() => setRecipeFilter('Favoris')} className="bg-white/60 hover:bg-white/90 transition-all backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5 flex flex-col items-center justify-center text-center cursor-pointer group">
-                                   <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-inner">
-                                       <HeartPulse size={32} className="fill-current"/>
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
+                                   <div className="flex flex-col gap-2">
+                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
+                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
+                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
+                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
                                    </div>
-                                   <h3 className="font-black text-black uppercase text-sm mb-1">Mes Favoris</h3>
-                                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{favoriteMeals.length} recettes sauvegardées</p>
-                               </button>
-
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5 relative overflow-hidden group cursor-pointer" onClick={() => handleTabChange('community')}>
-                                   <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783098237/8_v1l6ms.png" className="w-48 h-48 object-contain" />
-                                   </div>
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4 relative z-10"><Users size={16} className="text-blue-500"/> En direct de la communauté</h3>
-                                   <div className="flex flex-col gap-3 relative z-10">
-                                       {stories.slice(0, 3).map((story, idx) => (
-                                          <div key={idx} className="flex items-center gap-3 bg-white/80 p-2 rounded-xl shadow-sm border border-white">
-                                              <img src={story.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.username)}&background=random`} className="w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover" />
-                                              <div>
-                                                  <p className="text-xs font-black text-black line-clamp-1">{story.username}</p>
-                                                  <p className="text-[10px] text-zinc-500 flex items-center gap-1"><Clock size={10}/> Il y a {Math.floor(Math.random() * 5) + 1}h</p>
-                                              </div>
-                                          </div>
-                                       ))}
+                               </div>
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
+                                   <div className="flex flex-col gap-3">
+                                       <div className="flex items-start gap-3">
+                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
+                                           <div>
+                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
+                                           </div>
+                                       </div>
+                                       <div className="flex items-start gap-3">
+                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
+                                           <div>
+                                               <p className="text-xs font-black text-black">Healthy Fats</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
+                                           </div>
+                                       </div>
                                    </div>
                                </div>
                             </div>

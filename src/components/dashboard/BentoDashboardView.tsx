@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import {
     Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
-, Users} from 'lucide-react';
+} from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 
 // Props required for the weaving
