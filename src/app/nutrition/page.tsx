@@ -3673,8 +3673,6 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               setShowDailyReport={setShowDailyReport}
               currentCalories={calories}
               isExpertMode={isExpertMode}
-              todayPlan={todayPlan}
-              generateWeeklyMenu={generateWeeklyMenu}
           />
         )}
 
@@ -4179,7 +4177,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                                        <span className="text-[#39FF14] mt-0.5">●</span> {meal}
                                     </li>
                                  ))}
-                                 {todayPlan?.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
+                                 {(safeWeeklyMenu.find(d => d.day === formattedCurrentDay))?.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
                                     <li className="text-xs font-bold text-green-700 flex items-start gap-2 mt-4">
                                        <PartyPopper size={16} className="text-green-500"/> Recette priorisée pour votre budget serré !
                                     </li>
