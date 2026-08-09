@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf , Users} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf } from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -4651,6 +4651,12 @@ export default function NutritionDashboard() {
                          const matchSearch = r.nom?.toLowerCase().includes(query) || 
                                              (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) || 
                                              (numericQuery !== "" && r.proteins?.toString().includes(numericQuery));
+
+                         // Exclude raw store products and invalid items
+                         const isProduct = r.is_boutique || r.is_product;
+                         const isInvalid = !r.image_url && !r.instructions && !r.ingredients;
+                         if (isProduct || isInvalid) return false;
+
                          if (!matchSearch) return false;
                          if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
                          if (recipeFilter === 'Populaire') return true;
@@ -4690,7 +4696,7 @@ export default function NutritionDashboard() {
                          return (
                          <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
                              <div className="w-full h-full flex flex-col">
-                                 {fav.image_url && <img src={fav.image_url} alt={name} onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'; }} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
+                                 <img src={fav.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt={name} onError={(e) => { e.currentTarget.src = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'; }} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />
                                  <div className="flex justify-between items-start mb-2">
                                      <div className="flex flex-col">
                                          {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
@@ -4726,39 +4732,36 @@ export default function NutritionDashboard() {
                                </div>
                             )}
 
-                            {/* Center: Grid of smaller recipes (Cols 5-9) */}
-                            <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Center: Grid of smaller recipes (Cols 5-9) with fixed height */}
+                            <div className="col-span-1 lg:col-span-5 max-h-[750px] overflow-y-auto scrollbar-hide grid grid-cols-1 sm:grid-cols-2 gap-4 pb-12">
                                {gridRecipes.map(r => renderCard(r, false))}
                             </div>
 
-                            {/* Right: Static Widgets (Cols 10-12) */}
+                            {/* Right: Interactive Widgets (Cols 10-12) */}
                             <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
-                                   <div className="flex flex-col gap-2">
-                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
-                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
-                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
-                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
+                               <button onClick={() => setRecipeFilter('Favoris')} className="bg-white/60 hover:bg-white/90 transition-all backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5 flex flex-col items-center justify-center text-center cursor-pointer group">
+                                   <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-inner">
+                                       <HeartPulse size={32} className="fill-current"/>
                                    </div>
-                               </div>
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
-                                   <div className="flex flex-col gap-3">
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
-                                           </div>
-                                       </div>
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Healthy Fats</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
-                                           </div>
-                                       </div>
+                                   <h3 className="font-black text-black uppercase text-sm mb-1">Mes Favoris</h3>
+                                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{favoriteMeals.length} recettes sauvegardées</p>
+                               </button>
+
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5 relative overflow-hidden group cursor-pointer" onClick={() => handleTabChange('community')}>
+                                   <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783098237/8_v1l6ms.png" className="w-48 h-48 object-contain" />
+                                   </div>
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4 relative z-10"><Users size={16} className="text-blue-500"/> En direct de la communauté</h3>
+                                   <div className="flex flex-col gap-3 relative z-10">
+                                       {stories.slice(0, 3).map((story, idx) => (
+                                          <div key={idx} className="flex items-center gap-3 bg-white/80 p-2 rounded-xl shadow-sm border border-white">
+                                              <img src={story.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.username)}&background=random`} className="w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover" />
+                                              <div>
+                                                  <p className="text-xs font-black text-black line-clamp-1">{story.username}</p>
+                                                  <p className="text-[10px] text-zinc-500 flex items-center gap-1"><Clock size={10}/> Il y a {Math.floor(Math.random() * 5) + 1}h</p>
+                                              </div>
+                                          </div>
+                                       ))}
                                    </div>
                                </div>
                             </div>
