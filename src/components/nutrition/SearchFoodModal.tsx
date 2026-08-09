@@ -24,16 +24,17 @@ interface SearchFoodModalProps {
   setReportData: (data: any) => void;
   waterGlasses: number;
   newlyCompletedGaugesCheck: (c?: number, p?: number, cb?: number, w?: number) => void; // Helper to run after optimistic updates
+  editingMeal?: any;
 }
 
 export function SearchFoodModal({
   isOpen, onClose, dietMode, mealType, clientProfile,
   currentCalories, currentProteins, currentCarbs, currentFats,
   setCalories, setProteins, setCarbs, setFats, reportData, setReportData,
-  waterGlasses, newlyCompletedGaugesCheck
+  waterGlasses, newlyCompletedGaugesCheck, editingMeal
 }: SearchFoodModalProps) {
   const isExpert = dietMode === 'expert';
-  const { addConsumedMeal } = useNutritionStore();
+  const { addConsumedMeal, removeConsumedMeal } = useNutritionStore();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -44,13 +45,34 @@ export function SearchFoodModal({
 
   useEffect(() => {
     if (isOpen) {
-      setQuery("");
-      setResults([]);
-      setSelectedFood(null);
-      setQuantity(1);
-      setGramQuantity(100);
+      if (editingMeal) {
+         setQuery("");
+         setResults([]);
+         // Fake a selected food structure
+         setSelectedFood({
+             nom: editingMeal.name,
+             calories_100g: editingMeal.cals, // fallback logic
+             proteins_100g: editingMeal.prots,
+             carbs_100g: editingMeal.carbs,
+             fats_100g: editingMeal.fats,
+             image_url: editingMeal.photo_url,
+             visual_equivalences: { portion: 100, default_measure: 'portion' }
+         });
+         // Try to parse quantity
+         if (isExpert && typeof editingMeal.ux_unit === 'string' && editingMeal.ux_unit.includes('g')) {
+             setGramQuantity(Number(editingMeal.ux_unit.replace('g', '')));
+         } else {
+             setQuantity(Number(editingMeal.ux_unit?.split(' ')[0]) || 1);
+         }
+      } else {
+          setQuery("");
+          setResults([]);
+          setSelectedFood(null);
+          setQuantity(1);
+          setGramQuantity(100);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingMeal, isExpert]);
 
   const handleSearch = async (val: string) => {
     setQuery(val);
@@ -130,11 +152,25 @@ export function SearchFoodModal({
       };
 
       // Optimistic UI Update
+      let finalCals = currentCalories + cals;
+      let finalProts = currentProteins + prots;
+      let finalCarbs = currentCarbs + carbs;
+      let finalFats = currentFats + fats;
+
+      if (editingMeal) {
+          removeConsumedMeal(editingMeal.id);
+          finalCals = Math.max(0, finalCals - (editingMeal.cals || 0));
+          finalProts = Math.max(0, finalProts - (editingMeal.prots || 0));
+          finalCarbs = Math.max(0, finalCarbs - (editingMeal.carbs || 0));
+          finalFats = Math.max(0, finalFats - (editingMeal.fats || 0));
+      }
+
       addConsumedMeal(newConsumedItem);
-      const newCals = currentCalories + cals;
-      const newProts = currentProteins + prots;
-      const newCarbs = currentCarbs + carbs;
-      const newFats = currentFats + fats;
+
+      const newCals = finalCals;
+      const newProts = finalProts;
+      const newCarbs = finalCarbs;
+      const newFats = finalFats;
 
       setCalories(newCals);
       setProteins(newProts);
@@ -184,7 +220,7 @@ export function SearchFoodModal({
         <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
             <X size={20} />
         </button>
-        <h2 className="text-2xl font-black uppercase mb-6 pr-10">Ajouter un aliment</h2>
+        <h2 className="text-2xl font-black uppercase mb-6 pr-10">{editingMeal ? 'Modifier un aliment' : 'Ajouter un aliment'}</h2>
 
         {!selectedFood ? (
             <>
@@ -275,7 +311,7 @@ export function SearchFoodModal({
                </div>
 
                <button onClick={handleAdd} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">
-                   <Plus size={18}/> Ajouter ce repas
+                   <Plus size={18}/>{editingMeal ? 'Modifier ce repas' : 'Ajouter ce repas'}
                </button>
             </div>
         )}
