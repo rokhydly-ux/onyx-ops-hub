@@ -842,34 +842,17 @@ export default function NutritionDashboard() {
                     setStories(DEFAULT_SEED_STORIES);
                 }
 
-                // Fetch Active Challenge
-                const { data: challenges } = await supabase
-                    .from('nutrition_challenges')
-                    .select('*')
-                    .eq('status', 'active')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-
-                if (challenges && challenges.length > 0) {
-                    setActiveChallenge(challenges[0]);
-                    const { count } = await supabase
-                        .from('nutrition_challenge_participants')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('challenge_id', challenges[0].id);
-                    setChallengeParticipants(count || 0);
-                } else {
-                    // Fallback Seed Challenge
-                    setActiveChallenge({
-                        id: 'seed-challenge-1',
-                        title: '30 Jours Détox Sans Sucre',
-                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
-                        badge_name: 'Jongoma Détox',
-                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
-                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
-                        xp_reward: 100
-                    });
-                    setChallengeParticipants(27450);
-                }
+                // Challenge removed as per instructions to prevent 400 error spam
+                setActiveChallenge({
+                    id: 'seed-challenge-1',
+                    title: '30 Jours Détox Sans Sucre',
+                    description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
+                    badge_name: 'Jongoma Détox',
+                    cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
+                    reward_xp: 500,
+                    duration_days: 30
+                });
+                setChallengeParticipants(128);
 
                 // Fetch Foods
                 const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');

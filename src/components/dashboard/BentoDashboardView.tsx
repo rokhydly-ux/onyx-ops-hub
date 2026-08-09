@@ -18,9 +18,11 @@ interface BentoDashboardViewProps {
     setActiveTab: (tab: string) => void;
     handleMealClick?: (meal: any) => void;
     setShowDailyReport: (show: boolean) => void;
+    currentCalories: number;
+    isExpertMode?: boolean;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, currentCalories, isExpertMode = true }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
