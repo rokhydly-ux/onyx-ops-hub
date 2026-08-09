@@ -3758,6 +3758,11 @@ export default function NutritionDashboard() {
               handleUpdateWater={handleUpdateWater}
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
+              calories={calories}
+              proteins={proteins}
+              carbs={carbs}
+              fats={fats}
+              consumedMeals={consumedMeals}
               weightLogs={weightLogs}
               setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
@@ -3972,7 +3977,7 @@ export default function NutritionDashboard() {
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
                                <Droplet size={10} className="fill-blue-500"/> Objectif Eau
                             </p>
-                            <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
+                            <p className="text-xl font-black text-black mb-1">{waterGlasses * 300} ml <span className="text-sm text-zinc-500">/ 2400 ml</span></p>
                             <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
                                 {waterGlasses === 0 && [
                                     "L'eau booste votre métabolisme de 30% en 10 min.",
@@ -5074,49 +5079,29 @@ export default function NutritionDashboard() {
 
         {activeTab === 'history' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             {/* NOUVELLE SECTION BADGES 3D */}
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm mb-8 w-full mt-6">
+                <h3 className="text-xl font-black uppercase text-black mb-6 flex items-center gap-2"><Trophy className="text-yellow-500" size={24}/> Mes Badges & Trophées</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full">
+                   {[
+                     { id: 'Force Baobab', xp: 0, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png' },
+                     { id: 'Maître du Fonio', xp: 100, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png' },
+                     { id: 'Lekkologue Or', xp: 500, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png' },
+                     { id: 'Légende', xp: 1000, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png' }
+                   ].map(badge => {
+                     const isUnlocked = jongomaXP >= badge.xp;
+                     return (
+                       <div key={badge.id} className={`flex flex-col items-center justify-center p-4 rounded-3xl border-2 transition-all duration-300 relative ${isUnlocked ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-400 shadow-md' : 'bg-zinc-50 border-zinc-200 opacity-60 grayscale'}`}>
+                         {!isUnlocked && <Lock size={16} className="absolute top-4 right-4 text-zinc-400"/>}
+                         <img src={badge.img} className="w-20 h-20 md:w-28 md:h-28 object-contain mb-4 drop-shadow-xl" alt={badge.id} />
+                         <span className={`text-[11px] font-black uppercase text-center leading-tight tracking-widest ${isUnlocked ? 'text-orange-600' : 'text-zinc-500'}`}>{badge.id}</span>
+                         <span className={`text-[9px] font-bold uppercase mt-1 ${isUnlocked ? 'text-yellow-600' : 'text-zinc-400'}`}>{isUnlocked ? 'Débloqué' : `${badge.xp} XP Requis`}</span>
+                       </div>
+                     )
+                   })}
+                </div>
+             </div>
 
-            {/* BADGES ET GAMIFICATION */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-               <div>
-                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
-                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
-                  <div className="flex gap-2">
-                     {Array.from({length: 7}, (_, i) => {
-                        const d = new Date();
-                        d.setDate(d.getDate() - (6 - i));
-                        const dateStr = d.toISOString().split('T')[0];
-                        const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
-                        return (
-                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
-                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
-                           </div>
-                        );
-                     })}
-                  </div>
-               </div>
-               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
-                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
-                     <span className="text-2xl mb-2">🌱</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">💎</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">🌟</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <Award size={28} className="mb-2" />
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
-                  </div>
-               </div>
-            </div>
 
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
@@ -5126,7 +5111,7 @@ export default function NutritionDashboard() {
                <div className="grid md:grid-cols-2 gap-8">
                   {/* GRAPHIQUE : Hydratation */}
                   <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (ml)</h3>
                      <div className="flex items-end justify-between h-40 gap-2">
                         {Array.from({length: 7}, (_, i) => {
                            const d = new Date();
