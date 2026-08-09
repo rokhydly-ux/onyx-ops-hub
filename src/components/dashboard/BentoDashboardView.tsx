@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 import {
     Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
-, Users} from 'lucide-react';
+, Users, Sparkles} from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 
 // Props required for the weaving
 interface BentoDashboardViewProps {
+    todayPlan?: any;
+    generateWeeklyMenu?: () => void;
+    currentCalories?: number;
+    isExpertMode?: boolean;
     user: any;
     waterGlasses: number;
     handleUpdateWater: (delta: number) => void;
@@ -172,17 +176,17 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                     </div>
                 </div>
 
-                                {/* Widget Coach Personnel */}
+                {/* Widget Coach Personnel */}
                 <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between min-h-[300px]">
-                    <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => setActiveTab('coaching')}>
+                    <div className="flex items-center gap-3 mb-4">
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png" className="w-12 h-12 rounded-full object-cover bg-zinc-100" alt="Coach Rokhy" />
                         <div>
-                            <p className="text-sm font-bold text-black group-hover:text-[#39FF14] transition-colors">Coach Rokhy</p>
+                            <p className="text-sm font-bold text-black">Coach Rokhy</p>
                             <p className="text-[10px] text-[#39FF14] font-bold uppercase tracking-widest flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse"></span> En ligne</p>
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-zinc-50 rounded-xl p-4 mb-4 overflow-y-auto space-y-3 border border-zinc-100 cursor-pointer" onClick={() => setActiveTab('coaching')}>
+                    <div className="flex-1 bg-zinc-50 rounded-xl p-4 mb-4 overflow-y-auto space-y-3 border border-zinc-100">
                         <div className="bg-black text-white text-xs p-3 rounded-2xl rounded-tl-sm w-fit max-w-[85%] shadow-sm">
                             Salut ! T'as bien mangé ton Thiéboudienne ce midi ? Pense à faire léger ce soir, un petit bouillon fera l'affaire.
                         </div>
@@ -193,11 +197,10 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             type="text"
                             value={coachInput}
                             onChange={(e) => setCoachInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { setActiveTab('coaching'); } }}
                             placeholder="Message Rokhy ou Doc..."
                             className="w-full bg-zinc-50 border border-zinc-200 rounded-full py-3 pl-4 pr-12 text-xs text-black outline-none focus:border-[#39FF14] transition-colors placeholder:text-zinc-400"
                         />
-                        <button onClick={() => setActiveTab('coaching')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-sm relative z-10">
+                        <button className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-sm">
                             <Send size={14} />
                         </button>
                     </div>
@@ -208,44 +211,47 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 <div className="col-span-1 lg:col-span-8 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6">
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sama Menu du Jour</p>
-                        <button className="text-[10px] text-black font-bold uppercase tracking-widest hover:text-[#39FF14] transition-colors">Voir la semaine</button>
+                        <button onClick={() => setActiveTab('week')} className="text-[10px] text-black font-bold uppercase tracking-widest hover:text-[#39FF14] transition-colors cursor-pointer relative z-10">Voir la semaine</button>
                     </div>
 
                     <div className="space-y-3">
-                        {/* Repas 1 */}
-                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
-                            <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781222471/Bouillie_de_mil_r2zihq.jpg" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Petit-Déjeuner • 08:00</p>
-                                <p className="text-sm font-black text-black mt-0.5">Fondé & Lait caillé</p>
-                            </div>
-                            <div className="text-right pr-2">
-                                <p className="text-lg font-black text-[#39FF14]">350</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
-                            </div>
-                        </div>
+                        {(!todayPlan || !todayPlan.meals || Object.keys(todayPlan.meals).length === 0) ? (
+                             <div className="flex flex-col items-center justify-center p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
+                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-16 h-16 object-contain mb-4" />
+                                 <button onClick={() => generateWeeklyMenu && generateWeeklyMenu()} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-sm flex items-center gap-2">
+                                     Planifier mon assiette gourmande
+                                 </button>
+                             </div>
+                        ) : (
+                            Object.entries(todayPlan.meals).map(([mealType, meal]: [string, any]) => {
+                                let defaultTime = "12:00";
+                                if (mealType === 'Petit-Déjeuner') defaultTime = "08:00";
+                                if (mealType === 'Déjeuner') defaultTime = "13:30";
+                                if (mealType === 'Dîner') defaultTime = "20:00";
+                                if (mealType === 'Collation') defaultTime = "16:00";
 
-                        {/* Repas 2 */}
-                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
-                            <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Déjeuner • 13:30</p>
-                                <p className="text-sm font-black text-black mt-0.5">Thiéboudienne Rouge Penda Mbaye</p>
-                            </div>
-                            <div className="text-right pr-2">
-                                <p className="text-lg font-black text-[#39FF14]">850</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
-                            </div>
-                        </div>
+                                return (
+                                    <div key={mealType} onClick={() => handleMealClick && handleMealClick(meal)} className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer relative z-10 group shadow-sm">
+                                        <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
+                                            <img src={meal.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{mealType} • {defaultTime}</p>
+                                            <p className="text-sm font-black text-black mt-0.5 line-clamp-1">{meal.nom || 'Repas'}</p>
+                                        </div>
+                                        <div className="text-right pr-2">
+                                            <p className="text-lg font-black text-[#39FF14]">{meal.calories || meal.kcal || meal.energy || 0}</p>
+                                            <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
 
                 {/* Feed Communautaire */}
-                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col max-h-[400px]">
+                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col max-h-[400px] animate-neon-pulse">
                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 shrink-0">Communauté</p>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
