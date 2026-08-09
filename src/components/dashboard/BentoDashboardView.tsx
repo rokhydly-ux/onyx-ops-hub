@@ -17,15 +17,11 @@ interface BentoDashboardViewProps {
     weightLogs: any[];
     setActiveTab: (tab: string) => void;
     handleMealClick?: (meal: any) => void;
-    calories: number;
-    proteins: number;
-    carbs: number;
-    fats: number;
-    consumedMeals?: any[];
     setShowDailyReport: (show: boolean) => void;
+    currentCalories: number;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [] }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, currentCalories }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
@@ -91,7 +87,8 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <div className="relative z-20 flex flex-col h-full justify-between">
                             <div className="flex justify-between items-start cursor-pointer" onClick={() => setActiveTab('today')}>
                                 <div>
-                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Hydratation</p>
+                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Hydratation (2.5L / Jour)</p>
+                                    <p className="text-[9px] font-bold text-blue-500 tracking-widest uppercase mb-1">{(waterGlasses * 312.5).toFixed(0)} ml bus</p>
                                     <p className="text-[9px] font-medium text-zinc-400 max-w-[80%] leading-tight">{dailyWaterTip}</p>
                                 </div>
                                 <Droplet size={16} className="text-blue-400 shrink-0" />
@@ -140,23 +137,23 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <div className="relative w-32 h-32 rounded-full border-8 border-zinc-100 flex items-center justify-center">
                             <div className="absolute inset-0 rounded-full border-8 border-[#39FF14] border-t-transparent border-r-transparent rotate-45"></div>
                             <div className="text-center">
-                                <p className="text-2xl font-black text-black">{calories}</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">/ {clientProfile?.daily_calorie_goal || 1500} Kcal</p>
+                                <p className="text-2xl font-black text-black">{currentCalories}</p>
+                                <p className="text-[10px] text-zinc-500 uppercase">/ {clientProfile?.diagnostic_data?.daily_calorie_goal || clientProfile?.daily_calorie_goal || 1500} Kcal</p>
                             </div>
                         </div>
 
                         {/* Macros */}
                         <div className="flex-1 w-full space-y-4">
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Protéines</span><span className="text-zinc-500">{proteins} / {clientProfile?.protein_goal || 80}g</span></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Protéines</span><span className="text-zinc-500">45 / {clientProfile?.protein_goal || 80}g</span></div>
                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-blue-400 w-1/2"></div></div>
                             </div>
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Glucides</span><span className="text-zinc-500">{carbs} / {clientProfile?.carbs_goal || 150}g</span></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Glucides</span><span className="text-zinc-500">120 / {clientProfile?.carbs_goal || 150}g</span></div>
                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-yellow-400 w-3/4"></div></div>
                             </div>
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Lipides</span><span className="text-zinc-500">{fats} / {clientProfile?.fats_goal || 50}g</span></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Lipides</span><span className="text-zinc-500">30 / {clientProfile?.fats_goal || 50}g</span></div>
                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-red-400 w-1/3"></div></div>
                             </div>
                         </div>
