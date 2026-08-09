@@ -286,7 +286,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             </div>
                             <p className="text-xs text-zinc-600 mb-2 leading-relaxed">Mon Ndambé allégé de ce matin, une tuerie !</p>
                             <div className="w-full h-24 bg-zinc-100 rounded-xl mb-3 overflow-hidden border border-zinc-100">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781223916/Ndambe_qeq2d8.jpg" className="w-full h-full object-cover" />
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex gap-4">
                                 <button className="flex items-center gap-1 text-[10px] font-bold text-pink-500"><Heart size={12} className="fill-pink-500"/> 112</button>
