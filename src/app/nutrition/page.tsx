@@ -1691,15 +1691,6 @@ export default function NutritionDashboard() {
   const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
   const [recipeFilter, setRecipeFilter] = useState("Tous");
 
-  // Immersive Recipe Modal
-  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<any>(null);
-  const [recipeDetailTab, setRecipeDetailTab] = useState<'apercu'|'ingredients'|'preparation'|'avis'>('apercu');
-  const [recipeReviews, setRecipeReviews] = useState<any[]>([]);
-  const [userRating, setUserRating] = useState(5);
-  const [userComment, setUserComment] = useState('');
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
-
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{
     title: string;
@@ -2391,7 +2382,7 @@ export default function NutritionDashboard() {
             twitter: activeProfile.twitter || "",
           }));
 
-          // Fetch follower count & related notifications conditionally
+          // Fetch follower count
           if (activeProfile.id) {
             const { count } = await supabase
               .from("nutrition_followers")
@@ -6307,11 +6298,6 @@ export default function NutritionDashboard() {
               handleUpdateWater={handleUpdateWater}
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
-              calories={calories}
-              proteins={proteins}
-              carbs={carbs}
-              fats={fats}
-              consumedMeals={consumedMeals}
               weightLogs={weightLogs}
               setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
