@@ -4722,8 +4722,9 @@ const currentHour = new Date().getHours();
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
-                         if (r.is_boutique === true || r.is_product === true) return false;
-                         if (!r.instructions && !r.ingredients) return false;
+                         if (r.is_boutique === true || r.is_boutique === 'true' || r.is_product === true || r.is_product === 'true') return false;
+                         // Relaxing the strict filter: Only filter if it's explicitly a raw product without preparation
+                         if (!r.instructions && !r.ingredients && !r.type) return false;
                          const query = favoriteSearchQuery.toLowerCase();
                          const numericQuery = query.replace(/\D/g, '');
                          const matchSearch = r.nom?.toLowerCase().includes(query) || 
