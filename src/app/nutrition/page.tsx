@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter , LayoutDashboard, Users} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter , LayoutDashboard} from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -360,7 +360,6 @@ const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: a
           onClose={() => setIsSearchModalOpen(false)}
           dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
           mealType={activeMealType}
-          editingMeal={editingMeal}
           clientProfile={clientProfile}
           currentCalories={calories}
           currentProteins={proteins}
@@ -438,9 +437,8 @@ export default function NutritionDashboard() {
   
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
-    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState('Collation');
-  const [editingMeal, setEditingMeal] = useState<any>(null);
   const [offResults, setOffResults] = useState<any[]>([]);
   const [isSearchingOFF, setIsSearchingOFF] = useState(false);
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
@@ -1257,9 +1255,10 @@ export default function NutritionDashboard() {
   };
 
   const getJongomaLevel = (xp: number) => {
-      if (xp >= 2000) return { name: "Star Nutrition", badge: "🌟", desc: "Code promo boutique débloqué !" };
-      if (xp >= 500) return { name: "Adhérente", badge: "💎", desc: "Badge de profil débloqué" };
-      return { name: "Novice", badge: "🌱", desc: "En apprentissage" };
+      if (xp >= 1000) return { name: "Légende", badge: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png", desc: "Le rang ultime" };
+      if (xp >= 500) return { name: "Lekkologue Or", badge: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png", desc: "Maîtrise la nutrition" };
+      if (xp >= 100) return { name: "Maître du Fonio", badge: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png", desc: "En bonne voie" };
+      return { name: "Force Baobab", badge: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png", desc: "Débutant(e)" };
   };
 
   const fetchLeaderboard = async () => {
@@ -3660,7 +3659,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
             
             <div className="flex flex-wrap items-center gap-4">
                <div className={`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
-                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}`}>{lvlInfo.badge}</div>
+                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}`}><img src={lvlInfo.badge} alt={lvlInfo.name} className="w-8 h-8 object-contain" /></div>
                   <div>
                      <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Niveau : <span className="text-zinc-800">{lvlInfo.name}</span></p>
                      <p className="text-black text-xs font-black">{jongomaXP} XP</p>
@@ -3842,7 +3841,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform w-full">➕ Loguer</button>
                                                    <div className="flex gap-1">
                                                       <button onClick={(e) => { e.stopPropagation(); const dIdx = weeklyGeneratedMenu.findIndex(d => d.day === formattedCurrentDay); if(dIdx>=0) handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
-                                                      <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setEditingMeal(null); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
+                                                      <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
                                                    </div>
                                                 </div>
                                              ) : (
@@ -3875,7 +3874,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                      {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                          const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
                          return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setActiveMealType(mealType); setEditingMeal(null); setIsSearchModalOpen(true); }}>
+                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setActiveMealType(mealType); setIsSearchModalOpen(true); }}>
                              <div className="flex justify-between items-center">
                                  <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
                                  <button className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -3885,7 +3884,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                              {loggedMeals.length > 0 && (
                                  <div className="mt-2 space-y-1">
                                     {loggedMeals.map((m: any, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 cursor-pointer hover:border-[#39FF14] transition-colors" onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setEditingMeal(m); setIsSearchModalOpen(true); }}>
+                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 cursor-default" onClick={(e) => e.stopPropagation()}>
                                            <span className="text-xs font-bold text-[#39FF14] truncate">{m.name} <span className="text-[10px] text-zinc-400 font-normal">({m.ux_unit || m.time})</span></span>
 
                                            <div className="flex items-center gap-3 shrink-0">
@@ -3924,8 +3923,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
                                <Droplet size={10} className="fill-blue-500"/> Objectif Eau (2.5L)
                             </p>
-                            <p className="text-xl font-black text-black mb-0 leading-none">{waterGlasses} <span className="text-sm text-zinc-500">/ 8 Btlls</span></p>
-                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">{(waterGlasses * 312.5).toFixed(0)} ml</p>
+                            <p className="text-xl font-black text-black mb-1">{waterGlasses} <span className="text-sm text-zinc-500">/ 8</span></p>
                             <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
                                 {waterGlasses === 0 && [
                                     "L'eau booste votre métabolisme de 30% en 10 min.",
@@ -4096,7 +4094,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                                              {!isConsumed && isToday && (
                                                 <div className="flex gap-1">
                                                    <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
-                                                   <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setEditingMeal(null); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
+                                                   <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
                                                 </div>
                                              )}
                                              {isConsumed && isToday && (
@@ -4440,18 +4438,67 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
              </div>
 
              {/* Mes Badges */}
-             {earnedBadges.length > 0 && (
-                 <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
-                    <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
-                    <div className="flex flex-wrap gap-4">
-                        {earnedBadges.map((badge, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 px-4 py-2 rounded-xl text-yellow-700 dark:text-yellow-400 font-poppins-bold shadow-sm">
-                                <span className="text-xl leading-none">🏅</span> {badge}
-                            </div>
-                        ))}
+             {(() => {
+                const userXP = clientProfile?.diagnostic_data?.xp || clientProfile?.jongoma_xp || clientProfile?.nutrition_profiles?.jongoma_xp || 0;
+
+                const BADGES = [
+                    {
+                        name: "Force Baobab",
+                        threshold: 0,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png"
+                    },
+                    {
+                        name: "Maître du Fonio",
+                        threshold: 100,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png"
+                    },
+                    {
+                        name: "Lekkologue Or",
+                        threshold: 500,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png"
+                    },
+                    {
+                        name: "Légende",
+                        threshold: 1000,
+                        url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png"
+                    }
+                ];
+
+                return (
+                    <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+                        <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2">
+                            <Trophy className="text-yellow-500"/> Mes Badges
+                        </h3>
+
+                        <div className="flex flex-row overflow-x-auto scrollbar-hide gap-4 pb-4">
+                            {BADGES.map((badge, index) => {
+                                const isUnlocked = userXP >= badge.threshold;
+                                const pointsNeeded = badge.threshold - userXP;
+
+                                return (
+                                    <div key={index} className="flex-shrink-0 w-36 sm:w-44 flex flex-col items-center bg-white/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm text-center">
+                                        <div className="relative mb-3 h-20 sm:h-24 flex items-center justify-center">
+                                            <img
+                                                src={badge.url}
+                                                alt={badge.name}
+                                                className={`w-full h-full object-contain transition-all duration-300 ${isUnlocked ? 'drop-shadow-xl' : 'opacity-50 grayscale'}`}
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                        <h4 className="font-poppins-bold text-sm sm:text-base text-zinc-900 dark:text-white mb-1 leading-tight">{badge.name}</h4>
+
+                                        {isUnlocked ? (
+                                            <span className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest bg-[#39FF14]/10 px-2 py-1 rounded-md">Débloqué</span>
+                                        ) : (
+                                            <span className="text-[10px] font-bold text-zinc-500">Plus que {pointsNeeded} XP</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                 </div>
-             )}
+                );
+             })()}
 
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>
@@ -6292,6 +6339,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                            <img src={leaderboardData[1].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[1].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
                            <div className="absolute -bottom-1 -right-1 bg-zinc-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">2</div>
                         </div>
+                        <div className="z-10 -mt-3 mb-1"><img src={getJongomaLevel(leaderboardData[1].xp).badge} className="w-6 h-6 drop-shadow-md" alt="Badge" /></div>
                         <div className="bg-zinc-100 w-20 h-24 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-zinc-300">
                            <span className="text-[10px] font-bold mt-1 text-zinc-500">{leaderboardData[1].xp} XP</span>
                         </div>
@@ -6304,6 +6352,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                            <img src={leaderboardData[0].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[0].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
                            <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white">1</div>
                         </div>
+                        <div className="z-10 -mt-4 mb-2"><img src={getJongomaLevel(leaderboardData[0].xp).badge} className="w-8 h-8 drop-shadow-lg" alt="Badge" /></div>
                         <div className="bg-yellow-50 w-24 h-32 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-yellow-400">
                            <span className="text-xs font-black mt-1 text-yellow-600">{leaderboardData[0].xp} XP</span>
                         </div>
@@ -6316,6 +6365,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                            <img src={leaderboardData[2].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[2].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
                            <div className="absolute -bottom-1 -right-1 bg-orange-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">3</div>
                         </div>
+                        <div className="z-10 -mt-3 mb-1"><img src={getJongomaLevel(leaderboardData[2].xp).badge} className="w-6 h-6 drop-shadow-md" alt="Badge" /></div>
                         <div className="bg-orange-50 w-20 h-20 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-orange-400">
                            <span className="text-[10px] font-bold mt-1 text-orange-600">{leaderboardData[2].xp} XP</span>
                         </div>
@@ -7581,7 +7631,6 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
           onClose={() => setIsSearchModalOpen(false)}
           dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
           mealType={activeMealType}
-          editingMeal={editingMeal}
           clientProfile={clientProfile}
           currentCalories={calories}
           currentProteins={proteins}
