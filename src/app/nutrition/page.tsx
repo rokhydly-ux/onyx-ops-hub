@@ -3709,6 +3709,8 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               setShowDailyReport={setShowDailyReport}
               currentCalories={calories}
               isExpertMode={isExpertMode}
+              todayPlan={todayPlan}
+              generateWeeklyMenu={generateWeeklyMenu}
           />
         )}
 
