@@ -172,17 +172,17 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                     </div>
                 </div>
 
-                {/* Widget Coach Personnel */}
+                                {/* Widget Coach Personnel */}
                 <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between min-h-[300px]">
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => setActiveTab('coaching')}>
                         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png" className="w-12 h-12 rounded-full object-cover bg-zinc-100" alt="Coach Rokhy" />
                         <div>
-                            <p className="text-sm font-bold text-black">Coach Rokhy</p>
+                            <p className="text-sm font-bold text-black group-hover:text-[#39FF14] transition-colors">Coach Rokhy</p>
                             <p className="text-[10px] text-[#39FF14] font-bold uppercase tracking-widest flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse"></span> En ligne</p>
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-zinc-50 rounded-xl p-4 mb-4 overflow-y-auto space-y-3 border border-zinc-100">
+                    <div className="flex-1 bg-zinc-50 rounded-xl p-4 mb-4 overflow-y-auto space-y-3 border border-zinc-100 cursor-pointer" onClick={() => setActiveTab('coaching')}>
                         <div className="bg-black text-white text-xs p-3 rounded-2xl rounded-tl-sm w-fit max-w-[85%] shadow-sm">
                             Salut ! T'as bien mangé ton Thiéboudienne ce midi ? Pense à faire léger ce soir, un petit bouillon fera l'affaire.
                         </div>
@@ -193,10 +193,11 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             type="text"
                             value={coachInput}
                             onChange={(e) => setCoachInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { setActiveTab('coaching'); } }}
                             placeholder="Message Rokhy ou Doc..."
                             className="w-full bg-zinc-50 border border-zinc-200 rounded-full py-3 pl-4 pr-12 text-xs text-black outline-none focus:border-[#39FF14] transition-colors placeholder:text-zinc-400"
                         />
-                        <button className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-sm">
+                        <button onClick={() => setActiveTab('coaching')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-sm relative z-10">
                             <Send size={14} />
                         </button>
                     </div>
