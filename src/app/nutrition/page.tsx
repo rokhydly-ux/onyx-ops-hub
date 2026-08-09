@@ -3538,8 +3538,8 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                     <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt=""/> Mon Jour</button>
-                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt=""/> Historique</button>
+                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Mon Jour</button>
+                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Historique</button>
                     <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
                 </div>
             </div>
@@ -3549,7 +3549,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                     <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt=""/> Sama Menu</button>
+                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Sama Menu</button>
                     <button onClick={() => handleTabChange('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
                 </div>
             </div>
@@ -3560,16 +3560,16 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
                     <button onClick={() => handleTabChange('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
-                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt=""/> Coaching</button>
-                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt=""/> Doc & Astuces</button>
-                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt=""/> Fitness</button>
+                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Coaching</button>
+                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Doc & Astuces</button>
+                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Fitness</button>
                     <button onClick={() => handleTabChange('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
 
                 </div>
             </div>
 
 <button onClick={() => handleTabChange('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
-                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt=""/> Boutique
+                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Boutique
                 </button>
         </div>
 
@@ -3720,7 +3720,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                <div className="flex items-center gap-4">
-                  <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" />
+                  <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                   <div>
                      <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Mon Jour</h2>
                      <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
@@ -3741,7 +3741,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               <div className="lg:col-span-1 flex flex-col gap-6">
                 {/* 1. Le Pie Chart (Calories/Macros) ici */}
                 <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center">
-                   <div className="relative w-40 h-40 shrink-0 mb-6">
+                   <div className="relative w-40 h-40 shrink-0 mb-6 min-h-[160px] min-w-[160px]">
                       <ResponsiveContainer width="100%" height="100%">
                          <PieChart>
                             <Pie data={[{name: 'Consommé', value: calories}, {name: 'Restant', value: remainingCalories}]} cx="50%" cy="50%" innerRadius={50} outerRadius={70} stroke="none" startAngle={90} endAngle={-270}>
@@ -3991,7 +3991,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                   {crossSellProducts.slice(0,3).map((p: any) => (
                      <div key={p.id} className="bg-zinc-50 border border-zinc-200 rounded-3xl overflow-hidden flex flex-col group cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => handleTabChange('shop')}>
                         <div className="h-40 w-full relative">
-                            <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={p.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <div className="p-4 flex flex-col flex-1">
                            <p className="text-sm font-black text-black group-hover:text-[#39FF14] transition-colors line-clamp-1">{p.nom}</p>
@@ -4014,7 +4014,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                   <div className="flex items-center gap-4">
-                     <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" />
+                     <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                      <div>
                         <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Sama Menu</h2>
                         <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
@@ -4169,7 +4169,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
             {/* SECTION MENUS DE LA SEMAINE */}
             <section className="mt-12">
                <div className="flex items-center gap-3 mb-8">
-                  <img src={MENU_ICONS.samaMenu} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="Sama Menu" />
+                  <img src={MENU_ICONS.samaMenu} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="Sama Menu" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Vos Menus Sur-Mesure</h2>
                </div>
 
@@ -4702,7 +4702,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
               <div className="flex items-center gap-4 mb-8">
-                 <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" />
+                 <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                  <div>
                     <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Onyx</h2>
                     <p className="text-zinc-500 font-bold text-sm mt-1">Super-aliments & Équipements</p>
@@ -4787,7 +4787,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                        {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 6).map(product => (
                           <div key={product.id} onClick={() => openProductModal(product)} className={`flex-[0_0_auto] w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm mr-4`}>
                            <div className="aspect-square rounded-2xl bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-4 relative">
-                              <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              <img src={product.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                               <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg">New</span>
                                  {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
                            </div>
@@ -5105,7 +5105,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
             {/* LISTE DES BILANS */}
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" /> Historique des Bilans</h2>
+                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Historique des Bilans</h2>
                  <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
                     <Download size={14}/> Exporter (PDF)
                  </button>
@@ -5185,7 +5185,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
 
                   {selectedArticle.image_url && (
                     <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm">
-                      <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
+                      <img src={selectedArticle.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={selectedArticle.title} className="w-full h-full object-cover" />
                     </div>
                   )}
 
@@ -5232,7 +5232,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                          <div key={article.id} onClick={() => handleArticleClick(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
                             {article.image_url && (
                                <div className="overflow-hidden rounded-[2rem] mb-4">
-                                  <img src={article.image_url} alt={article.title} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500" />
+                                  <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={article.title} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500" />
                                </div>
                             )}
                             <div className="flex gap-2 mb-3">
@@ -5352,7 +5352,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                   <div key={article.id} onClick={() => handleArticleClick(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
                      {article.image_url && (
                         <div className="overflow-hidden rounded-[2rem] mb-6">
-                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
+                           <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
                         </div>
                      )}
                      <div className="flex gap-2 mb-4">
@@ -5505,7 +5505,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                             <h3 className="text-sm font-black text-black mb-4 flex justify-between items-center">
                                 Évolution du Poids
                             </h3>
-                            <div className="flex-grow w-full min-h-[200px] relative">
+                            <div className="flex-grow w-full min-h-[200px] min-w-[200px] h-[200px] relative">
                                 {weightLogs.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={[...weightLogs].reverse()}>
@@ -5567,15 +5567,15 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                             <h3 className="text-sm font-black text-black mb-4">Podium Communauté</h3>
                             <div className="flex-grow flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                                 <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/11_z46c3q.webp" alt="Aïssatou K." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
+                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" alt="Aïssatou K." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
                                     <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative flex flex-col gap-1 w-full"><span className="absolute -left-2 top-0 text-[10px] bg-yellow-400 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">1</span><span>Aïssatou K.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -12 kg</span></div>
                                 </div>
                                 <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl flex-row-reverse">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/12_n3j04q.webp" alt="Penda D." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
+                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" alt="Penda D." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
                                     <div className="bg-[#39FF14] text-black text-xs font-bold p-3 rounded-2xl rounded-tr-sm shadow-sm relative flex flex-col items-end gap-1 w-full"><span className="absolute -right-2 top-0 text-[10px] bg-zinc-300 w-4 h-4 rounded-full flex items-center justify-center shadow-sm">2</span><span>Penda D.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -9 kg</span></div>
                                 </div>
                                 <div className="flex items-start gap-3 bg-zinc-50/80 p-3 rounded-2xl">
-                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1777038379/02_p5h94e.webp" alt="Amadou T." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
+                                    <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" alt="Amadou T." className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
                                     <div className="bg-white border border-zinc-100 text-black text-xs font-bold p-3 rounded-2xl rounded-tl-sm shadow-sm relative flex flex-col gap-1 w-full"><span className="absolute -left-2 top-0 text-[10px] bg-amber-600 text-white w-4 h-4 rounded-full flex items-center justify-center shadow-sm">3</span><span>Amadou T.</span><span className="text-[10px] font-normal opacity-80">Perte totale : -7 kg</span></div>
                                 </div>
                             </div>
@@ -5867,7 +5867,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                          <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative mb-6">
                              <div className="h-24 bg-zinc-800 w-full relative">
                                  {clientProfile?.cover_url ? (
-                                     <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" />
+                                     <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                                  ) : (
                                      <div className="absolute inset-0 bg-gradient-to-r from-black to-zinc-800"><div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div></div>
                                  )}
@@ -6136,7 +6136,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
 
                                          {post.image_url && post.media_type !== 'video' && (
                                              <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
-                                                 <img src={post.image_url} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
+                                                 <img src={post.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
                                              </div>
                                          )}
                                      </>
@@ -7149,7 +7149,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                       {storyPreviewFile?.type.startsWith('video/') ? (
                           <video src={storyPreviewUrl} autoPlay loop playsInline className="w-full h-full object-contain" />
                       ) : (
-                          <img src={storyPreviewUrl} className="w-full h-full object-contain" alt="Story preview" />
+                          <img src={storyPreviewUrl} className="w-full h-full object-contain" alt="Story preview" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                       )}
                   </div>
 

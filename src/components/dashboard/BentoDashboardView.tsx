@@ -212,7 +212,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         {/* Repas 1 */}
                         <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
                             <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781222471/Bouillie_de_mil_r2zihq.jpg" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             </div>
                             <div className="flex-1">
                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Petit-Déjeuner • 08:00</p>
@@ -227,7 +227,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         {/* Repas 2 */}
                         <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
                             <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             </div>
                             <div className="flex-1">
                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Déjeuner • 13:30</p>
@@ -279,7 +279,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             </div>
                             <p className="text-xs text-zinc-600 mb-2 leading-relaxed">Mon Ndambé allégé de ce matin, une tuerie !</p>
                             <div className="w-full h-24 bg-zinc-100 rounded-xl mb-3 overflow-hidden border border-zinc-100">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781223916/Ndambe_qeq2d8.jpg" className="w-full h-full object-cover" />
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex gap-4">
                                 <button className="flex items-center gap-1 text-[10px] font-bold text-pink-500"><Heart size={12} className="fill-pink-500"/> 112</button>
