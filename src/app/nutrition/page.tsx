@@ -4,8 +4,6 @@ import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight,
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
 import React, { useState, useEffect, useRef } from "react";
-import { SearchFoodModal } from '@/components/nutrition/SearchFoodModal';
-import { useNutritionStore } from '@/store/useNutritionStore';
 import { useRouter, useSearchParams } from "next/navigation";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
@@ -354,28 +352,7 @@ const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: a
            </div>
         </div>
         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">{label}<br/><span className="text-xs font-bold normal-case text-black">/ {max} {unit}</span></p>
-
-      <SearchFoodModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
-          mealType={activeMealType}
-          editingMeal={editingMeal}
-          clientProfile={clientProfile}
-          currentCalories={calories}
-          currentProteins={proteins}
-          currentCarbs={carbs}
-          currentFats={fats}
-          setCalories={setCalories}
-          setProteins={setProteins}
-          setCarbs={setCarbs}
-          setFats={setFats}
-          reportData={reportData}
-          setReportData={setReportData}
-          waterGlasses={waterGlasses}
-          newlyCompletedGaugesCheck={newlyCompletedGaugesCheck}
-      />
-    </div>
+     </div>
   );
 };
 
@@ -429,7 +406,7 @@ export default function NutritionDashboard() {
   const [intendedTab, setIntendedTab] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>({ followedMenu: false, cravedRice: false, drankWater: false });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const { consumedMeals, setConsumedMeals, addConsumedMeal, removeConsumedMeal } = useNutritionStore();
+  const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
   const [moods, setMoods] = useState<string[]>([]);
   const [moodNotes, setMoodNotes] = useState<string>('');
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
@@ -438,9 +415,6 @@ export default function NutritionDashboard() {
   
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
-    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [activeMealType, setActiveMealType] = useState('Collation');
-  const [editingMeal, setEditingMeal] = useState<any>(null);
   const [offResults, setOffResults] = useState<any[]>([]);
   const [isSearchingOFF, setIsSearchingOFF] = useState(false);
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
@@ -870,17 +844,34 @@ export default function NutritionDashboard() {
                     setStories(DEFAULT_SEED_STORIES);
                 }
 
-                // Challenge removed as per instructions to prevent 400 error spam
-                setActiveChallenge({
-                    id: 'seed-challenge-1',
-                    title: '30 Jours Détox Sans Sucre',
-                    description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
-                    badge_name: 'Jongoma Détox',
-                    cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
-                    reward_xp: 500,
-                    duration_days: 30
-                });
-                setChallengeParticipants(128);
+                // Fetch Active Challenge
+                const { data: challenges } = await supabase
+                    .from('nutrition_challenges')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (challenges && challenges.length > 0) {
+                    setActiveChallenge(challenges[0]);
+                    const { count } = await supabase
+                        .from('nutrition_challenge_participants')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('challenge_id', challenges[0].id);
+                    setChallengeParticipants(count || 0);
+                } else {
+                    // Fallback Seed Challenge
+                    setActiveChallenge({
+                        id: 'seed-challenge-1',
+                        title: '30 Jours Détox Sans Sucre',
+                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
+                        badge_name: 'Jongoma Détox',
+                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
+                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
+                        xp_reward: 100
+                    });
+                    setChallengeParticipants(27450);
+                }
 
                 // Fetch Foods
                 const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
@@ -996,20 +987,8 @@ export default function NutritionDashboard() {
               twitter: activeProfile.twitter || ""
           }));
 
-          // Fetch follower count
+          // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
-              const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('followed_id', activeProfile.id);
-              if (count !== null) setMyFollowersCount(count);
-
-              // Check challenge participation & badges
-              if (activeChallenge) {
-                  const { data: participation } = await supabase.from('nutrition_challenge_participants').select('*').eq('client_id', activeProfile.id).eq('challenge_id', activeChallenge.id).maybeSingle();
-                  if (participation) setIsParticipating(true);
-              }
-
-              const { data: myBadges } = await supabase.from('nutrition_badges').select('*').eq('client_id', activeProfile.id);
-              if (myBadges) setEarnedBadges(myBadges.map((b: any) => b.badge_name));
-
               const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
           }
@@ -1723,7 +1702,18 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      let currentRecipes: any[] = allRecipesDB.length > 0 ? allRecipesDB : DEFAULT_RECIPES;
+      let currentRecipes: any[] = [];
+      try {
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const { data } = await recipeQuery;
+          if (data && data.length > 0) {
+              currentRecipes = data;
+          } else {
+              currentRecipes = DEFAULT_RECIPES;
+          }
+      } catch(e) {
+          currentRecipes = DEFAULT_RECIPES;
+      }
       
       currentRecipes = currentRecipes.filter(r => {
           const cat = r.categorie?.toLowerCase() || '';
@@ -1784,8 +1774,7 @@ export default function NutritionDashboard() {
               };
           }
 
-          const updatedMenu = JSON.parse(JSON.stringify(weeklyGeneratedMenu));
-          if (!updatedMenu[dayIndex].meals) updatedMenu[dayIndex].meals = {};
+          const updatedMenu = [...weeklyGeneratedMenu];
           updatedMenu[dayIndex].meals[mealType] = newRecipe;
           setWeeklyGeneratedMenu(updatedMenu);
           if (clientProfile) {
@@ -2204,19 +2193,7 @@ export default function NutritionDashboard() {
       }
   };
 
-    const newlyCompletedGaugesCheck = (newCals?: number, newProts?: number, newCarbs?: number, newWater?: number) => {
-      const c = newCals !== undefined ? newCals : calories;
-      const p = newProts !== undefined ? newProts : proteins;
-      const cb = newCarbs !== undefined ? newCarbs : carbs;
-      const w = newWater !== undefined ? newWater : waterGlasses;
-      const isNowCompleted = (calorieGoal > 0) && c >= (calorieGoal * 0.85) && p >= (proteinGoal * 0.8) && cb >= (carbsGoal * 0.8) && w >= 8;
-      if (isNowCompleted && !reportData.gaugesCompletedXP) {
-          updateXP(50, "Toutes les jauges complétées ! 🎯");
-          setReportData((prev: any) => ({ ...prev, gaugesCompletedXP: true }));
-      }
-  };
-
-const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
+  const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
       // Éviter les doublons exacts si l'utilisateur clique plusieurs fois rapidement
       if (consumedMeals.some(m => m.name === mealName && m.type === mealType)) {
           setSelectedMealModal(null);
@@ -2246,13 +2223,13 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
          photo_url: selectedMealPhoto || foodObj?.image_url || null
       };
 
-      addConsumedMeal(newConsumedItem);
       const updatedConsumedMeals = [...consumedMeals, newConsumedItem];
 
       setCalories(newCals);
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
+      setConsumedMeals(updatedConsumedMeals);
       
       if (updatedConsumedMeals.length === 3 && consumedMeals.length === 2) {
           updateXP(10, "3 repas logués aujourd'hui !");
@@ -2335,8 +2312,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
   };
 
   const deleteMealLog = async (itemToDelete: any) => {
-      removeConsumedMeal(itemToDelete.id);
-      const updatedConsumedMeals = useNutritionStore.getState().consumedMeals.filter((m:any) => m.id !== itemToDelete.id);
+      const updatedConsumedMeals = consumedMeals.filter(m => m.id !== itemToDelete.id);
       
       const newCals = Math.max(0, calories - itemToDelete.cals);
       const newProts = Math.max(0, proteins - itemToDelete.prots);
@@ -2347,6 +2323,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
+      setConsumedMeals(updatedConsumedMeals);
 
       if (clientProfile) {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
@@ -3084,18 +3061,7 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
 
   const handleExpertModeChange = async (mode: boolean) => {
       setIsExpertMode(mode);
-      if (clientProfile) {
-          const newDietMode = mode ? 'expert' : 'simple';
-          setClientProfile((prev: any) => ({
-              ...prev,
-              expert_mode: mode,
-              diagnostic_data: { ...(prev.diagnostic_data || {}), diet_mode: newDietMode }
-          }));
-          await supabase.from('nutrition_profiles').update({
-              expert_mode: mode,
-              diagnostic_data: { ...(clientProfile.diagnostic_data || {}), diet_mode: newDietMode }
-          }).eq('client_id', clientProfile.id);
-      }
+      if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('client_id', clientProfile.id);
   };
 
 
@@ -3738,7 +3704,7 @@ const currentHour = new Date().getHours();
             </button>
 
             <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title="Toggle Kcal">
-                {isExpertMode ? <Eye size={16}/> : <EyeOff size={16}/>}
+                <Eye size={16}/>
             </button>
 
             {/* Cart */}
@@ -3854,12 +3820,15 @@ const currentHour = new Date().getHours();
               handleUpdateWater={handleUpdateWater}
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
+              calories={calories}
+              proteins={proteins}
+              carbs={carbs}
+              fats={fats}
+              consumedMeals={consumedMeals}
               weightLogs={weightLogs}
               setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
               setShowDailyReport={setShowDailyReport}
-              currentCalories={calories}
-              isExpertMode={isExpertMode}
           />
         )}
 
@@ -4004,24 +3973,9 @@ const currentHour = new Date().getHours();
                                              </div>
 
                                              {!isConsumed ? (
-                                                <div className="flex flex-col gap-1 items-end mt-1">
-                                                   <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform w-full">➕ Loguer</button>
-                                                   <div className="flex gap-1">
-                                                      <button onClick={(e) => { e.stopPropagation(); const dIdx = weeklyGeneratedMenu.findIndex(d => d.day === formattedCurrentDay); if(dIdx>=0) handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
-                                                      <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setEditingMeal(null); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
-                                                   </div>
-                                                </div>
+                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
                                              ) : (
-                                                <div className="flex gap-1 mt-1">
-                                                   <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
-                                                   <button onClick={(e) => {
-                                                       e.stopPropagation();
-                                                       const consumedLog = useNutritionStore.getState().consumedMeals.find(m => m.name === recipe.nom && m.type === mealType);
-                                                       if(consumedLog) deleteMealLog(consumedLog);
-                                                   }} className="bg-red-50 text-red-500 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1">
-                                                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" />
-                                                   </button>
-                                                </div>
+                                                <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
                                              )}
                                           </div>
                                        </div>
@@ -4041,7 +3995,7 @@ const currentHour = new Date().getHours();
                      {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                          const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
                          return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setActiveMealType(mealType); setEditingMeal(null); setIsSearchModalOpen(true); }}>
+                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }}>
                              <div className="flex justify-between items-center">
                                  <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
                                  <button className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -4051,19 +4005,14 @@ const currentHour = new Date().getHours();
                              {loggedMeals.length > 0 && (
                                  <div className="mt-2 space-y-1">
                                     {loggedMeals.map((m: any, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 cursor-pointer hover:border-[#39FF14] transition-colors" onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setEditingMeal(m); setIsSearchModalOpen(true); }}>
-                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name} <span className="text-[10px] text-zinc-400 font-normal">({m.ux_unit || m.time})</span></span>
+                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100">
+                                           <span className="text-xs font-bold text-[#39FF14] truncate">{m.name}</span>
 
-                                           <div className="flex items-center gap-3 shrink-0">
-                                              <div className="flex items-center gap-2">
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.cals || m.calories || 0} kcal</span>
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
-                                                 <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
-                                              </div>
-                                              <button onClick={(e) => { e.stopPropagation(); deleteMealLog(m); }} className="bg-red-50 text-red-500 p-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-colors" title="Supprimer ce repas">
-                                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" />
-                                              </button>
+                                           <div className="flex items-center gap-2 shrink-0">
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.calories || 0} kcal</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
                                            </div>
 
                                         </div>
@@ -4088,10 +4037,9 @@ const currentHour = new Date().getHours();
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/80 to-transparent"></div>
                         <div className="relative z-10">
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                               <Droplet size={10} className="fill-blue-500"/> Objectif Eau (2.5L)
+                               <Droplet size={10} className="fill-blue-500"/> Objectif Eau
                             </p>
-                            <p className="text-xl font-black text-black mb-0 leading-none">{waterGlasses} <span className="text-sm text-zinc-500">/ 8 Btlls</span></p>
-                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">{(waterGlasses * 312.5).toFixed(0)} ml</p>
+                            <p className="text-xl font-black text-black mb-1">{waterGlasses * 300} ml <span className="text-sm text-zinc-500">/ 2400 ml</span></p>
                             <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-tight max-w-[90%]">
                                 {waterGlasses === 0 && [
                                     "L'eau booste votre métabolisme de 30% en 10 min.",
@@ -4260,19 +4208,7 @@ const currentHour = new Date().getHours();
                                                 <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
                                              )}
                                              {!isConsumed && isToday && (
-                                                <div className="flex gap-1">
-                                                   <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Changer ce repas">🔄 Changer</button>
-                                                   <button onClick={(e) => { e.stopPropagation(); setActiveMealType(mealType); setEditingMeal(null); setIsSearchModalOpen(true); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1" title="Ajouter un extra">➕ Extra</button>
-                                                </div>
-                                             )}
-                                             {isConsumed && isToday && (
-                                                <button onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const consumedLog = useNutritionStore.getState().consumedMeals.find(m => m.name === recipe.nom && m.type === mealType);
-                                                    if(consumedLog) deleteMealLog(consumedLog);
-                                                }} className="bg-red-50 text-red-500 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1">
-                                                   <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786103561/TRASH_xo3mys.png" className="w-3 h-3" /> Supprimer
-                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
                                              )}
                                           </div>
                                        </div>
@@ -4364,7 +4300,7 @@ const currentHour = new Date().getHours();
                                        <span className="text-[#39FF14] mt-0.5">●</span> {meal}
                                     </li>
                                  ))}
-                                 {(safeWeeklyMenu.find(d => d.day === formattedCurrentDay))?.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
+                                 {todayPlan?.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
                                     <li className="text-xs font-bold text-green-700 flex items-start gap-2 mt-4">
                                        <PartyPopper size={16} className="text-green-500"/> Recette priorisée pour votre budget serré !
                                     </li>
@@ -4757,20 +4693,32 @@ const currentHour = new Date().getHours();
                    />
                 </div>
                 
-                <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide w-full gap-4 pb-6 mb-4 custom-scrollbar">
-                   {RECIPE_FILTERS.map(filter => (
-                      <button 
-                         key={filter.id} 
-                         onClick={() => setRecipeFilter(filter.id)} 
-                         className={`shrink-0 px-5 py-2.5 rounded-[2rem] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 border-2 ${recipeFilter === filter.id ? 'bg-black text-[#39FF14] border-black shadow-xl scale-105 opacity-100' : 'bg-zinc-50 text-zinc-500 border-zinc-200 opacity-60 hover:opacity-100 hover:bg-zinc-100 hover:scale-105'}`}
+                <div className="flex overflow-x-auto custom-scrollbar pb-8 pt-4 gap-4 mb-6">
+                   {[
+                       { id: 'Tous', desc: 'Le catalogue complet de nos recettes.' },
+                       { id: 'Favoris', desc: 'Vos coups de cœur sauvegardés.' },
+                       { id: 'Populaire', desc: 'Les plus appréciées par la communauté.' },
+                       { id: 'Main Course', desc: 'Plats de résistance copieux.' },
+                       { id: 'Healthy', desc: 'Faible en gras, idéal perte de poids.' },
+                       { id: 'Low Calories', desc: 'Moins de 350 Kcal par portion.' },
+                       { id: 'Desserts', desc: 'Petites douceurs saines.' }
+                   ].map(cat => (
+                      <div
+                         key={cat.id}
+                         onClick={() => setRecipeFilter(cat.id)}
+                         className={`group perspective cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-500`}
                       >
-                         {filter.icon && <img src={filter.icon} alt={filter.label} className="w-8 h-8 rounded-full object-cover shadow-sm" />}
-                         {filter.label}
-                      </button>
+                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm group-hover:[transform:rotateY(180deg)] ${recipeFilter === cat.id ? 'bg-black border-[#39FF14]' : 'bg-white border-white/40 backdrop-blur-md'}`}>
+                             <span className={`font-black uppercase tracking-widest text-xs ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
+                         </div>
+                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm [transform:rotateY(180deg)] group-hover:[transform:rotateY(0deg)] bg-[#39FF14] border-[#39FF14]`}>
+                             <span className="font-bold text-black text-[10px] leading-tight">{cat.desc}</span>
+                         </div>
+                      </div>
                    ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+                <div className="w-full">
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
@@ -4791,22 +4739,70 @@ const currentHour = new Date().getHours();
                          return true;
                       });
                       
+                      // Sort remaining by popularity if selected
                       if (recipeFilter === 'Populaire') {
                          filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
                       }
                       
-                      return filteredRecipes.map((fav, i) => {
-                       const name = fav.nom;
-                       const cals = fav.calories;
-                       const prots = fav.proteins;
-                       const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
-                       const isTop10 = top10RecipeIds.includes(fav.id);
+                      // Extract Featured Recipe (Randomly selected from filtered list)
+                      const featuredRecipe = filteredRecipes.length > 0 ?
+                           filteredRecipes[Math.floor(Math.random() * filteredRecipes.length)]
+                           : null;
 
-                       const tags = [];
-                       if (prots >= 20) tags.push("Protéiné");
-                       if (fav.carbs <= 30) tags.push("Low Carb");
-                       if (cals <= 350) tags.push("Léger");
-                       if (fav.fats <= 15) tags.push("Low Fat");
+                      const gridRecipes = filteredRecipes.filter(r => r.id !== featuredRecipe?.id);
+
+                      // Reusable Card Renderer
+                      const renderCard = (fav, isFeatured = false) => {
+                         const name = fav.nom;
+                         const cals = fav.calories;
+                         const prots = fav.proteins;
+                         const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
+                         const isTop10 = top10RecipeIds.includes(fav.id);
+
+                         const tags = [];
+                         if (prots >= 20) tags.push("Protéiné");
+                         if (fav.carbs <= 30) tags.push("Low Carb");
+                         if (cals <= 350) tags.push("Léger");
+                         if (fav.fats <= 15) tags.push("Low Fat");
+
+                         return (
+                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
+                             <div className="w-full h-full flex flex-col">
+                                 {fav.image_url && <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={name} onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'; }} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
+                                 <div className="flex justify-between items-start mb-2">
+                                     <div className="flex flex-col">
+                                         {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
+                                         <p className={`font-black text-black ${isFeatured ? 'text-2xl' : 'text-sm line-clamp-1'}`} title={name}>{name}</p>
+                                         <div className="flex gap-3 mt-1.5">
+                                             <p className="text-[10px] font-bold text-zinc-600 flex items-center gap-1"><Eye size={12}/> {fav.views || 0}</p>
+                                             <p className={`text-[10px] font-bold flex items-center gap-1 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-600'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
+                                         </div>
+                                     </div>
+                                     <button onClick={(e) => { e.stopPropagation(); toggleFavorite(fav); }} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-500 hover:text-red-500'} shrink-0 bg-white/80 p-2 rounded-full backdrop-blur-sm shadow-sm`}>
+                                        <HeartPulse size={16} className={isFav ? "fill-current" : ""}/>
+                                     </button>
+                                 </div>
+                                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto pt-2">
+                                     {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
+                                     {tags.map(t => <span key={t} className="bg-white text-black border border-zinc-200 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">{t}</span>)}
+                                 </div>
+                                 <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase text-zinc-700 mb-2">
+                                     <span className="flex items-center gap-1"><img src={CALS_ICON} className="w-3.5 h-3.5 rounded-full shadow-sm"/> {cals} kcal</span>
+                                     <span className="flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3.5 h-3.5 rounded-full shadow-sm"/> {prots}g prot</span>
+                                 </div>
+                             </div>
+                         </div>
+                         )
+                      };
+
+                      return (
+                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+                            {/* Left: Featured Recipe (Cols 1-4) */}
+                            {featuredRecipe && (
+                               <div className="col-span-1 lg:col-span-4 h-full">
+                                  {renderCard(featuredRecipe, true)}
+                               </div>
+                            )}
 
                             {/* Center: Grid of smaller recipes (Cols 5-9) */}
                             <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -4842,40 +4838,13 @@ const currentHour = new Date().getHours();
                                            </div>
                                        </div>
                                    </div>
-                                   <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'} shrink-0`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
                                </div>
-                               <div className="flex flex-wrap gap-1 mb-3">
-                                   {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
-                                   {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
-                                   {fav.budget_tier && (
-                                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm ${
-                                           fav.budget_tier === 'Serré 8k' ? 'bg-green-500 text-white' :
-                                           fav.budget_tier === 'Famille 15k' ? 'bg-orange-500 text-white' :
-                                           'bg-purple-600 text-white'
-                                       }`}>
-                                           {fav.budget_tier === 'Serré 8k' ? '💰 Serré' :
-                                            fav.budget_tier === 'Famille 15k' ? '🥗 Famille' : '💎 Confort'}
-                                       </span>
-                                   )}
-                               </div>
-                               <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {prots}g prot</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.carbs || 0}g</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.fats || 0}g</span>
-                               </div>
-                           </div>
-                           <button onClick={() => {
-                               confirmMealLog(fav.type || 'Déjeuner', name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
-                               alert("Ajouté au tracker du jour !");
-                           }} className="w-full bg-zinc-200 text-black py-3 rounded-xl text-[10px] font-black uppercase hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
-                               <CheckCircle size={14}/> Ajouter au menu du jour
-                           </button>
-                       </div>
-                   )});
+                            </div>
+                         </div>
+                      );
                    })()}
                    {allRecipesDB.length === 0 && (
-                      <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette disponible.</div>
+                      <div className="col-span-full py-8 text-center text-zinc-500 font-black">Aucune recette disponible.</div>
                    )}
                 </div>
              </div>
@@ -5185,49 +5154,29 @@ const currentHour = new Date().getHours();
 
         {activeTab === 'history' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+             {/* NOUVELLE SECTION BADGES 3D */}
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm mb-8 w-full mt-6">
+                <h3 className="text-xl font-black uppercase text-black mb-6 flex items-center gap-2"><Trophy className="text-yellow-500" size={24}/> Mes Badges & Trophées</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full">
+                   {[
+                     { id: 'Force Baobab', xp: 0, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png' },
+                     { id: 'Maître du Fonio', xp: 100, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png' },
+                     { id: 'Lekkologue Or', xp: 500, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png' },
+                     { id: 'Légende', xp: 1000, img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png' }
+                   ].map(badge => {
+                     const isUnlocked = jongomaXP >= badge.xp;
+                     return (
+                       <div key={badge.id} className={`flex flex-col items-center justify-center p-4 rounded-3xl border-2 transition-all duration-300 relative ${isUnlocked ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-400 shadow-md' : 'bg-zinc-50 border-zinc-200 opacity-60 grayscale'}`}>
+                         {!isUnlocked && <Lock size={16} className="absolute top-4 right-4 text-zinc-400"/>}
+                         <img src={badge.img} className="w-20 h-20 md:w-28 md:h-28 object-contain mb-4 drop-shadow-xl" alt={badge.id} />
+                         <span className={`text-[11px] font-black uppercase text-center leading-tight tracking-widest ${isUnlocked ? 'text-orange-600' : 'text-zinc-500'}`}>{badge.id}</span>
+                         <span className={`text-[9px] font-bold uppercase mt-1 ${isUnlocked ? 'text-yellow-600' : 'text-zinc-400'}`}>{isUnlocked ? 'Débloqué' : `${badge.xp} XP Requis`}</span>
+                       </div>
+                     )
+                   })}
+                </div>
+             </div>
 
-            {/* BADGES ET GAMIFICATION */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-               <div>
-                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
-                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
-                  <div className="flex gap-2">
-                     {Array.from({length: 7}, (_, i) => {
-                        const d = new Date();
-                        d.setDate(d.getDate() - (6 - i));
-                        const dateStr = d.toISOString().split('T')[0];
-                        const log = (Array.isArray(dailyLogs) ? dailyLogs : []).find(l => l.log_date === dateStr);
-                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
-                        return (
-                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
-                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
-                           </div>
-                        );
-                     })}
-                  </div>
-               </div>
-               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
-                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
-                     <span className="text-2xl mb-2">🌱</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">💎</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <span className="text-2xl mb-2">🌟</span>
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
-                  </div>
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
-                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
-                     <Award size={28} className="mb-2" />
-                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
-                  </div>
-               </div>
-            </div>
 
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
@@ -5237,7 +5186,7 @@ const currentHour = new Date().getHours();
                <div className="grid md:grid-cols-2 gap-8">
                   {/* GRAPHIQUE : Hydratation */}
                   <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (ml)</h3>
                      <div className="flex items-end justify-between h-40 gap-2">
                         {Array.from({length: 7}, (_, i) => {
                            const d = new Date();
@@ -5937,25 +5886,14 @@ const currentHour = new Date().getHours();
                             <Search size={16} className="text-zinc-400" />
                             <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
                         </div>
-
+                        <button onClick={() => setShowMobileHub(true)} className="lg:hidden flex items-center gap-2 bg-zinc-100 hover:bg-[#39FF14] text-zinc-900 px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm shrink-0">
+                            <Trophy className="w-4 h-4 text-[#39FF14]"/> Hub Club
+                        </button>
                      </div>
                  </div>
 
-                 {/* NAVIGATION HORIZONTALE DESKTOP & MOBILE (PILLS SUB-NAV) */}
-                 <div className="flex flex-row overflow-x-auto whitespace-nowrap scrollbar-hide items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50 max-w-full">
-
-                    {/* 0. Bouton Accueil / Dashboard */}
-                    <button
-                      onClick={() => handleTabChange('dashboard')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
-                        activeTab === 'dashboard'
-                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
-                      }`}
-                    >
-                      <LayoutDashboard size={20} />
-                      <span>Dashboard</span>
-                    </button>
+                 {/* NAVIGATION HORIZONTALE DESKTOP (PILLS SUB-NAV) */}
+                 <div className="hidden lg:flex items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50">
 
                     {/* 1. Bouton Le Mur */}
                     <button
@@ -5966,8 +5904,8 @@ const currentHour = new Date().getHours();
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <Sparkles size={20} />
-                      <span>Le Mur</span>
+                      <Sparkles className="w-4 h-4" />
+                      <span>🌟 Le Mur</span>
                     </button>
 
                     {/* 2. Bouton Recettes & Menus */}
@@ -5979,19 +5917,21 @@ const currentHour = new Date().getHours();
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <Utensils size={20} />
-                      <span>Recettes & Menus</span>
+                      <Utensils className="w-4 h-4" />
+                      <span>🍲 Recettes & Menus</span>
                     </button>
 
                     {/* 3. Bouton Challenges Tendance */}
                     <button
                       onClick={() => {
                         window.scrollTo(0, document.body.scrollHeight);
+                        // Future action to explicitly pop up the challenge modal if implemented.
+                        // We scroll to it for now since it is part of the right column.
                       }}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50 transition-all duration-300 cursor-pointer"
                     >
-                      <Flame size={20} className="text-amber-500" />
-                      <span>Challenges Tendance</span>
+                      <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+                      <span>🏆 Challenges Tendance</span>
                     </button>
 
                     {/* 4. Bouton Mon Profil */}
@@ -6003,8 +5943,8 @@ const currentHour = new Date().getHours();
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
                     >
-                      <User size={20} />
-                      <span>Mon Profil</span>
+                      <User className="w-4 h-4" />
+                      <span>⚙️ Mon Profil</span>
                     </button>
 
                  </div>
@@ -6465,7 +6405,120 @@ const currentHour = new Date().getHours();
 
                  {/* MODALE TIROIR HUB MOBILE */}
                  <AnimatePresence>
+                     {showMobileHub && (
+                         <>
+                             <motion.div
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 exit={{ opacity: 0 }}
+                                 onClick={() => setShowMobileHub(false)}
+                                 className="fixed inset-0 bg-black/60 z-[400] lg:hidden"
+                             />
+                             <motion.div
+                                 initial={{ x: '100%' }}
+                                 animate={{ x: 0 }}
+                                 exit={{ x: '100%' }}
+                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                 className="fixed inset-y-0 right-0 z-[450] w-[85vw] max-w-sm bg-white shadow-2xl overflow-y-auto custom-scrollbar flex flex-col lg:hidden"
+                             >
+                                 <div className="p-6 border-b border-zinc-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                                     <h3 className="font-black text-xl uppercase tracking-tighter flex items-center gap-2">
+                                         <Trophy className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={28}/> Hub Club
+                                     </h3>
+                                     <button onClick={() => setShowMobileHub(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
+                                         <X size={18}/>
+                                     </button>
+                                 </div>
+                                 <div className="p-6 space-y-6 flex-1">
+                                     {/* Navigation Mobile Hub */}
+                                     <div className="space-y-2 mb-6">
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('dashboard'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'dashboard' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src={MENU_ICONS.dashboard} className="w-6 h-6 object-cover rounded-md" alt="Accueil" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                                             <span className="font-poppins-bold text-sm">Accueil</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('samaMenu'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'samaMenu' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-6 h-6 object-cover rounded-md" alt="Recettes" />
+                                             <span className="font-poppins-bold text-sm">Recettes & Menus</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors hover:bg-zinc-50 text-zinc-700`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-6 h-6 object-cover rounded-md" alt="Challenges" />
+                                             <span className="font-poppins-bold text-sm">Challenges Tendance</span>
+                                         </button>
+                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('profile'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
+                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-6 h-6 object-cover rounded-md" alt="Profil" />
+                                             <span className="font-poppins-bold text-sm">Mon Profil & Réglages</span>
+                                         </button>
+                                     </div>
 
+                                     {/* Mini Profile Card */}
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
+                                         <div className="h-24 bg-zinc-800 w-full relative">
+                                             {clientProfile?.cover_url ? (
+                                                 <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                                             ) : (
+                                                 <div className="absolute inset-0 bg-gradient-to-r from-black to-zinc-800"><div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div></div>
+                                             )}
+                                         </div>
+                                         <div className="px-6 pb-6 relative flex flex-col items-center">
+                                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-16 h-16 rounded-full border-4 border-white shadow-md -mt-8 mb-3 bg-zinc-100 object-cover" alt="Moi" />
+                                             <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm absolute top-4 left-4">Lekkologue Pro</div>
+
+                                             <p className="text-sm font-black text-black text-center">{user?.full_name || 'Membre'}</p>
+                                             <p className="text-xs text-zinc-500 font-poppins mt-1 line-clamp-2 text-center">{clientProfile?.bio || "Ajoutez une bio dans vos réglages..."}</p>
+
+                                             <div className="grid grid-cols-2 w-full gap-4 text-center border-t border-zinc-100 pt-4 mb-2 mt-4">
+                                                 <div onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                                     <p className="text-lg font-black text-black">{jongomaXP}</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Score XP</p>
+                                                 </div>
+                                                 <div className="cursor-pointer hover:bg-zinc-50 rounded-xl p-1 transition-colors">
+                                                     <p className="text-lg font-black text-black">{myFollowersCount}</p>
+                                                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Abonnés</p>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
+                                         <div className="space-y-4">
+                                             {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
+                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                                     </div>
+                                                     <Heart size={14} className="text-red-500 fill-red-500" />
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
+                                         <div className="space-y-4">
+                                             {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
+                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                                     <div className="flex items-center gap-3">
+                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
+                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
+                                                     </div>
+                                                     <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+
+                                     <button
+                                       onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }}
+                                       className="w-full mt-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-poppins-bold rounded-xl transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                                     >
+                                       Déconnexion
+                                     </button>
+                                 </div>
+                             </motion.div>
+                         </>
+                     )}
                  </AnimatePresence>
           </div>
         )}
@@ -7776,27 +7829,6 @@ const currentHour = new Date().getHours();
          <button onClick={() => setShowMobileHub(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
       </div>
 
-
-      <SearchFoodModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          dietMode={clientProfile?.diagnostic_data?.diet_mode || 'simple'}
-          mealType={activeMealType}
-          editingMeal={editingMeal}
-          clientProfile={clientProfile}
-          currentCalories={calories}
-          currentProteins={proteins}
-          currentCarbs={carbs}
-          currentFats={fats}
-          setCalories={setCalories}
-          setProteins={setProteins}
-          setCarbs={setCarbs}
-          setFats={setFats}
-          reportData={reportData}
-          setReportData={setReportData}
-          waterGlasses={waterGlasses}
-          newlyCompletedGaugesCheck={newlyCompletedGaugesCheck}
-      />
     </div>
   );
 }
