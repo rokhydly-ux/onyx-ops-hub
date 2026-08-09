@@ -9,6 +9,10 @@ import { supabase } from "@/lib/supabaseClient";
 
 // Props required for the weaving
 interface BentoDashboardViewProps {
+    todayPlan?: any;
+    generateWeeklyMenu?: () => void;
+    currentCalories?: number;
+    isExpertMode?: boolean;
     user: any;
     waterGlasses: number;
     handleUpdateWater: (delta: number) => void;
@@ -209,7 +213,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 <div className="col-span-1 lg:col-span-8 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6">
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sama Menu du Jour</p>
-                        <button className="text-[10px] text-black font-bold uppercase tracking-widest hover:text-[#39FF14] transition-colors">Voir la semaine</button>
+                        <button onClick={() => setActiveTab('week')} className="text-[10px] text-black font-bold uppercase tracking-widest hover:text-[#39FF14] transition-colors cursor-pointer relative z-10">Voir la semaine</button>
                     </div>
 
                     <div className="space-y-3">
@@ -246,7 +250,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 </div>
 
                 {/* Feed Communautaire */}
-                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col max-h-[400px]">
+                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col max-h-[400px] animate-neon-pulse">
                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 shrink-0">Communauté</p>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
