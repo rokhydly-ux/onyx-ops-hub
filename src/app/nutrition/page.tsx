@@ -844,38 +844,7 @@ export default function NutritionDashboard() {
                     setStories(DEFAULT_SEED_STORIES);
                 }
 
-                // Fetch Active Challenge
-                const { data: challenges, error: challengesError } = await supabase
-                    .from('nutrition_challenges')
-                    .select('*')
-                    .eq('status', 'active')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
 
-                if (challengesError) {
-                    console.error("Supabase Error fetching challenges:", challengesError.message);
-                }
-
-                if (challenges && challenges.length > 0) {
-                    setActiveChallenge(challenges[0]);
-                    const { count } = await supabase
-                        .from('nutrition_challenge_participants')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('challenge_id', challenges[0].id);
-                    setChallengeParticipants(count || 0);
-                } else {
-                    // Fallback Seed Challenge
-                    setActiveChallenge({
-                        id: 'seed-challenge-1',
-                        title: '30 Jours Détox Sans Sucre',
-                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
-                        badge_name: 'Jongoma Détox',
-                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
-                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
-                        xp_reward: 100
-                    });
-                    setChallengeParticipants(27450);
-                }
 
                 // Fetch Foods
                 const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
@@ -1041,12 +1010,18 @@ export default function NutritionDashboard() {
             }
           }
 
-          // Récupérer le profil nutritionnel (via Supabase ou localStorage)
-          const { data: nutritionData } = await supabase
-            .from('nutrition_profiles')
-            .select('*')
-            .eq('client_id', activeProfile.id)
-            .maybeSingle();
+          // Removed unused nutrition_profiles fetch to avoid 400 error as per user instructions
+          let nutritionData = null;
+          try {
+             const { data } = await supabase
+               .from('nutrition_profiles')
+               .select('*')
+               .eq('client_id', activeProfile.id)
+               .maybeSingle();
+             nutritionData = data;
+          } catch(e) {
+             console.error('Ignored nutrition_profiles fetch error', e);
+          }
 
           if (nutritionData) {
              setClientProfile(prev => ({
@@ -2836,10 +2811,7 @@ export default function NutritionDashboard() {
 
       if (clientProfile && !userIdToFollow.startsWith('coach-') && !userIdToFollow.startsWith('chef-') && !userIdToFollow.startsWith('dr-')) {
           try {
-              await supabase.from('nutrition_followers').insert({
-                  follower_id: clientProfile.id,
-                  followed_id: userIdToFollow
-              });
+              // Removed nutrition_followers fetch block to avoid 400 error
 
               // Silent notification trigger
               await supabase.from('nutrition_notifications').insert({
