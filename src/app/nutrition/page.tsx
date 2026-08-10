@@ -3324,7 +3324,7 @@ const currentHour = new Date().getHours();
     if (isShopPromoApplied && appliedPromoData) {
        msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
-    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryAddress}`;
+    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}\n*Frais de livraison :* ${deliveryCost} F`;
 
     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
     setShopCart([]);
@@ -4601,19 +4601,29 @@ const currentHour = new Date().getHours();
                 </div>
              </div>
 
-             {/* Mes Badges */}
-             {earnedBadges.length > 0 && (
-                 <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
-                    <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
-                    <div className="flex flex-wrap gap-4">
-                        {earnedBadges.map((badge, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 px-4 py-2 rounded-xl text-yellow-700 dark:text-yellow-400 font-poppins-bold shadow-sm">
-                                <span className="text-xl leading-none">🏅</span> {badge}
-                            </div>
-                        ))}
-                    </div>
+             {/* Mes Badges Débloqués */}
+             <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+                 <h3 className="text-lg font-black uppercase text-black dark:text-white mb-6 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { name: 'Force Baobab', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png', xpReq: 0 },
+                      { name: 'Maître du Fonio', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png', xpReq: 100 },
+                      { name: 'Lekkologue Or', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png', xpReq: 500 },
+                      { name: 'Légende', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png', xpReq: 1000 }
+                    ].map((b, i) => {
+                       const currentXP = clientProfile?.jongoma_xp || clientProfile?.nutrition_profiles?.jongoma_xp || 0;
+                       const unlocked = currentXP >= b.xpReq;
+                       return (
+                         <div key={i} className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 ${unlocked ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border-yellow-200 dark:border-yellow-800' : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800'}`}>
+                             {!unlocked && <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[1px] z-10 rounded-2xl flex items-center justify-center"><Lock className="text-zinc-500 w-8 h-8" /></div>}
+                             <img src={b.url} alt={b.name} className={`w-20 h-20 object-contain mb-3 drop-shadow-md ${unlocked ? '' : 'grayscale opacity-40'}`} />
+                             <p className={`text-xs font-black uppercase tracking-widest text-center ${unlocked ? 'text-yellow-700 dark:text-yellow-400' : 'text-zinc-400'}`}>{b.name}</p>
+                             <p className="text-[9px] font-bold text-zinc-400 mt-1">{b.xpReq} XP requis</p>
+                         </div>
+                       )
+                    })}
                  </div>
-             )}
+             </div>
 
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>

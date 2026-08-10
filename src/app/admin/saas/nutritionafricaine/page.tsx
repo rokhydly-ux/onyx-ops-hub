@@ -107,6 +107,8 @@ export default function AdminNutritionAfricaine() {
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [ordersViewMode, setOrdersViewMode] = useState<'table' | 'grid'>('table');
+  const [ordersSortDesc, setOrdersSortDesc] = useState(true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -1290,6 +1292,14 @@ export default function AdminNutritionAfricaine() {
       if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+    const handleDeleteOrder = async (id: string, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      if (!confirm("Voulez-vous vraiment supprimer cette commande ?")) return;
+      await supabase.from('nutrition_orders').delete().eq('id', id);
+      setOrders(orders.filter(o => o.id !== id));
+      if (selectedOrderDetails?.id === id) setShowOrderDetailsModal(false);
+  };
+
   const handleOpenOrderDetails = async (order: any) => {
       let items = order.items || [];
       if (typeof items === 'string') {
@@ -1770,8 +1780,11 @@ export default function AdminNutritionAfricaine() {
                         </div>
 
                         <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6">
-                            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total</h4>
-                            <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total {selectedOrderDetails.promo_code && <span className="ml-2 bg-[#39FF14]/20 text-green-700 px-2 py-1 rounded-md text-[10px]">- {selectedOrderDetails.promo_code}</span>}</h4>
+                            <div className="text-right">
+                                {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
+                                <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                            </div>
                         </div>
 
                         <div>
@@ -1787,6 +1800,10 @@ export default function AdminNutritionAfricaine() {
                                <option value="Livré">Livré</option>
                                <option value="Annulé">Annulé</option>
                             </select>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-zinc-100">
+                            <button onClick={() => handleDeleteOrder(selectedOrderDetails.id)} className="w-full p-4 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-black uppercase text-xs transition-colors flex items-center justify-center gap-2"><Trash2 size={16}/> Supprimer la commande</button>
                         </div>
                     </div>
                 </div>
@@ -2557,6 +2574,22 @@ export default function AdminNutritionAfricaine() {
 
         {activeTab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+
+           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <div>
+                  <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Package className="text-[#39FF14]"/> Gestion des Commandes</h3>
+                  <p className="text-xs text-zinc-500 font-bold mt-1">Gérez vos expéditions et statuts</p>
+               </div>
+               <div className="flex items-center gap-3">
+                  <button onClick={() => setOrdersSortDesc(!ordersSortDesc)} className="bg-zinc-100 p-3 rounded-xl hover:bg-zinc-200 transition-colors flex items-center gap-2 text-xs font-black uppercase"><Activity size={16}/> {ordersSortDesc ? 'Récents' : 'Anciens'}</button>
+                  <div className="flex bg-zinc-100 p-1 rounded-xl">
+                      <button onClick={() => setOrdersViewMode('table')} className={`p-2 rounded-lg transition-colors ${ordersViewMode === 'table' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}><List size={16}/></button>
+                      <button onClick={() => setOrdersViewMode('grid')} className={`p-2 rounded-lg transition-colors ${ordersViewMode === 'grid' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}><LayoutGrid size={16}/></button>
+                  </div>
+               </div>
+           </div>
+
+           {ordersViewMode === 'table' ? (
            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
               <table className="w-full text-left min-w-[800px]">
                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
@@ -2568,7 +2601,7 @@ export default function AdminNutritionAfricaine() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {orders.map(o => (
+                    {[...orders].sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
                        <tr key={o.id} className="hover:bg-zinc-50 transition-colors cursor-pointer" onClick={() => handleOpenOrderDetails(o)}>
                           <td className="p-4">
                              <p className="font-bold text-sm text-black">{o.client_name}</p>
@@ -2591,6 +2624,7 @@ export default function AdminNutritionAfricaine() {
                           <td className="p-4 text-right flex justify-end gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
                              <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="px-2 py-2 bg-[#25D366] text-white hover:bg-[#1ebd58] rounded-lg transition-colors flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"><MessageSquare size={12}/> WhatsApp</button>
                              <button onClick={() => window.open(`mailto:?subject=Relance Commande OnyxNutrition&body=Bonjour ${o.client_name}, nous avons remarqué que votre commande de ${o.total?.toLocaleString()} F n'a pas été finalisée. Souhaitez-vous de l'aide ?`, '_blank')} className="px-2 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"><Mail size={12}/> Email</button>
+                             <button onClick={(e) => handleDeleteOrder(o.id, e)} className="p-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={14}/></button>
                           </td>
                        </tr>
                     ))}
@@ -2598,6 +2632,42 @@ export default function AdminNutritionAfricaine() {
                  </tbody>
               </table>
            </div>
+           ) : (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...orders].sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
+                  <div key={o.id} onClick={() => handleOpenOrderDetails(o)} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group">
+                      <div className="flex justify-between items-start mb-4">
+                         <div>
+                            <p className="font-bold text-black">{o.client_name}</p>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase">{new Date(o.created_at).toLocaleDateString('fr-FR')} • {o.phone}</p>
+                         </div>
+                         <div className="w-10 h-10 bg-zinc-50 rounded-xl flex items-center justify-center">
+                            <Package className="text-[#39FF14] w-5 h-5"/>
+                         </div>
+                      </div>
+
+                      <div className="bg-zinc-50 p-4 rounded-xl mb-4 border border-zinc-100">
+                         <p className="text-2xl font-black text-black">{o.total?.toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                         <p className="text-xs font-bold text-zinc-500">{o.items?.length || 0} articles</p>
+                      </div>
+
+                      <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                         <select value={o.status} onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value, o.phone, o.client_name)} className={`p-2 border rounded-xl outline-none text-xs font-bold ${o.status === 'Nouveau' ? 'bg-blue-50 text-blue-600 border-blue-200' : o.status === 'Livré' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+                            <option value="Nouveau">Nouveau</option>
+                            <option value="En préparation">En préparation</option>
+                            <option value="Expédié">Expédié</option>
+                            <option value="Livré">Livré</option>
+                            <option value="Annulé">Annulé</option>
+                         </select>
+                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="p-2 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded-lg transition-colors"><MessageSquare size={14}/></button>
+                            <button onClick={(e) => handleDeleteOrder(o.id, e)} className="p-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={14}/></button>
+                         </div>
+                      </div>
+                  </div>
+              ))}
+           </div>
+           )}
         </div>
         )}
         
