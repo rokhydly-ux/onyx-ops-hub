@@ -845,12 +845,16 @@ export default function NutritionDashboard() {
                 }
 
                 // Fetch Active Challenge
-                const { data: challenges } = await supabase
+                const { data: challenges, error: challengesError } = await supabase
                     .from('nutrition_challenges')
                     .select('*')
                     .eq('status', 'active')
                     .order('created_at', { ascending: false })
                     .limit(1);
+
+                if (challengesError) {
+                    console.error("Supabase Error fetching challenges:", challengesError.message);
+                }
 
                 if (challenges && challenges.length > 0) {
                     setActiveChallenge(challenges[0]);
@@ -3115,7 +3119,7 @@ export default function NutritionDashboard() {
             const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
             if (data) {
                 setRecipeReviews(data);
-                const userReview = data.find(r => r.client_id === authUser?.id);
+                const userReview = data.find(r => r.client_id === user?.id);
                 if (userReview) {
                     setHasUserReviewed(true);
                     setUserRating(userReview.rating);
@@ -3129,7 +3133,7 @@ export default function NutritionDashboard() {
         };
         fetchReviews();
     }
-  }, [selectedRecipeDetail?.id, authUser?.id]);
+  }, [selectedRecipeDetail?.id, user?.id]);
 
   const submitReview = async () => {
       if (!userComment.trim() || !selectedRecipeDetail) return;
@@ -3137,7 +3141,7 @@ export default function NutritionDashboard() {
       try {
           await supabase.from('nutrition_recipe_reviews').upsert({
               recipe_id: selectedRecipeDetail.id,
-              client_id: authUser?.id,
+              client_id: user?.id,
               rating: userRating,
               comment: userComment
           }, { onConflict: 'recipe_id,client_id' });
