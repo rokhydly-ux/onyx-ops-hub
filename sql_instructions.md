@@ -62,3 +62,7 @@ CREATE TRIGGER update_recipe_ratings_trigger
 AFTER INSERT OR UPDATE OR DELETE ON public.nutrition_recipe_reviews
 FOR EACH ROW EXECUTE FUNCTION update_recipe_ratings();
 ```
+
+-- Execute this script in your Supabase SQL editor to ensure the nutrition_challenges table has a created_at column.
+ALTER TABLE public.nutrition_challenges
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
