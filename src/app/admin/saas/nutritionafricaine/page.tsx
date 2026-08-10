@@ -1292,7 +1292,20 @@ export default function AdminNutritionAfricaine() {
       if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-    const handleDeleteOrder = async (id: string, e?: React.MouseEvent) => {
+  const handleOpenOrderDetails = async (order: any) => {
+      let items = order.items || [];
+      if (typeof items === 'string') {
+          try { items = JSON.parse(items); } catch(e) { items = []; }
+      }
+      const { data: dbItems } = await supabase.from('nutrition_order_items').select('*').eq('order_id', order.id);
+      if (dbItems && dbItems.length > 0) {
+          items = dbItems;
+      }
+      setSelectedOrderDetails({ ...order, parsedItems: items });
+      setShowOrderDetailsModal(true);
+  };
+
+  const handleDeleteOrder = async (id: string, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       if (!confirm("Voulez-vous vraiment supprimer cette commande ?")) return;
       await supabase.from('nutrition_orders').delete().eq('id', id);
@@ -1300,28 +1313,13 @@ export default function AdminNutritionAfricaine() {
       if (selectedOrderDetails?.id === id) setShowOrderDetailsModal(false);
   };
 
-  const handleOpenOrderDetails = async (order: any) => {
-      let items = order.items || [];
-      if (typeof items === 'string') {
-          try { items = JSON.parse(items); } catch(e) { items = []; }
-      }
-
-      // Fetch from new relational table if available
-      const { data: dbItems } = await supabase.from('nutrition_order_items').select('*').eq('order_id', order.id);
-      if (dbItems && dbItems.length > 0) {
-          items = dbItems;
-      }
-
-      setSelectedOrderDetails({ ...order, parsedItems: items });
-      setShowOrderDetailsModal(true);
-  };
-
   const handleSaveChallenge = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...challengeForm };
       delete payload.id;
       delete payload.participantsCount;
-      delete payload.xp_reward; // Ensure we don't send this legacy field
+      delete payload.badge_name;
+      delete payload.xp_reward;
       if (tenantId) payload.tenant_id = tenantId;
 
       if (isEditingChallenge) {
@@ -1732,85 +1730,7 @@ export default function AdminNutritionAfricaine() {
                         <button onClick={() => handleOpenProductModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouveau Produit</button>
                      </>
                   )}
-
-        {/* Modale de détails de commande */}
-        {showOrderDetailsModal && selectedOrderDetails && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in" onClick={(e) => { if(e.target === e.currentTarget) setShowOrderDetailsModal(false); }}>
-                <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
-                    <button onClick={() => setShowOrderDetailsModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full transition-colors z-10"><X size={20}/></button>
-
-                    <div className="p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-lg"><Package className="text-[#39FF14]" size={24}/></div>
-                            <div>
-                                <h3 className="text-2xl font-black uppercase tracking-tight text-black">Détails Commande</h3>
-                                <p className="text-xs text-zinc-500 font-bold">{new Date(selectedOrderDetails.created_at).toLocaleString('fr-FR')}</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Client</h4>
-                                <p className="font-bold text-black">{selectedOrderDetails.client_name}</p>
-                                <p className="text-sm font-bold text-zinc-600">{selectedOrderDetails.phone}</p>
-                            </div>
-                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Adresse de livraison</h4>
-                                <p className="font-bold text-black text-sm">{selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
-                            </div>
-                        </div>
-
-                        <div className="mb-8">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 pb-2">Articles commandés</h4>
-                            <div className="space-y-3">
-                                {selectedOrderDetails.parsedItems?.length > 0 ? (
-                                    selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
-                                            <div>
-                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
-                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
-                                            </div>
-                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-zinc-500 font-bold">Aucun article détaillé trouvé.</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6">
-                            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total {selectedOrderDetails.promo_code && <span className="ml-2 bg-[#39FF14]/20 text-green-700 px-2 py-1 rounded-md text-[10px]">- {selectedOrderDetails.promo_code}</span>}</h4>
-                            <div className="text-right">
-                                {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
-                                <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Modifier le statut</h4>
-                            <select
-                                value={selectedOrderDetails.status || 'Nouveau'}
-                                onChange={(e) => handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value, selectedOrderDetails.phone, selectedOrderDetails.client_name)}
-                                className="w-full bg-white border-2 border-zinc-200 text-black font-bold p-4 rounded-xl focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5"
-                            >
-                               <option value="Nouveau">Nouveau</option>
-                               <option value="En préparation">En préparation</option>
-                               <option value="Expédié">Expédié</option>
-                               <option value="Livré">Livré</option>
-                               <option value="Annulé">Annulé</option>
-                            </select>
-                        </div>
-
-                        <div className="mt-6 pt-6 border-t border-zinc-100">
-                            <button onClick={() => handleDeleteOrder(selectedOrderDetails.id)} className="w-full p-4 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-black uppercase text-xs transition-colors flex items-center justify-center gap-2"><Trash2 size={16}/> Supprimer la commande</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {activeTab === 'promos' && (
+                  {activeTab === 'promos' && (
                      <button onClick={() => handleOpenPromoModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2"><Plus size={14}/> Créer un Code Promo</button>
                   )}
                   {activeTab === 'foods' && (
@@ -2572,6 +2492,83 @@ export default function AdminNutritionAfricaine() {
         </div>
         )}
 
+                {/* Modale de détails de commande */}
+        {showOrderDetailsModal && selectedOrderDetails && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in" onClick={(e) => { if(e.target === e.currentTarget) setShowOrderDetailsModal(false); }}>
+                <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
+                    <button onClick={() => setShowOrderDetailsModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full transition-colors z-10"><X size={20}/></button>
+
+                    <div className="p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-lg"><Package className="text-[#39FF14]" size={24}/></div>
+                            <div>
+                                <h3 className="text-2xl font-black uppercase tracking-tight text-black">Détails Commande</h3>
+                                <p className="text-xs text-zinc-500 font-bold">{new Date(selectedOrderDetails.created_at).toLocaleString('fr-FR')}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Client</h4>
+                                <p className="font-bold text-black">{selectedOrderDetails.client_name}</p>
+                                <p className="text-sm font-bold text-zinc-600">{selectedOrderDetails.phone}</p>
+                            </div>
+                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Adresse de livraison</h4>
+                                <p className="font-bold text-black text-sm">{selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-8">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 pb-2">Articles commandés</h4>
+                            <div className="space-y-3">
+                                {selectedOrderDetails.parsedItems?.length > 0 ? (
+                                    selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
+                                            <div>
+                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
+                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
+                                            </div>
+                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-zinc-500 font-bold">Aucun article détaillé trouvé.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6">
+                            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total {selectedOrderDetails.promo_code && <span className="ml-2 bg-[#39FF14]/20 text-green-700 px-2 py-1 rounded-md text-[10px]">- {selectedOrderDetails.promo_code}</span>}</h4>
+                            <div className="text-right">
+                                {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
+                                <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Modifier le statut</h4>
+                            <select
+                                value={selectedOrderDetails.status || 'Nouveau'}
+                                onChange={(e) => handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value, selectedOrderDetails.phone, selectedOrderDetails.client_name)}
+                                className="w-full bg-white border-2 border-zinc-200 text-black font-bold p-4 rounded-xl focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                            >
+                               <option value="Nouveau">Nouveau</option>
+                               <option value="En préparation">En préparation</option>
+                               <option value="Expédié">Expédié</option>
+                               <option value="Livré">Livré</option>
+                               <option value="Annulé">Annulé</option>
+                            </select>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-zinc-100">
+                            <button onClick={() => handleDeleteOrder(selectedOrderDetails.id)} className="w-full p-4 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-black uppercase text-xs transition-colors flex items-center justify-center gap-2"><Trash2 size={16}/> Supprimer la commande</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {activeTab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
 
@@ -2686,7 +2683,7 @@ export default function AdminNutritionAfricaine() {
            </div>
         )}
 
-                {activeTab === 'promos' && (
+        {activeTab === 'promos' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
               <table className="w-full text-left min-w-[600px]">
@@ -2772,7 +2769,6 @@ export default function AdminNutritionAfricaine() {
                           <td className="p-4 text-center">
                               <div className="flex flex-col items-center gap-1">
                                   <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">+{c.reward_xp || c.xp_reward || 100} XP</span>
-
                               </div>
                           </td>
                           <td className="p-4 text-center">
@@ -2851,7 +2847,7 @@ export default function AdminNutritionAfricaine() {
                </div>
 
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">XP à Gagner</label><input type="number" required value={challengeForm.reward_xp || challengeForm.xp_reward || 100} onChange={e => setChallengeForm({...challengeForm, reward_xp: Number(e.target.value), xp_reward: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">XP à Gagner</label><input type="number" required value={challengeForm.reward_xp || challengeForm.xp_reward || 100} onChange={e => setChallengeForm({...challengeForm, reward_xp: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Statut</label>
                       <select value={challengeForm.status} onChange={e => setChallengeForm({...challengeForm, status: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black">

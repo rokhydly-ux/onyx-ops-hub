@@ -580,6 +580,7 @@ export default function NutritionDashboard() {
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [isParticipating, setIsParticipating] = useState(false);
   const [challengeParticipants, setChallengeParticipants] = useState(0);
   const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
@@ -6388,35 +6389,22 @@ const currentHour = new Date().getHours();
 
                          {/* CHALENGES TENDANCE WIDGET */}
                          {activeChallenge && (
-                             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-5 shadow-sm">
-                                 <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2"><Trophy className="text-[#39FF14]" size={14}/> Challenge du mois</h3>
-                                 <div className="relative rounded-2xl aspect-video w-full overflow-hidden mb-3">
-                                     {activeChallenge.cover_url?.includes('.mp4') ? (
-                                         <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                                     ) : (
-                                         <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
-                                     )}
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4">
-                                         <span className="bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded flex w-fit mb-1">+{activeChallenge.xp_reward || 100} XP</span>
-                                         <p className="text-white font-black text-sm leading-tight line-clamp-2">{activeChallenge.title}</p>
+                             <div onClick={() => setShowChallengeModal(true)} className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/5 rounded-full blur-3xl group-hover:bg-[#39FF14]/10 transition-colors"></div>
+                                 <div className="flex justify-between items-start mb-4 relative z-10">
+                                     <div>
+                                         <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">En cours</span>
+                                         <h3 className="font-poppins-black text-black dark:text-white leading-tight">{activeChallenge.title}</h3>
+                                     </div>
+                                     <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center shrink-0">
+                                         <Trophy className="text-orange-500 w-5 h-5"/>
                                      </div>
                                  </div>
-                                 <div className="flex justify-between items-center mb-4">
-                                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">🏅 Badge : <span className="text-black dark:text-white font-black">{activeChallenge.badge_name}</span></p>
-                                     <p className="text-[10px] text-zinc-400 font-bold">{challengeParticipants.toLocaleString()} inscrits</p>
+                                 <p className="text-xs text-zinc-500 font-poppins mb-4 relative z-10 line-clamp-2">{activeChallenge.description}</p>
+                                 <div className="flex justify-between items-center relative z-10">
+                                     <span className="text-[10px] font-black uppercase text-zinc-400">{activeChallenge.end_date ? new Date(activeChallenge.end_date).toLocaleDateString('fr-FR') : ''}</span>
+                                     <button className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2 rounded-xl group-hover:scale-105 transition-transform">Voir le défi</button>
                                  </div>
-                                 {isParticipating ? (
-                                     <div className="space-y-2">
-                                         <button className="w-full bg-transparent border-2 border-[#39FF14] text-[#39FF14] py-2.5 rounded-xl font-poppins-bold text-xs uppercase flex items-center justify-center gap-2 cursor-default">
-                                            <CheckCircle size={14} className="fill-[#39FF14] text-black" /> Défi en cours
-                                         </button>
-                                         <button onClick={() => window.scrollTo(0, 0)} className="w-full text-center text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white transition-colors underline">Poster mon progrès aujourd'hui</button>
-                                     </div>
-                                 ) : (
-                                     <button onClick={handleJoinChallenge} className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-poppins-bold py-2.5 rounded-xl text-xs uppercase hover:scale-[1.02] transition-all shadow-md">
-                                         Relever le défi (+{activeChallenge.xp_reward || 100} XP)
-                                     </button>
-                                 )}
                              </div>
                          )}
 
@@ -7729,15 +7717,40 @@ const currentHour = new Date().getHours();
 
                   {shopCart.length > 0 && (
                      <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                        <div className="mb-4 relative z-50">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Quartier (Dakar)</label>
+                           <input type="text" placeholder="Saisissez votre quartier (ex: Mermoz)..." value={deliveryZone} onChange={e => {
+                               setDeliveryZone(e.target.value);
+                               setShowZoneSuggestions(e.target.value.length >= 2);
+                               if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
+                           }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                           {showZoneSuggestions && deliveryZone.length >= 2 && (
+                               <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                                   {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
+                                       <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
+                                          <span>{q}</span>
+                                          <span className="text-[#39FF14]">{DELIVERY_ZONES[q]} F</span>
+                                       </div>
+                                   ))}
+                               </div>
+                           )}
+                        </div>
                         <div className="mb-4">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse de livraison</label>
-                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Villa 24B" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse Complète</label>
+                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Immeuble Y, Appt 4..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                        </div>
+                        <div className="flex justify-between items-center mb-4 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Frais de livraison</span>
+                            <span className="text-xs font-black text-black dark:text-white">{deliveryCost > 0 ? `+${deliveryCost.toLocaleString()} F` : 'À déterminer'}</span>
                         </div>
                         <div className="flex justify-between items-center mb-6">
-                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total Estimé</span>
-                           <span className="font-black text-2xl text-black dark:text-white">
-                              {shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0).toLocaleString()} F
-                           </span>
+                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total à payer</span>
+                           <div className="text-right">
+                               {isShopPromoApplied && <span className="text-xs line-through text-zinc-400 block">{(shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) + deliveryCost).toLocaleString()} F</span>}
+                               <span className="font-black text-2xl text-black dark:text-white">
+                                  {((shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) * (isShopPromoApplied && appliedPromoData ? (1 - appliedPromoData.discount_pct / 100) : 1)) + deliveryCost).toLocaleString()} <span className="text-[#39FF14]">F</span>
+                               </span>
+                           </div>
                         </div>
                         <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
                            <ShoppingCart size={16}/> Commander via WhatsApp
