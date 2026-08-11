@@ -4741,14 +4741,15 @@ const currentHour = new Date().getHours();
                          key={cat.id}
                          onClick={() => setRecipeFilter(cat.id)}
                          className={`group cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-300 overflow-hidden border-2 ${recipeFilter === cat.id ? 'border-[#39FF14] shadow-lg' : 'border-zinc-200'}`}
+                         style={{ backgroundImage: `url('https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=400&auto=format&fit=crop')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                       >
                          {/* Default State: Title only on white background */}
-                         <div className={`absolute inset-0 flex flex-col justify-center items-center text-center p-4 transition-all duration-300 ${recipeFilter === cat.id ? 'bg-black' : 'bg-white'}`}>
+                         <div className={`absolute inset-0 flex flex-col justify-center items-center text-center p-4 transition-all duration-300 ${recipeFilter === cat.id ? 'bg-black/70 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm'}`}>
                              <span className={`font-black uppercase tracking-widest text-xs z-10 ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
                          </div>
 
                          {/* Hover Overlay: Dark gradient + description */}
-                         <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4 text-center z-20">
+                         <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4 text-center z-20">
                              <span className="font-bold text-[#39FF14] text-[10px] leading-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{cat.desc}</span>
                          </div>
                       </div>
