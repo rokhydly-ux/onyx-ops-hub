@@ -450,6 +450,15 @@ export default function NutritionDashboard() {
   const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
   const [recipeFilter, setRecipeFilter] = useState("Tous");
 
+  // Immersive Recipe Modal
+  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<any>(null);
+  const [recipeDetailTab, setRecipeDetailTab] = useState<'apercu'|'ingredients'|'preparation'|'avis'>('apercu');
+  const [recipeReviews, setRecipeReviews] = useState<any[]>([]);
+  const [userRating, setUserRating] = useState(5);
+  const [userComment, setUserComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
 
@@ -987,7 +996,7 @@ export default function NutritionDashboard() {
               twitter: activeProfile.twitter || ""
           }));
 
-          // Fetch follower count
+          // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
               const { count } = await supabase.from('nutrition_followers').select('*', { count: 'exact', head: true }).eq('followed_id', activeProfile.id);
               if (count !== null) setMyFollowersCount(count);
@@ -3686,6 +3695,11 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
               handleUpdateWater={handleUpdateWater}
               jongomaXP={jongomaXP}
               clientProfile={clientProfile}
+              calories={calories}
+              proteins={proteins}
+              carbs={carbs}
+              fats={fats}
+              consumedMeals={consumedMeals}
               weightLogs={weightLogs}
               setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
@@ -5172,7 +5186,6 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                     <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm">
                       <img src={selectedArticle.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={selectedArticle.title} className="w-full h-full object-cover" />
                     </div>
-                  )}
 
                   <div className="prose prose-zinc dark:prose-invert max-w-none font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
 {(() => {
@@ -5257,10 +5270,6 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                       ))}
                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'blog' && !selectedArticle && (
 

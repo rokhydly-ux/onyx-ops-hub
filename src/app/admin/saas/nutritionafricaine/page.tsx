@@ -88,7 +88,7 @@ export default function AdminNutritionAfricaine() {
   const [challenges, setChallenges] = useState<any[]>([]);
   const [isEditingChallenge, setIsEditingChallenge] = useState(false);
   const [challengeForm, setChallengeForm] = useState<any>({
-      id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: ''
+      id: '', title: '', description: '', reward_xp: 100, cover_url: '', status: 'draft', start_date: '', end_date: ''
   });
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -107,6 +107,10 @@ export default function AdminNutritionAfricaine() {
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [ordersViewMode, setOrdersViewMode] = useState<'table' | 'grid'>('table');
+  const [ordersSortDesc, setOrdersSortDesc] = useState(true);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showFoodModal, setShowFoodModal] = useState(false);
   const [editingFood, setEditingFood] = useState<any>(null);
@@ -1276,6 +1280,9 @@ export default function AdminNutritionAfricaine() {
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string, phone: string, clientName: string) => {
       await supabase.from('nutrition_orders').update({ status: newStatus }).eq('id', orderId);
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      if (selectedOrderDetails && selectedOrderDetails.id === orderId) {
+          setSelectedOrderDetails({ ...selectedOrderDetails, status: newStatus });
+      }
       
       let msg = "";
       if (newStatus === 'En préparation') msg = `Bonjour ${clientName}, votre commande OnyxNutrition est en cours de préparation 📦 !`;
@@ -1285,11 +1292,34 @@ export default function AdminNutritionAfricaine() {
       if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const handleOpenOrderDetails = async (order: any) => {
+      let items = order.items || [];
+      if (typeof items === 'string') {
+          try { items = JSON.parse(items); } catch(e) { items = []; }
+      }
+      const { data: dbItems } = await supabase.from('nutrition_order_items').select('*').eq('order_id', order.id);
+      if (dbItems && dbItems.length > 0) {
+          items = dbItems;
+      }
+      setSelectedOrderDetails({ ...order, parsedItems: items });
+      setShowOrderDetailsModal(true);
+  };
+
+  const handleDeleteOrder = async (id: string, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      if (!confirm("Voulez-vous vraiment supprimer cette commande ?")) return;
+      await supabase.from('nutrition_orders').delete().eq('id', id);
+      setOrders(orders.filter(o => o.id !== id));
+      if (selectedOrderDetails?.id === id) setShowOrderDetailsModal(false);
+  };
+
   const handleSaveChallenge = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...challengeForm };
       delete payload.id;
       delete payload.participantsCount;
+      delete payload.badge_name;
+      delete payload.xp_reward;
       if (tenantId) payload.tenant_id = tenantId;
 
       if (isEditingChallenge) {
@@ -1297,7 +1327,7 @@ export default function AdminNutritionAfricaine() {
           if (!error) {
               setChallenges(challenges.map(c => c.id === challengeForm.id ? { ...c, ...payload } : c));
               setIsEditingChallenge(false);
-              setChallengeForm({ id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' });
+              setChallengeForm({ id: '', title: '', description: '', reward_xp: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' });
               alert("Challenge mis à jour avec succès !");
           } else alert(error.message);
       } else {
@@ -1305,7 +1335,7 @@ export default function AdminNutritionAfricaine() {
           if (!error && data) {
               setChallenges([{ ...data, participantsCount: 0 }, ...challenges]);
               setIsEditingChallenge(false);
-              setChallengeForm({ id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' });
+              setChallengeForm({ id: '', title: '', description: '', reward_xp: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' });
           } else alert(error?.message);
       }
   };
@@ -1636,6 +1666,7 @@ export default function AdminNutritionAfricaine() {
                    <button onClick={() => setActiveTab('foods')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'foods' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Database size={14}/> Aliments (BDD)</button>
                    <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'blog' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><FileText size={14}/> Blog</button>
                    <button onClick={() => setActiveTab('fitness')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'fitness' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Activity size={14}/> Fitness</button>
+                   <button onClick={() => setActiveTab('challenges')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'challenges' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Trophy size={14}/> Challenges</button>
                    
                    <div className="relative group">
                        <button className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
@@ -2461,8 +2492,101 @@ export default function AdminNutritionAfricaine() {
         </div>
         )}
 
+                {/* Modale de détails de commande */}
+        {showOrderDetailsModal && selectedOrderDetails && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in" onClick={(e) => { if(e.target === e.currentTarget) setShowOrderDetailsModal(false); }}>
+                <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
+                    <button onClick={() => setShowOrderDetailsModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full transition-colors z-10"><X size={20}/></button>
+
+                    <div className="p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-lg"><Package className="text-[#39FF14]" size={24}/></div>
+                            <div>
+                                <h3 className="text-2xl font-black uppercase tracking-tight text-black">Détails Commande</h3>
+                                <p className="text-xs text-zinc-500 font-bold">{new Date(selectedOrderDetails.created_at).toLocaleString('fr-FR')}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Client</h4>
+                                <p className="font-bold text-black">{selectedOrderDetails.client_name}</p>
+                                <p className="text-sm font-bold text-zinc-600">{selectedOrderDetails.phone}</p>
+                            </div>
+                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Adresse de livraison</h4>
+                                <p className="font-bold text-black text-sm">{selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-8">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 pb-2">Articles commandés</h4>
+                            <div className="space-y-3">
+                                {selectedOrderDetails.parsedItems?.length > 0 ? (
+                                    selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
+                                            <div>
+                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
+                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
+                                            </div>
+                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-zinc-500 font-bold">Aucun article détaillé trouvé.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6">
+                            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total {selectedOrderDetails.promo_code && <span className="ml-2 bg-[#39FF14]/20 text-green-700 px-2 py-1 rounded-md text-[10px]">- {selectedOrderDetails.promo_code}</span>}</h4>
+                            <div className="text-right">
+                                {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
+                                <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Modifier le statut</h4>
+                            <select
+                                value={selectedOrderDetails.status || 'Nouveau'}
+                                onChange={(e) => handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value, selectedOrderDetails.phone, selectedOrderDetails.client_name)}
+                                className="w-full bg-white border-2 border-zinc-200 text-black font-bold p-4 rounded-xl focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                            >
+                               <option value="Nouveau">Nouveau</option>
+                               <option value="En préparation">En préparation</option>
+                               <option value="Expédié">Expédié</option>
+                               <option value="Livré">Livré</option>
+                               <option value="Annulé">Annulé</option>
+                            </select>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-zinc-100">
+                            <button onClick={() => handleDeleteOrder(selectedOrderDetails.id)} className="w-full p-4 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-black uppercase text-xs transition-colors flex items-center justify-center gap-2"><Trash2 size={16}/> Supprimer la commande</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {activeTab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+
+           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <div>
+                  <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Package className="text-[#39FF14]"/> Gestion des Commandes</h3>
+                  <p className="text-xs text-zinc-500 font-bold mt-1">Gérez vos expéditions et statuts</p>
+               </div>
+               <div className="flex items-center gap-3">
+                  <button onClick={() => setOrdersSortDesc(!ordersSortDesc)} className="bg-zinc-100 p-3 rounded-xl hover:bg-zinc-200 transition-colors flex items-center gap-2 text-xs font-black uppercase"><Activity size={16}/> {ordersSortDesc ? 'Récents' : 'Anciens'}</button>
+                  <div className="flex bg-zinc-100 p-1 rounded-xl">
+                      <button onClick={() => setOrdersViewMode('table')} className={`p-2 rounded-lg transition-colors ${ordersViewMode === 'table' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}><List size={16}/></button>
+                      <button onClick={() => setOrdersViewMode('grid')} className={`p-2 rounded-lg transition-colors ${ordersViewMode === 'grid' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}><LayoutGrid size={16}/></button>
+                  </div>
+               </div>
+           </div>
+
+           {ordersViewMode === 'table' ? (
            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
               <table className="w-full text-left min-w-[800px]">
                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
@@ -2474,8 +2598,8 @@ export default function AdminNutritionAfricaine() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {orders.map(o => (
-                       <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                    {[...orders].sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
+                       <tr key={o.id} className="hover:bg-zinc-50 transition-colors cursor-pointer" onClick={() => handleOpenOrderDetails(o)}>
                           <td className="p-4">
                              <p className="font-bold text-sm text-black">{o.client_name}</p>
                              <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{new Date(o.created_at).toLocaleDateString('fr-FR')} • {o.phone}</p>
@@ -2485,7 +2609,7 @@ export default function AdminNutritionAfricaine() {
                              <p className="text-sm font-black text-black">{o.total?.toLocaleString()} F</p>
                              {o.promo_code && <p className="text-[10px] font-black text-[#39FF14] uppercase mt-1">Code: {o.promo_code} (-{o.discount_amount} F)</p>}
                           </td>
-                          <td className="p-4">
+                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
                              <select value={o.status} onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value, o.phone, o.client_name)} className={`p-2 border rounded-xl outline-none text-xs font-bold ${o.status === 'Nouveau' ? 'bg-blue-50 text-blue-600 border-blue-200' : o.status === 'Livré' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
                                <option value="Nouveau">Nouveau</option>
                                <option value="En préparation">En préparation</option>
@@ -2494,9 +2618,10 @@ export default function AdminNutritionAfricaine() {
                                <option value="Annulé">Annulé</option>
                              </select>
                           </td>
-                          <td className="p-4 text-right flex justify-end gap-1.5 flex-wrap">
+                          <td className="p-4 text-right flex justify-end gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
                              <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="px-2 py-2 bg-[#25D366] text-white hover:bg-[#1ebd58] rounded-lg transition-colors flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"><MessageSquare size={12}/> WhatsApp</button>
                              <button onClick={() => window.open(`mailto:?subject=Relance Commande OnyxNutrition&body=Bonjour ${o.client_name}, nous avons remarqué que votre commande de ${o.total?.toLocaleString()} F n'a pas été finalisée. Souhaitez-vous de l'aide ?`, '_blank')} className="px-2 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"><Mail size={12}/> Email</button>
+                             <button onClick={(e) => handleDeleteOrder(o.id, e)} className="p-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={14}/></button>
                           </td>
                        </tr>
                     ))}
@@ -2504,6 +2629,42 @@ export default function AdminNutritionAfricaine() {
                  </tbody>
               </table>
            </div>
+           ) : (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...orders].sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
+                  <div key={o.id} onClick={() => handleOpenOrderDetails(o)} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group">
+                      <div className="flex justify-between items-start mb-4">
+                         <div>
+                            <p className="font-bold text-black">{o.client_name}</p>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase">{new Date(o.created_at).toLocaleDateString('fr-FR')} • {o.phone}</p>
+                         </div>
+                         <div className="w-10 h-10 bg-zinc-50 rounded-xl flex items-center justify-center">
+                            <Package className="text-[#39FF14] w-5 h-5"/>
+                         </div>
+                      </div>
+
+                      <div className="bg-zinc-50 p-4 rounded-xl mb-4 border border-zinc-100">
+                         <p className="text-2xl font-black text-black">{o.total?.toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                         <p className="text-xs font-bold text-zinc-500">{o.items?.length || 0} articles</p>
+                      </div>
+
+                      <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                         <select value={o.status} onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value, o.phone, o.client_name)} className={`p-2 border rounded-xl outline-none text-xs font-bold ${o.status === 'Nouveau' ? 'bg-blue-50 text-blue-600 border-blue-200' : o.status === 'Livré' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+                            <option value="Nouveau">Nouveau</option>
+                            <option value="En préparation">En préparation</option>
+                            <option value="Expédié">Expédié</option>
+                            <option value="Livré">Livré</option>
+                            <option value="Annulé">Annulé</option>
+                         </select>
+                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="p-2 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded-lg transition-colors"><MessageSquare size={14}/></button>
+                            <button onClick={(e) => handleDeleteOrder(o.id, e)} className="p-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={14}/></button>
+                         </div>
+                      </div>
+                  </div>
+              ))}
+           </div>
+           )}
         </div>
         )}
         
@@ -2570,7 +2731,7 @@ export default function AdminNutritionAfricaine() {
                   <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Trophy className="text-[#39FF14]"/> Gestion des Challenges</h3>
                   <p className="text-xs text-zinc-500 font-bold mt-1">Créez et gérez les défis communautaires.</p>
                </div>
-               <button onClick={() => { setIsEditingChallenge(false); setChallengeForm({ id: '', title: '', description: '', badge_name: '', xp_reward: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' }); document.getElementById('challenge-modal-overlay')?.classList.remove('hidden'); }} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
+               <button onClick={() => { setIsEditingChallenge(false); setChallengeForm({ id: '', title: '', description: '', reward_xp: 100, cover_url: '', status: 'draft', start_date: '', end_date: '' }); document.getElementById('challenge-modal-overlay')?.classList.remove('hidden'); }} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
                   <Plus size={16}/> Nouveau Challenge
                </button>
            </div>
@@ -2581,7 +2742,7 @@ export default function AdminNutritionAfricaine() {
                     <tr>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Challenge</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Participants</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">XP & Badge</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Récompense (XP)</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Statut</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
                     </tr>
@@ -2607,8 +2768,7 @@ export default function AdminNutritionAfricaine() {
                           <td className="p-4 text-center font-black text-lg">{c.participantsCount || 0}</td>
                           <td className="p-4 text-center">
                               <div className="flex flex-col items-center gap-1">
-                                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">+{c.xp_reward} XP</span>
-                                  <span className="text-[10px] font-bold text-zinc-500">🏅 {c.badge_name}</span>
+                                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">+{c.reward_xp || c.xp_reward || 100} XP</span>
                               </div>
                           </td>
                           <td className="p-4 text-center">
@@ -2686,9 +2846,8 @@ export default function AdminNutritionAfricaine() {
                   <textarea rows={3} required value={challengeForm.description} onChange={e => setChallengeForm({...challengeForm, description: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black resize-none" />
                </div>
 
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom du Badge</label><input type="text" required value={challengeForm.badge_name} onChange={e => setChallengeForm({...challengeForm, badge_name: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
-                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">XP à Gagner</label><input type="number" required value={challengeForm.xp_reward} onChange={e => setChallengeForm({...challengeForm, xp_reward: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">XP à Gagner</label><input type="number" required value={challengeForm.reward_xp || challengeForm.xp_reward || 100} onChange={e => setChallengeForm({...challengeForm, reward_xp: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Statut</label>
                       <select value={challengeForm.status} onChange={e => setChallengeForm({...challengeForm, status: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black">
