@@ -4751,13 +4751,16 @@ const currentHour = new Date().getHours();
                       <div
                          key={cat.id}
                          onClick={() => setRecipeFilter(cat.id)}
-                         className={`group perspective cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-500`}
+                         className={`group cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-300 overflow-hidden border-2 ${recipeFilter === cat.id ? 'border-[#39FF14] shadow-lg' : 'border-zinc-200'}`}
                       >
-                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm group-hover:[transform:rotateY(180deg)] ${recipeFilter === cat.id ? 'bg-black border-[#39FF14]' : 'bg-white border-white/40 backdrop-blur-md'}`}>
-                             <span className={`font-black uppercase tracking-widest text-xs ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
+                         {/* Default State: Title only on white background */}
+                         <div className={`absolute inset-0 flex flex-col justify-center items-center text-center p-4 transition-all duration-300 ${recipeFilter === cat.id ? 'bg-black' : 'bg-white'}`}>
+                             <span className={`font-black uppercase tracking-widest text-xs z-10 ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
                          </div>
-                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm [transform:rotateY(180deg)] group-hover:[transform:rotateY(0deg)] bg-[#39FF14] border-[#39FF14]`}>
-                             <span className="font-bold text-black text-[10px] leading-tight">{cat.desc}</span>
+
+                         {/* Hover Overlay: Dark gradient + description */}
+                         <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4 text-center z-20">
+                             <span className="font-bold text-[#39FF14] text-[10px] leading-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{cat.desc}</span>
                          </div>
                       </div>
                    ))}
@@ -4814,7 +4817,7 @@ const currentHour = new Date().getHours();
                          return (
                          <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); loadRecipeReviews(fav.id); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
                              <div className="w-full h-full flex flex-col">
-                                 {fav.image_url && <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={name} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
+                                 <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={name} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />
                                  <div className="flex justify-between items-start mb-2">
                                      <div className="flex flex-col">
                                          {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
@@ -4852,38 +4855,61 @@ const currentHour = new Date().getHours();
 
                             {/* Center: Grid of smaller recipes (Cols 5-9) */}
                             <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                               {gridRecipes.map(r => renderCard(r, false))}
+                               {gridRecipes.slice(0, 6).map(r => renderCard(r, false))}
                             </div>
 
-                            {/* Right: Static Widgets (Cols 10-12) */}
+                            {/* Right: Dynamic Widgets (Cols 10-12) */}
                             <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
-                                   <div className="flex flex-col gap-2">
-                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
-                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
-                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
-                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] p-6 relative overflow-hidden">
+                                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                                   <h3 className="font-black text-black uppercase tracking-widest text-xs flex items-center gap-2 mb-5 relative z-10">
+                                       <div className="bg-red-100 p-1.5 rounded-lg"><Heart size={14} className="text-red-500 fill-red-500"/></div>
+                                       Mes Favoris
+                                   </h3>
+                                   <div className="flex flex-col gap-3 relative z-10 h-64 overflow-y-auto custom-scrollbar pr-2">
+                                       {favoriteMeals.length > 0 ? (
+                                           favoriteMeals.slice(0,5).map((fav, idx) => (
+                                               <div key={idx} onClick={() => { setSelectedRecipeDetail(allRecipesDB.find(r => r.nom === fav.nom) || fav); setRecipeDetailTab('apercu'); }} className="flex items-center gap-3 bg-white p-2 rounded-2xl cursor-pointer hover:border-[#39FF14] border border-transparent transition-colors group shadow-sm">
+                                                   <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="" />
+                                                   <div className="flex flex-col min-w-0">
+                                                       <span className="text-xs font-bold text-black truncate group-hover:text-[#39FF14] transition-colors">{fav.nom}</span>
+                                                       <span className="text-[10px] text-zinc-500 font-medium">{fav.calories} kcal</span>
+                                                   </div>
+                                               </div>
+                                           ))
+                                       ) : (
+                                           <div className="h-full flex flex-col items-center justify-center text-center text-zinc-400 gap-2">
+                                               <Heart size={24} className="opacity-20" />
+                                               <span className="text-[10px] font-bold">Aucun favori enregistré.</span>
+                                           </div>
+                                       )}
                                    </div>
                                </div>
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
-                                   <div className="flex flex-col gap-3">
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
+
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] p-6 relative overflow-hidden">
+                                   <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
+                                   <h3 className="font-black text-black uppercase tracking-widest text-xs flex items-center gap-2 mb-5 relative z-10">
+                                       <div className="bg-blue-100 p-1.5 rounded-lg"><MessageSquare size={14} className="text-blue-500 fill-blue-500"/></div>
+                                       Le Flux
+                                   </h3>
+                                   <div className="flex flex-col gap-4 relative z-10">
+                                       {communityPosts && communityPosts.length > 0 ? (
+                                           communityPosts.slice(0,3).map((post, idx) => (
+                                               <div key={idx} onClick={() => handleTabChange('community')} className="cursor-pointer group flex flex-col gap-2 border-b border-zinc-100 pb-3 last:border-0 last:pb-0">
+                                                   <div className="flex items-center gap-2">
+                                                       <img src={post.clients?.avatar_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-6 h-6 rounded-full object-cover shrink-0" alt="" />
+                                                       <span className="text-[10px] font-bold text-zinc-800">{post.clients?.prenom || 'Membre'}</span>
+                                                   </div>
+                                                   <p className="text-[11px] text-zinc-600 line-clamp-2 leading-tight group-hover:text-black transition-colors">{post.content || 'a publié une mise à jour.'}</p>
+                                               </div>
+                                           ))
+                                       ) : (
+                                           <div className="py-4 text-center text-zinc-400">
+                                               <span className="text-[10px] font-bold">Le flux est silencieux...</span>
                                            </div>
-                                       </div>
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Healthy Fats</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
-                                           </div>
-                                       </div>
+                                       )}
                                    </div>
+                                   <button onClick={() => handleTabChange('community')} className="w-full mt-4 py-2.5 bg-black hover:bg-zinc-800 text-[#39FF14] text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors relative z-10">Rejoindre la conversation</button>
                                </div>
                             </div>
                          </div>
