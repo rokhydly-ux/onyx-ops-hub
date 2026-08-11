@@ -4,15 +4,11 @@ import React, { useState } from 'react';
 import {
     Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
-, Users, Sparkles} from 'lucide-react';
+, Users} from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 
 // Props required for the weaving
 interface BentoDashboardViewProps {
-    todayPlan?: any;
-    generateWeeklyMenu?: () => void;
-    currentCalories?: number;
-    isExpertMode?: boolean;
     user: any;
     waterGlasses: number;
     handleUpdateWater: (delta: number) => void;
@@ -22,9 +18,11 @@ interface BentoDashboardViewProps {
     setActiveTab: (tab: string) => void;
     handleMealClick?: (meal: any) => void;
     setShowDailyReport: (show: boolean) => void;
+    currentCalories: number;
+    isExpertMode?: boolean;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, currentCalories, isExpertMode = true, todayPlan, generateWeeklyMenu }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, currentCalories, isExpertMode = true }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
@@ -209,47 +207,44 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 <div className="col-span-1 lg:col-span-8 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6">
                     <div className="flex justify-between items-center mb-6">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sama Menu du Jour</p>
-                        <button onClick={() => setActiveTab('week')} className="text-[10px] text-black font-bold uppercase tracking-widest hover:text-[#39FF14] transition-colors cursor-pointer relative z-10">Voir la semaine</button>
+                        <button className="text-[10px] text-black font-bold uppercase tracking-widest hover:text-[#39FF14] transition-colors">Voir la semaine</button>
                     </div>
 
                     <div className="space-y-3">
-                        {(!todayPlan || !todayPlan.meals || Object.keys(todayPlan.meals).length === 0) ? (
-                             <div className="flex flex-col items-center justify-center p-8 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
-                                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-16 h-16 object-contain mb-4" />
-                                 <button onClick={() => generateWeeklyMenu && generateWeeklyMenu()} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-sm flex items-center gap-2">
-                                     Planifier mon assiette gourmande
-                                 </button>
-                             </div>
-                        ) : (
-                            Object.entries(todayPlan.meals).map(([mealType, meal]: [string, any]) => {
-                                let defaultTime = "12:00";
-                                if (mealType === 'Petit-Déjeuner') defaultTime = "08:00";
-                                if (mealType === 'Déjeuner') defaultTime = "13:30";
-                                if (mealType === 'Dîner') defaultTime = "20:00";
-                                if (mealType === 'Collation') defaultTime = "16:00";
+                        {/* Repas 1 */}
+                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
+                            <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781222471/Bouillie_de_mil_r2zihq.jpg" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Petit-Déjeuner • 08:00</p>
+                                <p className="text-sm font-black text-black mt-0.5">Fondé & Lait caillé</p>
+                            </div>
+                            <div className="text-right pr-2">
+                                <p className="text-lg font-black text-[#39FF14]">350</p>
+                                <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
+                            </div>
+                        </div>
 
-                                return (
-                                    <div key={mealType} onClick={() => handleMealClick && handleMealClick(meal)} className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer relative z-10 group shadow-sm">
-                                        <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                            <img src={meal.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{mealType} • {defaultTime}</p>
-                                            <p className="text-sm font-black text-black mt-0.5 line-clamp-1">{meal.nom || 'Repas'}</p>
-                                        </div>
-                                        <div className="text-right pr-2">
-                                            <p className="text-lg font-black text-[#39FF14]">{meal.calories || meal.kcal || meal.energy || 0}</p>
-                                            <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
+                        {/* Repas 2 */}
+                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
+                            <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Déjeuner • 13:30</p>
+                                <p className="text-sm font-black text-black mt-0.5">Thiéboudienne Rouge Penda Mbaye</p>
+                            </div>
+                            <div className="text-right pr-2">
+                                <p className="text-lg font-black text-[#39FF14]">850</p>
+                                <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Feed Communautaire */}
-                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col max-h-[400px] animate-neon-pulse">
+                <div className="col-span-1 lg:col-span-4 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col max-h-[400px]">
                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 shrink-0">Communauté</p>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
