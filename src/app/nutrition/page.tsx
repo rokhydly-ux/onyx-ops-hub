@@ -4580,17 +4580,33 @@ const confirmMealLog = async (mealType: string, mealName: string, cals: number, 
                       className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-colors"
                    />
                 </div>
-
-                <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide w-full gap-4 pb-6 mb-4 custom-scrollbar">
-                   {RECIPE_FILTERS.map(filter => (
-                      <button
-                         key={filter.id}
-                         onClick={() => setRecipeFilter(filter.id)}
-                         className={`shrink-0 px-5 py-2.5 rounded-[2rem] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 border-2 ${recipeFilter === filter.id ? 'bg-black text-[#39FF14] border-black shadow-xl scale-105 opacity-100' : 'bg-zinc-50 text-zinc-500 border-zinc-200 opacity-60 hover:opacity-100 hover:bg-zinc-100 hover:scale-105'}`}
+                
+                <div className="flex overflow-x-auto custom-scrollbar pb-8 pt-4 gap-4 mb-6">
+                   {[
+                       { id: 'Tous', desc: 'Le catalogue complet de nos recettes.' },
+                       { id: 'Favoris', desc: 'Vos coups de cœur sauvegardés.' },
+                       { id: 'Populaire', desc: 'Les plus appréciées par la communauté.' },
+                       { id: 'Main Course', desc: 'Plats de résistance copieux.' },
+                       { id: 'Healthy', desc: 'Faible en gras, idéal perte de poids.' },
+                       { id: 'Low Calories', desc: 'Moins de 350 Kcal par portion.' },
+                       { id: 'Desserts', desc: 'Petites douceurs saines.' }
+                   ].map(cat => (
+                      <div
+                         key={cat.id}
+                         onClick={() => setRecipeFilter(cat.id)}
+                         className={`group cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-300 overflow-hidden border-2 ${recipeFilter === cat.id ? 'border-[#39FF14] shadow-lg' : 'border-zinc-200'}`}
+                         style={{ backgroundImage: `url('https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=400&auto=format&fit=crop')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                       >
-                         {filter.icon && <img src={filter.icon} alt={filter.label} className="w-8 h-8 rounded-full object-cover shadow-sm" />}
-                         {filter.label}
-                      </button>
+                         {/* Default State: Title only on white background */}
+                         <div className={`absolute inset-0 flex flex-col justify-center items-center text-center p-4 transition-all duration-300 ${recipeFilter === cat.id ? 'bg-black/70 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm'}`}>
+                             <span className={`font-black uppercase tracking-widest text-xs z-10 ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
+                         </div>
+
+                         {/* Hover Overlay: Dark gradient + description */}
+                         <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4 text-center z-20">
+                             <span className="font-bold text-[#39FF14] text-[10px] leading-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{cat.desc}</span>
+                         </div>
+                      </div>
                    ))}
                 </div>
 
