@@ -677,6 +677,8 @@ export default function NutritionDashboard() {
 
   const [pushEnabled, setPushEnabled] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+  const [emblaBlogRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -711,8 +713,7 @@ export default function NutritionDashboard() {
       return "0";
   })() : 0;
 
-  const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
-  const [emblaBlogRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+
 
   useEffect(() => {
     if (!clientProfile?.id) return;
