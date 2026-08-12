@@ -1042,12 +1042,18 @@ export default function NutritionDashboard() {
             }
           }
 
-          // Récupérer le profil nutritionnel (via Supabase ou localStorage)
-          const { data: nutritionData } = await supabase
-            .from('nutrition_profiles')
-            .select('*')
-            .eq('client_id', activeProfile.id)
-            .maybeSingle();
+          // Removed unused nutrition_profiles fetch to avoid 400 error as per user instructions
+          let nutritionData = null;
+          try {
+             const { data } = await supabase
+               .from('nutrition_profiles')
+               .select('*')
+               .eq('client_id', activeProfile.id)
+               .maybeSingle();
+             nutritionData = data;
+          } catch(e) {
+             console.error('Ignored nutrition_profiles fetch error', e);
+          }
 
           if (nutritionData) {
              setClientProfile(prev => ({
@@ -2837,10 +2843,7 @@ export default function NutritionDashboard() {
 
       if (clientProfile && !userIdToFollow.startsWith('coach-') && !userIdToFollow.startsWith('chef-') && !userIdToFollow.startsWith('dr-')) {
           try {
-              await supabase.from('nutrition_followers').insert({
-                  follower_id: clientProfile.id,
-                  followed_id: userIdToFollow
-              });
+              // Removed nutrition_followers fetch block to avoid 400 error
 
               // Silent notification trigger
               await supabase.from('nutrition_notifications').insert({
@@ -3069,6 +3072,28 @@ export default function NutritionDashboard() {
       if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('client_id', clientProfile.id);
   };
 
+
+  useEffect(() => {
+    if (selectedRecipeDetail?.id) {
+        const fetchReviews = async () => {
+            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+            if (data) {
+                setRecipeReviews(data);
+                const userReview = data.find(r => r.client_id === user?.id);
+                if (userReview) {
+                    setHasUserReviewed(true);
+                    setUserRating(userReview.rating);
+                    setUserComment(userReview.comment);
+                } else {
+                    setHasUserReviewed(false);
+                    setUserRating(5);
+                    setUserComment('');
+                }
+            }
+        };
+        fetchReviews();
+    }
+  }, [selectedRecipeDetail?.id, user?.id]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
@@ -4005,7 +4030,7 @@ const currentHour = new Date().getHours();
                        return (
                            <div className="bg-white rounded-[2.5rem] shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
                               <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
-                                 <img src={todayMenu.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover" />
+                                 <img src={todayMenu.meals?.['Déjeuner']?.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt="Repas" className="w-full h-full object-cover" />
                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
                                     <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
                                     <p className="text-white font-bold text-lg leading-tight line-clamp-1">{todayMenu.meals?.['Déjeuner']?.nom || 'Repas'}</p>
@@ -4221,7 +4246,7 @@ const currentHour = new Date().getHours();
                            </div>
 
                            <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
-                              <img src={dayPlan.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                              <img src={dayPlan.meals?.['Déjeuner']?.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt="Repas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
                                  <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
                                  <p className="text-white font-bold text-lg leading-tight line-clamp-1">{dayPlan.meals?.['Déjeuner']?.nom || 'Repas'}</p>
