@@ -2461,6 +2461,99 @@ export default function AdminNutritionAfricaine() {
         </div>
         )}
 
+                {/* Modale de détails de commande */}
+        {showOrderDetailsModal && selectedOrderDetails && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in" onClick={(e) => { if(e.target === e.currentTarget) setShowOrderDetailsModal(false); }}>
+                <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
+                    <button onClick={() => setShowOrderDetailsModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full transition-colors z-10"><X size={20}/></button>
+
+                    <div className="p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-lg"><Package className="text-[#39FF14]" size={24}/></div>
+                            <div>
+                                <h3 className="text-2xl font-black uppercase tracking-tight text-black">Détails Commande</h3>
+                                <p className="text-xs text-zinc-500 font-bold">{new Date(selectedOrderDetails.created_at).toLocaleString('fr-FR')}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Client</h4>
+                                <p className="font-bold text-black">{selectedOrderDetails.client_name}</p>
+                                <p className="text-sm font-bold text-zinc-600">{selectedOrderDetails.phone}</p>
+                            </div>
+                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Adresse de livraison</h4>
+                                <p className="font-bold text-black text-sm">{selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-8">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 pb-2">Articles commandés</h4>
+                            <div className="space-y-3">
+                                {selectedOrderDetails.parsedItems?.length > 0 ? (
+                                    selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
+                                            <div>
+                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
+                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
+                                            </div>
+                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-zinc-500 font-bold">Aucun article détaillé trouvé.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6 space-y-2">
+                            <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
+                                <span>Sous-total Produits</span>
+                                <span>{selectedOrderDetails.parsedItems?.reduce((acc: any, item: any) => acc + ((item.finalPrice || item.price || item.price_at_time || 0) * (item.quantity || 1)), 0).toLocaleString()} F</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
+                                <span>Livraison</span>
+                                <span>{((selectedOrderDetails.total || 0) + (selectedOrderDetails.discount_amount || 0) - selectedOrderDetails.parsedItems?.reduce((acc: any, item: any) => acc + ((item.finalPrice || item.price || item.price_at_time || 0) * (item.quantity || 1)), 0)).toLocaleString()} F</span>
+                            </div>
+                            {selectedOrderDetails.discount_amount > 0 && (
+                                <div className="flex justify-between items-center text-sm font-bold text-green-600">
+                                    <span>Remise {selectedOrderDetails.promo_code ? `(${selectedOrderDetails.promo_code})` : ''}</span>
+                                    <span>- {selectedOrderDetails.discount_amount.toLocaleString()} F</span>
+                                </div>
+                            )}
+                            <div className="pt-2 mt-2 border-t border-zinc-200 flex justify-between items-center">
+                                <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total à payer</h4>
+                                <div className="text-right">
+                                    {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
+                                    <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Modifier le statut</h4>
+                            <select
+                                value={selectedOrderDetails.status || 'Nouveau'}
+                                onChange={(e) => handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value, selectedOrderDetails.phone, selectedOrderDetails.client_name)}
+                                className="w-full bg-white border-2 border-zinc-200 text-black font-bold p-4 rounded-xl focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                            >
+                               <option value="Nouveau">Nouveau</option>
+                               <option value="En préparation">En préparation</option>
+                               <option value="Expédié">Expédié</option>
+                               <option value="Livré">Livré</option>
+                               <option value="Annulé">Annulé</option>
+                            </select>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-zinc-100">
+                            <button onClick={() => handleDeleteOrder(selectedOrderDetails.id)} className="w-full p-4 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-black uppercase text-xs transition-colors flex items-center justify-center gap-2"><Trash2 size={16}/> Supprimer la commande</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {activeTab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
