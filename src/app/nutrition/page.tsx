@@ -580,6 +580,7 @@ export default function NutritionDashboard() {
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [isParticipating, setIsParticipating] = useState(false);
   const [challengeParticipants, setChallengeParticipants] = useState(0);
   const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
@@ -844,7 +845,38 @@ export default function NutritionDashboard() {
                     setStories(DEFAULT_SEED_STORIES);
                 }
 
+                // Fetch Active Challenge
+                const { data: challenges, error: challengesError } = await supabase
+                    .from('nutrition_challenges')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
 
+                if (challengesError) {
+                    console.error("Supabase Error fetching challenges:", challengesError.message);
+                }
+
+                if (challenges && challenges.length > 0) {
+                    setActiveChallenge(challenges[0]);
+                    const { count } = await supabase
+                        .from('nutrition_challenge_participants')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('challenge_id', challenges[0].id);
+                    setChallengeParticipants(count || 0);
+                } else {
+                    // Fallback Seed Challenge
+                    setActiveChallenge({
+                        id: 'seed-challenge-1',
+                        title: '30 Jours Détox Sans Sucre',
+                        description: 'Rejoignez-nous pour éliminer le sucre raffiné de notre alimentation pendant un mois.',
+                        badge_name: 'Jongoma Détox',
+                        cover_url: 'https://res.cloudinary.com/dtr2wtoty/video/upload/v1783098522/pexels-kelly-18069166_2_o207f2.mp4',
+                        end_date: new Date(Date.now() + 12 * 24 * 3600000).toISOString(),
+                        xp_reward: 100
+                    });
+                    setChallengeParticipants(27450);
+                }
 
                 // Fetch Foods
                 const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
@@ -3107,7 +3139,27 @@ export default function NutritionDashboard() {
 
 
 
-
+  useEffect(() => {
+    if (selectedRecipeDetail?.id) {
+        const fetchReviews = async () => {
+            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+            if (data) {
+                setRecipeReviews(data);
+                const userReview = data.find(r => r.client_id === user?.id);
+                if (userReview) {
+                    setHasUserReviewed(true);
+                    setUserRating(userReview.rating);
+                    setUserComment(userReview.comment);
+                } else {
+                    setHasUserReviewed(false);
+                    setUserRating(5);
+                    setUserComment('');
+                }
+            }
+        };
+        fetchReviews();
+    }
+  }, [selectedRecipeDetail?.id, user?.id]);
 
   const submitReview = async () => {
       if (!userComment.trim() || !selectedRecipeDetail) return;
@@ -3298,7 +3350,7 @@ const currentHour = new Date().getHours();
     if (isShopPromoApplied && appliedPromoData) {
        msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
-    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryAddress}`;
+    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}\n*Frais de livraison :* ${deliveryCost} F`;
 
     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
     setShopCart([]);
@@ -4575,19 +4627,29 @@ const currentHour = new Date().getHours();
                 </div>
              </div>
 
-             {/* Mes Badges */}
-             {earnedBadges.length > 0 && (
-                 <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
-                    <h3 className="text-lg font-black uppercase text-black dark:text-white mb-4 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
-                    <div className="flex flex-wrap gap-4">
-                        {earnedBadges.map((badge, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 px-4 py-2 rounded-xl text-yellow-700 dark:text-yellow-400 font-poppins-bold shadow-sm">
-                                <span className="text-xl leading-none">🏅</span> {badge}
-                            </div>
-                        ))}
-                    </div>
+             {/* Mes Badges Débloqués */}
+             <div className="bg-white dark:bg-zinc-950 p-8 rounded-[24px] border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+                 <h3 className="text-lg font-black uppercase text-black dark:text-white mb-6 flex items-center gap-2"><Trophy className="text-yellow-500"/> Mes Badges Débloqués</h3>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { name: 'Force Baobab', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png', xpReq: 0 },
+                      { name: 'Maître du Fonio', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png', xpReq: 100 },
+                      { name: 'Lekkologue Or', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png', xpReq: 500 },
+                      { name: 'Légende', url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png', xpReq: 1000 }
+                    ].map((b, i) => {
+                       const currentXP = clientProfile?.jongoma_xp || clientProfile?.nutrition_profiles?.jongoma_xp || 0;
+                       const unlocked = currentXP >= b.xpReq;
+                       return (
+                         <div key={i} className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 ${unlocked ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border-yellow-200 dark:border-yellow-800' : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800'}`}>
+                             {!unlocked && <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[1px] z-10 rounded-2xl flex items-center justify-center"><Lock className="text-zinc-500 w-8 h-8" /></div>}
+                             <img src={b.url} alt={b.name} className={`w-20 h-20 object-contain mb-3 drop-shadow-md ${unlocked ? '' : 'grayscale opacity-40'}`} />
+                             <p className={`text-xs font-black uppercase tracking-widest text-center ${unlocked ? 'text-yellow-700 dark:text-yellow-400' : 'text-zinc-400'}`}>{b.name}</p>
+                             <p className="text-[9px] font-bold text-zinc-400 mt-1">{b.xpReq} XP requis</p>
+                         </div>
+                       )
+                    })}
                  </div>
-             )}
+             </div>
 
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Bell className="text-orange-500"/> Notifications & Rappels</h3>
@@ -4740,17 +4802,13 @@ const currentHour = new Date().getHours();
                       <div
                          key={cat.id}
                          onClick={() => setRecipeFilter(cat.id)}
-                         className={`group cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-300 overflow-hidden border-2 ${recipeFilter === cat.id ? 'border-[#39FF14] shadow-lg' : 'border-zinc-200'}`}
-                         style={{ backgroundImage: `url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                         className={`group perspective cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-500`}
                       >
-                         {/* Default State: Title only on white background */}
-                         <div className={`absolute inset-0 flex flex-col justify-center items-center text-center p-4 transition-all duration-300 ${recipeFilter === cat.id ? 'bg-black/70 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm'}`}>
-                             <span className={`font-black uppercase tracking-widest text-xs z-10 ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
+                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm group-hover:[transform:rotateY(180deg)] ${recipeFilter === cat.id ? 'bg-black border-[#39FF14]' : 'bg-white border-white/40 backdrop-blur-md'}`}>
+                             <span className={`font-black uppercase tracking-widest text-xs ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
                          </div>
-
-                         {/* Hover Overlay: Dark gradient + description */}
-                         <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4 text-center z-20">
-                             <span className="font-bold text-[#39FF14] text-[10px] leading-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{cat.desc}</span>
+                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm [transform:rotateY(180deg)] group-hover:[transform:rotateY(0deg)] bg-[#39FF14] border-[#39FF14]`}>
+                             <span className="font-bold text-black text-[10px] leading-tight">{cat.desc}</span>
                          </div>
                       </div>
                    ))}
@@ -4807,7 +4865,7 @@ const currentHour = new Date().getHours();
                          return (
                          <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); loadRecipeReviews(fav.id); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
                              <div className="w-full h-full flex flex-col">
-                                 <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={name} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />
+                                 {fav.image_url && <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={name} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
                                  <div className="flex justify-between items-start mb-2">
                                      <div className="flex flex-col">
                                          {isFeatured && <span className="text-[#39FF14] bg-black/90 px-2 py-1 rounded-lg w-max text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1 shadow-sm"><Sparkles size={10}/> Recette à la Une</span>}
@@ -4845,61 +4903,38 @@ const currentHour = new Date().getHours();
 
                             {/* Center: Grid of smaller recipes (Cols 5-9) */}
                             <div className="col-span-1 lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                               {gridRecipes.slice(0, 4).map(r => renderCard(r, false))}
+                               {gridRecipes.map(r => renderCard(r, false))}
                             </div>
 
-                            {/* Right: Dynamic Widgets (Cols 10-12) */}
+                            {/* Right: Static Widgets (Cols 10-12) */}
                             <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] p-6 relative overflow-hidden">
-                                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                                   <h3 className="font-black text-black uppercase tracking-widest text-xs flex items-center gap-2 mb-5 relative z-10">
-                                       <div className="bg-red-100 p-1.5 rounded-lg"><Heart size={14} className="text-red-500 fill-red-500"/></div>
-                                       Mes Favoris
-                                   </h3>
-                                   <div className="flex flex-col gap-3 relative z-10 h-64 overflow-y-auto custom-scrollbar pr-2">
-                                       {favoriteMeals.length > 0 ? (
-                                           favoriteMeals.slice(0,5).map((fav, idx) => (
-                                               <div key={idx} onClick={() => { setSelectedRecipeDetail(allRecipesDB.find(r => r.nom === fav.nom) || fav); setRecipeDetailTab('apercu'); }} className="flex items-center gap-3 bg-white p-2 rounded-2xl cursor-pointer hover:border-[#39FF14] border border-transparent transition-colors group shadow-sm">
-                                                   <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="" />
-                                                   <div className="flex flex-col min-w-0">
-                                                       <span className="text-xs font-bold text-black truncate group-hover:text-[#39FF14] transition-colors">{fav.nom}</span>
-                                                       <span className="text-[10px] text-zinc-500 font-medium">{fav.calories} kcal</span>
-                                                   </div>
-                                               </div>
-                                           ))
-                                       ) : (
-                                           <div className="h-full flex flex-col items-center justify-center text-center text-zinc-400 gap-2">
-                                               <Heart size={24} className="opacity-20" />
-                                               <span className="text-[10px] font-bold">Aucun favori enregistré.</span>
-                                           </div>
-                                       )}
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
+                                   <div className="flex flex-col gap-2">
+                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
+                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
+                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
+                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
                                    </div>
                                </div>
-
-                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] p-6 relative overflow-hidden">
-                                   <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
-                                   <h3 className="font-black text-black uppercase tracking-widest text-xs flex items-center gap-2 mb-5 relative z-10">
-                                       <div className="bg-blue-100 p-1.5 rounded-lg"><MessageSquare size={14} className="text-blue-500 fill-blue-500"/></div>
-                                       Le Flux
-                                   </h3>
-                                   <div className="flex flex-col gap-4 relative z-10">
-                                       {communityPosts && communityPosts.length > 0 ? (
-                                           communityPosts.slice(0,3).map((post, idx) => (
-                                               <div key={idx} onClick={() => handleTabChange('community')} className="cursor-pointer group flex flex-col gap-2 border-b border-zinc-100 pb-3 last:border-0 last:pb-0">
-                                                   <div className="flex items-center gap-2">
-                                                       <img src={post.clients?.avatar_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-6 h-6 rounded-full object-cover shrink-0" alt="" />
-                                                       <span className="text-[10px] font-bold text-zinc-800">{post.clients?.prenom || 'Membre'}</span>
-                                                   </div>
-                                                   <p className="text-[11px] text-zinc-600 line-clamp-2 leading-tight group-hover:text-black transition-colors">{post.content || 'a publié une mise à jour.'}</p>
-                                               </div>
-                                           ))
-                                       ) : (
-                                           <div className="py-4 text-center text-zinc-400">
-                                               <span className="text-[10px] font-bold">Le flux est silencieux...</span>
+                               <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
+                                   <div className="flex flex-col gap-3">
+                                       <div className="flex items-start gap-3">
+                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
+                                           <div>
+                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
                                            </div>
-                                       )}
+                                       </div>
+                                       <div className="flex items-start gap-3">
+                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
+                                           <div>
+                                               <p className="text-xs font-black text-black">Healthy Fats</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
+                                           </div>
+                                       </div>
                                    </div>
-                                   <button onClick={() => handleTabChange('community')} className="w-full mt-4 py-2.5 bg-black hover:bg-zinc-800 text-[#39FF14] text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors relative z-10">Rejoindre la conversation</button>
                                </div>
                             </div>
                          </div>
@@ -6379,35 +6414,22 @@ const currentHour = new Date().getHours();
 
                          {/* CHALENGES TENDANCE WIDGET */}
                          {activeChallenge && (
-                             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-5 shadow-sm">
-                                 <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2"><Trophy className="text-[#39FF14]" size={14}/> Challenge du mois</h3>
-                                 <div className="relative rounded-2xl aspect-video w-full overflow-hidden mb-3">
-                                     {activeChallenge.cover_url?.includes('.mp4') ? (
-                                         <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                                     ) : (
-                                         <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
-                                     )}
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4">
-                                         <span className="bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded flex w-fit mb-1">+{activeChallenge.xp_reward || 100} XP</span>
-                                         <p className="text-white font-black text-sm leading-tight line-clamp-2">{activeChallenge.title}</p>
+                             <div onClick={() => setShowChallengeModal(true)} className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/5 rounded-full blur-3xl group-hover:bg-[#39FF14]/10 transition-colors"></div>
+                                 <div className="flex justify-between items-start mb-4 relative z-10">
+                                     <div>
+                                         <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">En cours</span>
+                                         <h3 className="font-poppins-black text-black dark:text-white leading-tight">{activeChallenge.title}</h3>
+                                     </div>
+                                     <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center shrink-0">
+                                         <Trophy className="text-orange-500 w-5 h-5"/>
                                      </div>
                                  </div>
-                                 <div className="flex justify-between items-center mb-4">
-                                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">🏅 Badge : <span className="text-black dark:text-white font-black">{activeChallenge.badge_name}</span></p>
-                                     <p className="text-[10px] text-zinc-400 font-bold">{challengeParticipants.toLocaleString()} inscrits</p>
+                                 <p className="text-xs text-zinc-500 font-poppins mb-4 relative z-10 line-clamp-2">{activeChallenge.description}</p>
+                                 <div className="flex justify-between items-center relative z-10">
+                                     <span className="text-[10px] font-black uppercase text-zinc-400">{activeChallenge.end_date ? new Date(activeChallenge.end_date).toLocaleDateString('fr-FR') : ''}</span>
+                                     <button className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2 rounded-xl group-hover:scale-105 transition-transform">Voir le défi</button>
                                  </div>
-                                 {isParticipating ? (
-                                     <div className="space-y-2">
-                                         <button className="w-full bg-transparent border-2 border-[#39FF14] text-[#39FF14] py-2.5 rounded-xl font-poppins-bold text-xs uppercase flex items-center justify-center gap-2 cursor-default">
-                                            <CheckCircle size={14} className="fill-[#39FF14] text-black" /> Défi en cours
-                                         </button>
-                                         <button onClick={() => window.scrollTo(0, 0)} className="w-full text-center text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white transition-colors underline">Poster mon progrès aujourd'hui</button>
-                                     </div>
-                                 ) : (
-                                     <button onClick={handleJoinChallenge} className="w-full bg-[#39FF14] hover:bg-[#32e612] text-black font-poppins-bold py-2.5 rounded-xl text-xs uppercase hover:scale-[1.02] transition-all shadow-md">
-                                         Relever le défi (+{activeChallenge.xp_reward || 100} XP)
-                                     </button>
-                                 )}
                              </div>
                          )}
 
@@ -7720,15 +7742,40 @@ const currentHour = new Date().getHours();
 
                   {shopCart.length > 0 && (
                      <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                        <div className="mb-4 relative z-50">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Quartier (Dakar)</label>
+                           <input type="text" placeholder="Saisissez votre quartier (ex: Mermoz)..." value={deliveryZone} onChange={e => {
+                               setDeliveryZone(e.target.value);
+                               setShowZoneSuggestions(e.target.value.length >= 2);
+                               if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
+                           }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                           {showZoneSuggestions && deliveryZone.length >= 2 && (
+                               <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                                   {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
+                                       <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
+                                          <span>{q}</span>
+                                          <span className="text-[#39FF14]">{DELIVERY_ZONES[q]} F</span>
+                                       </div>
+                                   ))}
+                               </div>
+                           )}
+                        </div>
                         <div className="mb-4">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse de livraison</label>
-                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Villa 24B" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse Complète</label>
+                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Immeuble Y, Appt 4..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                        </div>
+                        <div className="flex justify-between items-center mb-4 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Frais de livraison</span>
+                            <span className="text-xs font-black text-black dark:text-white">{deliveryCost > 0 ? `+${deliveryCost.toLocaleString()} F` : 'À déterminer'}</span>
                         </div>
                         <div className="flex justify-between items-center mb-6">
-                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total Estimé</span>
-                           <span className="font-black text-2xl text-black dark:text-white">
-                              {shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0).toLocaleString()} F
-                           </span>
+                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total à payer</span>
+                           <div className="text-right">
+                               {isShopPromoApplied && <span className="text-xs line-through text-zinc-400 block">{(shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) + deliveryCost).toLocaleString()} F</span>}
+                               <span className="font-black text-2xl text-black dark:text-white">
+                                  {((shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) * (isShopPromoApplied && appliedPromoData ? (1 - appliedPromoData.discount_pct / 100) : 1)) + deliveryCost).toLocaleString()} <span className="text-[#39FF14]">F</span>
+                               </span>
+                           </div>
                         </div>
                         <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
                            <ShoppingCart size={16}/> Commander via WhatsApp
