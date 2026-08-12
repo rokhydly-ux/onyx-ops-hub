@@ -2538,11 +2538,27 @@ export default function AdminNutritionAfricaine() {
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6">
-                            <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total {selectedOrderDetails.promo_code && <span className="ml-2 bg-[#39FF14]/20 text-green-700 px-2 py-1 rounded-md text-[10px]">- {selectedOrderDetails.promo_code}</span>}</h4>
-                            <div className="text-right">
-                                {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
-                                <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6 space-y-2">
+                            <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
+                                <span>Sous-total Produits</span>
+                                <span>{selectedOrderDetails.parsedItems?.reduce((acc: any, item: any) => acc + ((item.finalPrice || item.price || item.price_at_time || 0) * (item.quantity || 1)), 0).toLocaleString()} F</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
+                                <span>Livraison</span>
+                                <span>{((selectedOrderDetails.total || 0) + (selectedOrderDetails.discount_amount || 0) - selectedOrderDetails.parsedItems?.reduce((acc: any, item: any) => acc + ((item.finalPrice || item.price || item.price_at_time || 0) * (item.quantity || 1)), 0)).toLocaleString()} F</span>
+                            </div>
+                            {selectedOrderDetails.discount_amount > 0 && (
+                                <div className="flex justify-between items-center text-sm font-bold text-green-600">
+                                    <span>Remise {selectedOrderDetails.promo_code ? `(${selectedOrderDetails.promo_code})` : ''}</span>
+                                    <span>- {selectedOrderDetails.discount_amount.toLocaleString()} F</span>
+                                </div>
+                            )}
+                            <div className="pt-2 mt-2 border-t border-zinc-200 flex justify-between items-center">
+                                <h4 className="text-sm font-black uppercase tracking-widest text-zinc-500">Total à payer</h4>
+                                <div className="text-right">
+                                    {selectedOrderDetails.discount_amount > 0 && <span className="text-xs line-through text-zinc-400 block">{((selectedOrderDetails.total || 0) + selectedOrderDetails.discount_amount).toLocaleString()} F</span>}
+                                    <p className="text-2xl font-black text-black">{(selectedOrderDetails.total || 0).toLocaleString()} <span className="text-[#39FF14]">F</span></p>
+                                </div>
                             </div>
                         </div>
 

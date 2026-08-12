@@ -7841,7 +7841,63 @@ const currentHour = new Date().getHours();
              <CheckCircle size={16}/> {toastMessage}
          </div>
       )}
-    </main>
+          {/* MODALE CHALLENGE (ÉTAPE 2) */}
+      {showChallengeModal && activeChallenge && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in" onClick={(e: any) => { if(e.target === e.currentTarget) setShowChallengeModal(false); }}>
+              <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-md overflow-hidden relative shadow-2xl border border-zinc-200 dark:border-zinc-800">
+                  <button onClick={() => setShowChallengeModal(false)} className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black text-white rounded-full transition-colors z-20"><X size={20}/></button>
+
+                  <div className="h-56 bg-black relative">
+                      {activeChallenge.cover_url?.includes('.mp4') ? (
+                          <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                      ) : (
+                          <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                      <div className="absolute bottom-6 left-6 right-6">
+                          <span className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md shadow-sm mb-2 inline-block">Défi Tendance</span>
+                          <h3 className="text-2xl font-black text-white tracking-tight leading-tight">{activeChallenge.title}</h3>
+                      </div>
+                  </div>
+
+                  <div className="p-6">
+                      <p className="text-sm font-poppins text-zinc-600 dark:text-zinc-300 mb-6 leading-relaxed">{activeChallenge.description}</p>
+
+                      {activeChallenge.end_date && (
+                          <div className="flex items-center gap-3 mb-6 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                              <Timer className="text-orange-500 w-5 h-5"/>
+                              <div>
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps restant</p>
+                                  <p className="text-sm font-bold text-black dark:text-white">Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')}</p>
+                              </div>
+                          </div>
+                      )}
+
+                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-200 dark:border-yellow-800/50 rounded-2xl p-4 flex items-center justify-between mb-8 shadow-inner">
+                          <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-500 mb-1">Récompense (XP)</p>
+                              <p className="text-2xl font-black text-yellow-700 dark:text-yellow-400">+{activeChallenge.reward_xp || activeChallenge.xp_reward || 100} XP</p>
+                          </div>
+                          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png" className="w-14 h-14 object-contain drop-shadow-md" />
+                      </div>
+
+                      {isParticipating ? (
+                          <div className="space-y-3">
+                              <button disabled className="w-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                                  <CheckCircle size={18} className="text-[#39FF14]" /> Déjà Inscrit
+                              </button>
+                          </div>
+                      ) : (
+                          <button onClick={() => { handleJoinChallenge(); setShowChallengeModal(false); }} disabled={isSaving} className="w-full bg-black text-[#39FF14] hover:bg-zinc-900 py-4 rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_40px_rgba(57,255,20,0.2)] hover:shadow-[0_10px_40px_rgba(57,255,20,0.4)] transition-all flex items-center justify-center gap-2">
+                              {isSaving ? <Activity className="animate-spin"/> : <><Trophy size={18}/> Relever le défi</>}
+                          </button>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
+</main>
 
       {/* BOT THIERNO (COACH MÉDECIN) */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
