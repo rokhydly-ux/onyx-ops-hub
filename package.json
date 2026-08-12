@@ -42,8 +42,7 @@
     "sharp": "^0.34.5",
     "stripe": "^22.0.2",
     "tesseract.js": "^7.0.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz",
-    "zustand": "^5.0.14"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
