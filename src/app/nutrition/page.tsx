@@ -3141,30 +3141,6 @@ export default function NutritionDashboard() {
   const remainingCalories = Math.max(0, targetCalories - calories);
   const lvlInfo = getJongomaLevel(jongomaXP);
 
-
-
-  useEffect(() => {
-    if (selectedRecipeDetail?.id) {
-        const fetchReviews = async () => {
-            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
-            if (data) {
-                setRecipeReviews(data);
-                const userReview = data.find(r => r.client_id === user?.id);
-                if (userReview) {
-                    setHasUserReviewed(true);
-                    setUserRating(userReview.rating);
-                    setUserComment(userReview.comment);
-                } else {
-                    setHasUserReviewed(false);
-                    setUserRating(5);
-                    setUserComment('');
-                }
-            }
-        };
-        fetchReviews();
-    }
-  }, [selectedRecipeDetail?.id, user?.id]);
-
   const submitReview = async () => {
       if (!userComment.trim() || !selectedRecipeDetail) return;
       setIsSubmittingReview(true);
