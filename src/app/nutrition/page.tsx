@@ -1234,14 +1234,7 @@ export default function NutritionDashboard() {
           audio.volume = 0.5;
           audio.play().catch(()=>{});
           setShowFirstBadgeModal(true);
-      } else if (jongomaXP < 2000 && newXP >= 2000) {
-          leveledUp = true;
-          setRokhyMessage({ title: "Nouveau Badge Débloqué ! 🌟", text: "Incroyable ! Tu as atteint le niveau Star Nutrition ! Un grand bravo pour ta régularité, c'est exceptionnel !", type: 'success' });
-          setShowConfetti(true);
-          setTimeout(() => setShowConfetti(false), 8000);
-          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
-          audio.volume = 0.5;
-          audio.play().catch(()=>{});
+
           setShowSecondBadgeModal(true);
       }
 
@@ -1260,9 +1253,10 @@ export default function NutritionDashboard() {
   };
 
   const getJongomaLevel = (xp: number) => {
-      if (xp >= 2000) return { name: "Star Nutrition", badge: "🌟", desc: "Code promo boutique débloqué !" };
-      if (xp >= 500) return { name: "Adhérente", badge: "💎", desc: "Badge de profil débloqué" };
-      return { name: "Novice", badge: "🌱", desc: "En apprentissage" };
+      if (xp >= 1000) return { name: "Légende", badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEGENDE_z4ipny.png", desc: "Niveau maximal atteint !" };
+      if (xp >= 500) return { name: "Lekkologue Or", badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493019/LEKKOLOGUE_OR_a0znxt.png", desc: "Badge de profil débloqué" };
+      if (xp >= 100) return { name: "Maître du Fonio", badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png", desc: "Progression solide !" };
+      return { name: "Force Baobab", badgeUrl: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/FORCE_BAOBAB_ltcuer.png", desc: "Le début de l'aventure" };
   };
 
   const fetchLeaderboard = async () => {
@@ -3860,7 +3854,9 @@ const currentHour = new Date().getHours();
 
             <div className="flex flex-wrap items-center gap-4">
                <div className={`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
-                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-800'}`}>{lvlInfo.badge}</div>
+                  <div className={`w-12 h-12 flex items-center justify-center ${xpAnimation ? 'animate-pulse' : ''}`}>
+                  <img src={lvlInfo.badgeUrl} alt={lvlInfo.name} className="w-full h-full object-contain drop-shadow-md" />
+               </div>
                   <div>
                      <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Niveau : <span className="text-zinc-800">{lvlInfo.name}</span></p>
                      <p className="text-black text-xs font-black">{jongomaXP} XP</p>
@@ -6612,7 +6608,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-zinc-100 w-20 h-24 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-zinc-300">
                            <span className="text-[10px] font-bold mt-1 text-zinc-500">{leaderboardData[1].xp} XP</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px]">{leaderboardData[1].full_name.split(' ')[0]}</p>
+                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[1].full_name.split(' ')[0]} {leaderboardData[1].xp >= 100 && <img src={getJongomaLevel(leaderboardData[1].xp).badgeUrl} className="w-3 h-3" alt="Badge"/>}</p>
                      </div>
                   )}
                   {leaderboardData.length > 0 && (
@@ -6624,7 +6620,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-yellow-50 w-24 h-32 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-yellow-400">
                            <span className="text-xs font-black mt-1 text-yellow-600">{leaderboardData[0].xp} XP</span>
                         </div>
-                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px]">{leaderboardData[0].full_name.split(' ')[0]}</p>
+                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px] flex items-center gap-1 justify-center">{leaderboardData[0].full_name.split(' ')[0]} {leaderboardData[0].xp >= 100 && <img src={getJongomaLevel(leaderboardData[0].xp).badgeUrl} className="w-4 h-4" alt="Badge"/>}</p>
                      </div>
                   )}
                   {leaderboardData.length > 2 && (
@@ -6636,7 +6632,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-orange-50 w-20 h-20 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-orange-400">
                            <span className="text-[10px] font-bold mt-1 text-orange-600">{leaderboardData[2].xp} XP</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px]">{leaderboardData[2].full_name.split(' ')[0]}</p>
+                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[2].full_name.split(' ')[0]} {leaderboardData[2].xp >= 100 && <img src={getJongomaLevel(leaderboardData[2].xp).badgeUrl} className="w-3 h-3" alt="Badge"/>}</p>
                      </div>
                   )}
                </div>
@@ -6648,7 +6644,12 @@ const currentHour = new Date().getHours();
                         <div className="flex items-center gap-3">
                            <span className="font-black text-zinc-400 w-4 text-xs">{idx + 4}</span>
                            <img src={student.avatar_url || `https://ui-avatars.com/api/?name=${student.full_name}&background=random`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-200 object-cover" />
-                           <p className={`font-bold text-sm ${student.id === clientProfile?.id ? 'text-[#39FF14]' : 'text-black'}`}>{student.full_name} {student.id === clientProfile?.id ? '(Vous)' : ''}</p>
+                                                      <p className={`font-bold text-sm ${student.id === clientProfile?.id ? 'text-[#39FF14]' : 'text-black'} flex items-center gap-2`}>
+                              {student.full_name} {student.id === clientProfile?.id ? '(Vous)' : ''}
+                              {student.xp >= 100 && (
+                                <img src={getJongomaLevel(student.xp).badgeUrl} alt="Badge" className="w-5 h-5 object-contain" title={getJongomaLevel(student.xp).name} />
+                              )}
+                           </p>
                         </div>
                         <span className="font-black text-zinc-600 text-xs">{student.xp} XP</span>
                      </div>
