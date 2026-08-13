@@ -370,6 +370,9 @@ export default function NutritionDashboard() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+  const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+  const [emblaBlogRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]);
   const [user, setUser] = useState<any>(null);
   const [clientProfile, setClientProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -588,7 +591,7 @@ export default function NutritionDashboard() {
   const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
-  const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+
   const [xpAnimation, setXpAnimation] = useState<{ amount: number; reason: string; id: number } | null>(null);
   const [showFirstBadgeModal, setShowFirstBadgeModal] = useState(false);
   const [showSecondBadgeModal, setShowSecondBadgeModal] = useState(false);
@@ -677,8 +680,8 @@ export default function NutritionDashboard() {
 
   const [pushEnabled, setPushEnabled] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
-  const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
-  const [emblaBlogRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+
+
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -4761,9 +4764,8 @@ const currentHour = new Date().getHours();
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
-                         if (r.is_boutique === true || r.is_boutique === 'true' || r.is_product === true || r.is_product === 'true') return false;
-                         // Relaxing the strict filter: Only filter if it's explicitly a raw product without preparation
-                         if (!r.instructions && !r.ingredients && !r.type) return false;
+                         if (r.is_boutique === true || r.is_product === true) return false;
+                         if (!r.instructions && !r.ingredients) return false;
                          const query = favoriteSearchQuery.toLowerCase();
                          const numericQuery = query.replace(/\D/g, '');
                          const matchSearch = r.nom?.toLowerCase().includes(query) ||
