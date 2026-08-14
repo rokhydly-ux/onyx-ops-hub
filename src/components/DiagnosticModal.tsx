@@ -16,46 +16,69 @@ export const calculateDailyCalories = (data: any) => {
     let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
     if (data.gender === "Femme" && (data.femaleSpecific === "SOPK" || data.femaleSpecific === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie")) {
-        bmr = bmr * 0.90;
+        bmr = bmr * 0.90; // Raccourci pour métabolisme ralenti
     }
 
-    let nap = 1.2;
+    let nap = 1.2; // Sédentaire
     if (data.dailyCommute === "Marche/Activité légère") nap = 1.375;
     else if (data.dailyCommute === "Travail physique/Modérée") nap = 1.55;
     else if (data.dailyCommute === "Sport intense/Intense") nap = 1.725;
     let tdee = bmr * nap;
 
+    // Grossesse/Allaitement impose un surplus pour le foetus/lait
     if (data.gender === "Femme" && (data.femaleSpecific === "Allaitement" || data.femaleSpecific === "Grossesse")) {
         tdee += 400;
     }
 
-    let requiredDailyDeficit = 0;
-    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-    const now = new Date();
-    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
-    const weightToLose = currentWeight - targetWInput;
-
-    if (data.goal === 'perte_poids' && weightToLose > 0) {
-        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
-    }
-
-    if (requiredDailyDeficit > 1000) {
-        requiredDailyDeficit = 1000;
-    }
-
     let rawCalories = tdee;
-    if (data.goal === 'perte_poids') rawCalories = tdee - requiredDailyDeficit;
-    else if (data.goal === 'prise_masse') rawCalories = tdee + 300;
 
-    const floorCalories = isMale ? 1500 : 1200;
-    const finalCalories = Math.max(floorCalories, rawCalories);
+    // Historique Régimes stricts (Effet YoYo) : on limite le déficit
+    const isYoYo = data.pastDiets && (data.pastDiets.includes("régimes stricts") || data.pastDiets.includes("Oui"));
+    const maxSafeDeficit = isYoYo ? 250 : 500; // -250 si métabolisme abimé, -500 max en temps normal
+
+    if (data.goal === 'perte_poids') {
+        const weightToLose = currentWeight - targetWInput;
+        let requiredDailyDeficit = 0;
+
+        if (data.targetDate) {
+            const userTargetDate = new Date(data.targetDate);
+            const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24)));
+            if (weightToLose > 0) {
+                requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+            }
+        } else {
+            requiredDailyDeficit = maxSafeDeficit; // Par défaut perte saine
+        }
+
+        // Appliquer la limite de sécurité
+        requiredDailyDeficit = Math.min(requiredDailyDeficit, maxSafeDeficit);
+        rawCalories = tdee - requiredDailyDeficit;
+
+    } else if (data.goal === 'prise_masse') {
+        rawCalories = tdee + 300;
+    }
+
+    // Le Plancher de Sécurité Absolu (On ne mange jamais sous son métabolisme de base)
+    const floorCalories = Math.round(bmr);
+    const finalCalories = Math.max(floorCalories, Math.round(rawCalories));
+
+    // Ajustement des macros (Diabète, SOPK)
+    let carbRatio = 0.50;
+    let proteinRatio = 0.20;
+    let fatRatio = 0.30;
+
+    if (data.healthProfile === "Diabète" || data.healthProfile === "Pré-diabète" || data.femaleSpecific === "SOPK") {
+        carbRatio = 0.40;
+        proteinRatio = 0.25;
+        fatRatio = 0.35;
+    }
 
     return {
-        calories: Math.round(finalCalories),
-        deficit: Math.round(tdee - finalCalories),
+        calories: finalCalories,
         tdee: Math.round(tdee),
-        hitFloor: finalCalories === floorCalories,
-        hitCeiling: requiredDailyDeficit === 1000
+        carbs_goal: Math.round((finalCalories * carbRatio) / 4),
+        protein_goal: Math.round((finalCalories * proteinRatio) / 4),
+        fats_goal: Math.round((finalCalories * fatRatio) / 9)
     };
 };
 
@@ -142,8 +165,8 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             const payload = {
                 client_id: realUserId, phone: cleanPhone, bmr: Math.round(profile.tdee / 1.2),
                 tdee: profile.tdee, daily_calorie_goal: profile.calories,
-                carbs_goal: Math.round((profile.calories * 0.4) / 4), protein_goal: Math.round((profile.calories * 0.3) / 4),
-                fats_goal: Math.round((profile.calories * 0.3) / 9), diagnostic_data: diagData, tracking_mode: 'guided'
+                carbs_goal: profile.carbs_goal, protein_goal: profile.protein_goal,
+                fats_goal: profile.fats_goal, diagnostic_data: diagData, tracking_mode: 'guided'
             };
 
             const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
