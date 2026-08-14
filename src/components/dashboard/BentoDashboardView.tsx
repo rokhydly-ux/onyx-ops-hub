@@ -23,10 +23,14 @@ interface BentoDashboardViewProps {
     fats: number;
     consumedMeals?: any[];
     setShowDailyReport: (show: boolean) => void;
+    todayMenu?: any;
+    isFastingMode?: boolean;
+    deleteMealLog?: (item: any) => void;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [] }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
+    const [hiddenMeals, setHiddenMeals] = useState<string[]>([]);
     const currentHour = new Date().getHours();
     const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
 
@@ -186,7 +190,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
 
                     <div className="flex-1 bg-zinc-50 rounded-xl p-4 mb-4 overflow-y-auto space-y-3 border border-zinc-100">
                         <div className="bg-black text-white text-xs p-3 rounded-2xl rounded-tl-sm w-fit max-w-[85%] shadow-sm">
-                            Salut ! T'as bien mangé ton Thiéboudienne ce midi ? Pense à faire léger ce soir, un petit bouillon fera l'affaire.
+                            Salut ! T&apos;as bien mangé ton Thiéboudienne ce midi ? Pense à faire léger ce soir, un petit bouillon fera l'affaire.
                         </div>
                     </div>
 
@@ -213,35 +217,53 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                     </div>
 
                     <div className="space-y-3">
-                        {/* Repas 1 */}
-                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
-                            <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Petit-Déjeuner • 08:00</p>
-                                <p className="text-sm font-black text-black mt-0.5">Fondé & Lait caillé</p>
-                            </div>
-                            <div className="text-right pr-2">
-                                <p className="text-lg font-black text-[#39FF14]">350</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
-                            </div>
-                        </div>
+                        {todayMenu && (isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
+                            const recipe = todayMenu.meals?.[mealType];
+                            if(!recipe) return null;
+                            if (hiddenMeals.includes(mealType)) return null;
 
-                        {/* Repas 2 */}
-                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 hover:border-[#39FF14]/50 transition-colors cursor-pointer group shadow-sm">
-                            <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Déjeuner • 13:30</p>
-                                <p className="text-sm font-black text-black mt-0.5">Thiéboudienne Rouge Penda Mbaye</p>
-                            </div>
-                            <div className="text-right pr-2">
-                                <p className="text-lg font-black text-[#39FF14]">850</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">Kcal</p>
-                            </div>
-                        </div>
+                            const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
+                            const consumedMealObj = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType);
+
+                            const handleDelete = (e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (isConsumed && consumedMealObj && deleteMealLog) {
+                                    deleteMealLog(consumedMealObj);
+                                } else {
+                                    setHiddenMeals(prev => [...prev, mealType]);
+                                }
+                            };
+
+                            return (
+                                <div key={mealType} className={`flex items-center gap-4 p-3 rounded-2xl border transition-colors group shadow-sm ${isConsumed ? 'bg-[#39FF14]/10 border-[#39FF14]' : 'bg-white border-zinc-100 hover:border-[#39FF14]/50 cursor-pointer'}`}>
+                                    <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
+                                        <img src={recipe.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={recipe.nom} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{mealType}</p>
+                                        <p className="text-sm font-black text-black mt-0.5">{recipe.nom} {isConsumed && '✅'}</p>
+                                    </div>
+                                    <div className="text-right pr-2 flex flex-col items-end gap-1">
+                                        <div>
+                                            <span className="text-lg font-black text-[#39FF14]">{recipe.calories || recipe.kcal || recipe.energy || "—"}</span>
+                                            <span className="text-[10px] text-zinc-500 uppercase ml-1">Kcal</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {!isConsumed && (
+                                                <button onClick={(e) => { e.stopPropagation(); console.log("Swap à venir"); }} className="text-[9px] font-bold text-zinc-500 hover:text-black uppercase border border-zinc-200 px-2 py-0.5 rounded">Swap</button>
+                                            )}
+                                            {!isConsumed && (
+                                                <button onClick={(e) => { e.stopPropagation(); console.log("Valider à venir"); }} className="text-[9px] font-bold bg-[#39FF14] text-black hover:bg-black hover:text-[#39FF14] uppercase px-2 py-0.5 rounded shadow-sm">Valider</button>
+                                            )}
+                                            <button onClick={handleDelete} className="text-[9px] font-bold text-red-400 hover:text-white hover:bg-red-400 uppercase border border-red-200 px-2 py-0.5 rounded transition-colors">{isConsumed ? 'Suppr.' : 'Cacher'}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {!todayMenu && (
+                            <div className="text-xs text-center text-zinc-500 p-4">Aucun menu pour aujourd'hui.</div>
+                        )}
                     </div>
                 </div>
 
