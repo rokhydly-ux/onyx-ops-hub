@@ -1711,6 +1711,10 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
+      // Force dayIndex to match today when swapping from the Mon Jour view or if dayIndex points to the wrong day due to displayMenu sorting
+      const realDayIndex = weeklyGeneratedMenu.findIndex(d => d.day === formattedCurrentDay);
+      if (realDayIndex !== -1 && dayIndex === 0) dayIndex = realDayIndex;
+
       let currentRecipes: any[] = [];
       try {
           const recipeQuery = supabase.from('nutrition_recipes').select('*');
@@ -4038,9 +4042,16 @@ const currentHour = new Date().getHours();
                                              </div>
 
                                              {!isConsumed ? (
-                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins, recipe.carbs, recipe.fats, { ux_unit: recipe.ux_unit }); setToastMessage('Ajouté !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">➕ Loguer</button>
+                                                <div className="flex gap-2">
+                                                    <button onClick={(e) => { e.stopPropagation(); console.log("Valider à venir"); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(0, mealType, recipe.id || ''); }} className="bg-zinc-200 text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Swap</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setConsumedMeals(prev => prev.filter((m: any) => m.name !== recipe.nom || m.type !== mealType)); }} className="bg-red-500 text-white px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">🗑️</button>
+                                                </div>
                                              ) : (
-                                                <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                    <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-2 py-1 rounded-lg text-[9px] font-black shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️</button>
+                                                </div>
                                              )}
                                           </div>
                                        </div>
