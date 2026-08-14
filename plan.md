@@ -1,0 +1,1 @@
+- Use the `submit` tool to present the final commit UI to the user so they can click the button to officially merge the code.
