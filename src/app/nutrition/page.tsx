@@ -4691,7 +4691,7 @@ const currentHour = new Date().getHours();
             <AlertCircle className="text-red-500 shrink-0" size={24} />
             <div>
                <h4 className="font-black uppercase text-sm mb-1">Bilan en attente !</h4>
-               <p className="text-xs text-zinc-400 font-medium mb-3">Il est plus de 20h00, n'oubliez pas de remplir votre bilan de fin de journée pour adapter votre menu de demain.</p>
+               <p className="text-xs text-zinc-400 font-medium mb-3">Il est plus de 20h00, n&apos;oubliez pas de remplir votre bilan de fin de journée pour adapter votre menu de demain.</p>
                <div className="flex gap-2">
                   <button onClick={() => { setShowReminder(false); handleTabChange('today'); setShowDailyReport(true); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-transform hover:scale-105">Remplir maintenant</button>
                   <button onClick={() => setShowReminder(false)} className="text-zinc-500 hover:text-white px-2 py-2 rounded-lg font-bold text-[10px] uppercase">Plus tard</button>
@@ -5653,7 +5653,7 @@ const currentHour = new Date().getHours();
                       <div className="bg-white border border-zinc-200 p-4 rounded-2xl rounded-bl-sm shadow-sm">
                          {coachingChatStep === 1 && (
                             <>
-                               <p className="text-sm font-medium text-black mb-4">La stagnation est normale, ne lâche rien ! As-tu pensé à remplacer ton riz brisé par du Fonio cette semaine pour relancer la machine sans te priver ?</p>
+                               <p className="text-sm font-medium text-black mb-4">La stagnation est normale, ne lâche rien ! As-tu pensé &agrave; remplacer ton riz brisé par du Fonio cette semaine pour relancer la machine sans te priver ?</p>
                                <button onClick={() => handleTabChange('shop')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-md w-full sm:w-auto flex items-center justify-center gap-2">
                                   🛒 Découvrir le Fonio
                                </button>
@@ -6626,7 +6626,7 @@ const currentHour = new Date().getHours();
                  </div>
              </div>
              <h3 className="text-2xl font-black uppercase text-black mb-2 tracking-tighter">Minute !</h3>
-             <p className="text-sm font-bold text-zinc-500 mb-8">Tu n'as pas encore rempli ton bilan aujourd'hui. Prends 30 secondes pour le faire et sécuriser tes XP !</p>
+             <p className="text-sm font-bold text-zinc-500 mb-8">Tu n&apos;as pas encore rempli ton bilan aujourd&apos;hui. Prends 30 secondes pour le faire et sécuriser tes XP !</p>
              <div className="w-full space-y-3">
                  <button onClick={() => {
                      setShowExitIntentModal(false);
@@ -7767,7 +7767,7 @@ const currentHour = new Date().getHours();
 
                       {activeChallenge.end_date && (
                           <div className="flex items-center gap-3 mb-6 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                              <Timer className="text-orange-500 w-5 h-5"/>
+                              <Clock className="text-orange-500 w-5 h-5"/>
                               <div>
                                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps restant</p>
                                   <p className="text-sm font-bold text-black dark:text-white">Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')}</p>
@@ -7827,27 +7827,26 @@ const currentHour = new Date().getHours();
                                  </div>
                                  <div className="p-6 space-y-6 flex-1">
                                      {/* Navigation Mobile Hub */}
-                                     <div className="space-y-2 mb-6">
-                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('dashboard'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'dashboard' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
-                                             <img src={MENU_ICONS.dashboard} className="w-6 h-6 object-cover rounded-md" alt="Accueil" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
-                                             <span className="font-poppins-bold text-sm">Accueil</span>
-                                         </button>
-                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('samaMenu'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'samaMenu' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
-                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-6 h-6 object-cover rounded-md" alt="Recettes" />
-                                             <span className="font-poppins-bold text-sm">Recettes & Menus</span>
-                                         </button>
-                                         <button onClick={() => { setShowMobileHub(false); openLeaderboard(); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors hover:bg-zinc-50 text-zinc-700`}>
-                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-6 h-6 object-cover rounded-md" alt="Challenges" />
-                                             <span className="font-poppins-bold text-sm">Challenges Tendance</span>
-                                         </button>
-                                         <button onClick={() => { setShowMobileHub(false); handleTabChange('profile'); }} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-700'}`}>
-                                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783287810/15_au69g1.png" className="w-6 h-6 object-cover rounded-md" alt="Profil" />
-                                             <span className="font-poppins-bold text-sm">Mon Profil & Réglages</span>
-                                         </button>
+                                     <div className="space-y-1 mb-6">
+                                         {[
+                                            { id: 'dashboard', label: 'Accueil', icon: MENU_ICONS.dashboard, action: () => { setShowMobileHub(false); handleTabChange('dashboard'); } },
+                                            { id: 'community', label: 'Communauté (Le mur)', icon: MENU_ICONS.community, action: () => { setShowMobileHub(false); handleTabChange('community'); } },
+                                            { id: 'fitness', label: 'Fitness', icon: MENU_ICONS.fitness, action: () => { setShowMobileHub(false); handleTabChange('fitness'); } },
+                                            { id: 'samaMenu', label: 'Recettes & Menus', icon: MENU_ICONS.samaMenu, action: () => { setShowMobileHub(false); handleTabChange('samaMenu'); } },
+                                            { id: 'challenges', label: 'Challenges Tendance', icon: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png', action: () => { setShowMobileHub(false); openLeaderboard(); } },
+                                            { id: 'blog', label: 'Le Blog', icon: MENU_ICONS.blog, action: () => { setShowMobileHub(false); handleTabChange('blog'); } },
+                                            { id: 'minute-doc', label: 'La Minute Doc', icon: MENU_ICONS.minuteDoc, action: () => { setShowMobileHub(false); handleTabChange('minute-doc'); } },
+                                            { id: 'coaching', label: 'Coaching', icon: MENU_ICONS.coaching, action: () => { setShowMobileHub(false); setIsThiernoChatOpen(true); } }
+                                         ].map((item, idx) => (
+                                            <button key={idx} onClick={item.action} className={`w-full flex items-center gap-4 p-3 min-h-[44px] rounded-2xl transition-colors ${activeTab === item.id ? 'bg-[#39FF14]/10 border border-[#39FF14] text-black' : 'bg-zinc-50 border border-zinc-100 hover:bg-zinc-100 text-zinc-700'}`}>
+                                                <img src={item.icon} className="w-8 h-8 object-cover rounded-xl shadow-sm" alt={item.label} />
+                                                <span className="font-black text-xs uppercase tracking-widest">{item.label}</span>
+                                            </button>
+                                         ))}
                                      </div>
 
                                      {/* Mini Profile Card */}
-                                     <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative">
+                                     <div onClick={() => { setShowMobileHub(false); handleTabChange('profile'); }} className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative cursor-pointer hover:border-[#39FF14] transition-colors">
                                          <div className="h-24 bg-zinc-800 w-full relative">
                                              {clientProfile?.cover_url ? (
                                                  <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
@@ -7875,35 +7874,7 @@ const currentHour = new Date().getHours();
                                          </div>
                                      </div>
 
-                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
-                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
-                                         <div className="space-y-4">
-                                             {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
-                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
-                                                     <div className="flex items-center gap-3">
-                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
-                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
-                                                     </div>
-                                                     <Heart size={14} className="text-red-500 fill-red-500" />
-                                                 </div>
-                                             ))}
-                                         </div>
-                                     </div>
 
-                                     <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
-                                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
-                                         <div className="space-y-4">
-                                             {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
-                                                 <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
-                                                     <div className="flex items-center gap-3">
-                                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
-                                                         <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
-                                                     </div>
-                                                     <button className="text-[10px] font-black text-zinc-400 hover:text-black">Suivre</button>
-                                                 </div>
-                                             ))}
-                                         </div>
-                                     </div>
 
                                      <button
                                        onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }}
