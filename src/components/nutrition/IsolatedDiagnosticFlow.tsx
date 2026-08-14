@@ -35,7 +35,7 @@ export default function IsolatedDiagnosticFlow({ onComplete }: { onComplete?: (d
     return age;
   };
 
-  // Mock calculation for TDEE (BMR * NAP)
+  // Scientific calculation for TDEE (BMR * NAP) matching the core engine
   const calculateCalories = () => {
     const isMale = formData.gender === "Homme";
     const heightCm = parseFloat(formData.height) || 170;
@@ -43,14 +43,38 @@ export default function IsolatedDiagnosticFlow({ onComplete }: { onComplete?: (d
     const age = calculateAge();
     
     // BMR Mifflin-St Jeor
-    const bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161);
-    const nap = 1.375; // Average active
+    let bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161);
+
+    // Apply medical/female conditions from healthConditions
+    const hasSOPK = formData.healthConditions.includes("SOPK");
+    const hasHypo = formData.healthConditions.includes("Hypothyroïdie");
+    const hasMeno = formData.healthConditions.includes("Préménopause ou Ménopause");
+    const isPregnant = formData.healthConditions.includes("Grossesse");
+    const isBreastfeeding = formData.healthConditions.includes("Allaitement");
+
+    if (!isMale && (hasSOPK || hasMeno || hasHypo)) {
+        bmr = bmr * 0.90; // Metabolic slowdown
+    }
+
+    // Default NAP, isolated flow doesn't have activityLevel yet, assume moderate
+    let nap = 1.375;
     let tdee = bmr * nap;
 
-    if (formData.goalType === 'Perte de poids') tdee -= 500;
-    if (formData.goalType === 'Prise de masse') tdee += 300;
+    if (!isMale && (isPregnant || isBreastfeeding)) {
+        tdee += 400; // Extra calories needed
+    }
 
-    return Math.max(isMale ? 1500 : 1200, Math.round(tdee));
+    let rawCalories = tdee;
+    if (formData.goalType === 'Perte de poids') {
+        // Yo-yo diet check, assume no by default in this isolated flow unless added
+        rawCalories = tdee - 500;
+    } else if (formData.goalType === 'Prise de masse') {
+        rawCalories = tdee + 300;
+    }
+
+    // Absolute Safety Floor
+    const floorCalories = Math.round(bmr);
+    return Math.max(floorCalories, Math.round(rawCalories));
   };
 
   // Auto-advance with 300ms delay for single-choice questions

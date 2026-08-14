@@ -1885,44 +1885,20 @@ export default function NutritionDashboard() {
       setIsSubmittingDiag(true);
       try {
 
+      // On utilise le VRAI calculateur global qui intègre toutes les variables médicales
       const calcResult = calculateDailyCalories(diagData);
       const dailyCalories = calcResult.calories;
 
-      // Ratios standards
-      let carbsRatio = 0.50;
-      let proteinRatio = parseFloat(diagData.age) >= 50 ? 0.35 : 0.30;
-      let fatsRatio = 1 - carbsRatio - proteinRatio;
-
-      // Règle spécifique : Diabète (Limitation stricte des glucides à 40%)
-      if (diagData.healthProfile === "Diabète") {
-          carbsRatio = 0.40;
-          proteinRatio = 0.35; // Hausse des protéines pour compenser
-          fatsRatio = 0.25;    // Hausse des lipides sains
-      }
-
-      const carbs = Math.round((dailyCalories * carbsRatio) / 4);
-      const protein = Math.round((dailyCalories * proteinRatio) / 4);
-      const fats = Math.round((dailyCalories * fatsRatio) / 9);
-
       const results = {
           calories: dailyCalories,
-          carbs: carbs,
-          protein: protein,
-          fats: fats,
-          bmr: calcResult.tdee,
+          bmr: Math.round(calcResult.tdee / 1.2), // Sera géré par le core engine
           tdee: calcResult.tdee,
-          isCapped: calcResult.hitFloor || calcResult.deficit >= 1000,
-          healthyDate: diagData.targetDate
+          protein: calcResult.protein_goal || Math.round((dailyCalories * 0.20) / 4),
+          carbs: calcResult.carbs_goal || Math.round((dailyCalories * 0.50) / 4),
+          fats: calcResult.fats_goal || Math.round((dailyCalories * 0.30) / 9)
       };
 
-
-          localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
-              calories: results.calories,
-              carbs: results.carbs,
-              protein: results.protein,
-              fats: results.fats
-          }));
-          setCalorieGoal(results.calories);
+      setCalorieGoal(results.calories);
           setProteinGoal(results.protein);
           setCarbsGoal(results.carbs);
           setFatsGoal(results.fats);
