@@ -3891,6 +3891,9 @@ const currentHour = new Date().getHours();
               setActiveTab={handleTabChange}
               handleMealClick={handleMealClick}
               setShowDailyReport={setShowDailyReport}
+              todayMenu={todayPlan}
+              isFastingMode={isFastingMode}
+              deleteMealLog={deleteMealLog}
           />
         )}
 
