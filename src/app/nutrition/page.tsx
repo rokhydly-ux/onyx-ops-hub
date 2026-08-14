@@ -1825,8 +1825,11 @@ export default function NutritionDashboard() {
     // 1. Calcul du BMR (Mifflin-St Jeor)
     let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-    // 2. Modificateur Hormonal (SOPK / Ménopause / Hypothyroïdie)
-    if (data.gender === "Femme" && (data.femaleSpecific === "SOPK" || data.femaleSpecific === "Périménopause / Ménopause" || data.healthProfile === "Hypothyroïdie")) {
+    // 2. Modificateur Hormonal & Médical
+    const hasSOPK = data.femaleSpecific === "SOPK";
+    const hasMeno = data.femaleSpecific === "Périménopause / Ménopause";
+    const hasHypo = data.healthProfile === "Hypothyroïdie";
+    if (data.gender === "Femme" && (hasSOPK || hasMeno || hasHypo)) {
         bmr = bmr * 0.90; // Malus métabolique de -10%
     }
 
@@ -1837,47 +1840,47 @@ export default function NutritionDashboard() {
     else if (data.dailyCommute === "Sport intense/Intense") nap = 1.725;
     let tdee = bmr * nap;
 
-    // 4. Bonus Allaitement / Grossesse
+    // Grossesse / Allaitement
     if (data.gender === "Femme" && (data.femaleSpecific === "Allaitement" || data.femaleSpecific === "Grossesse")) {
-        tdee += 400; // Bonus énergétique vital pour la maman
+        tdee += 400;
     }
 
-    // 5. Calcul du déficit (selon la date cible)
-    let requiredDailyDeficit = 0;
-    const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-    const now = new Date();
-    const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
-    const weightToLose = currentWeight - targetWInput;
-
-    if (data.goal === 'perte_poids' && weightToLose > 0) {
-        requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
-    }
-
-    // 6. Plafond du déficit (Max 1000 kcal/jour pour éviter la fonte musculaire)
-    if (requiredDailyDeficit > 1000) {
-        requiredDailyDeficit = 1000;
-    }
+    // 4. Historique Régimes stricts (Effet YoYo)
+    const isYoYo = data.pastDiets && (data.pastDiets.includes("régimes stricts") || data.pastDiets.includes("Oui"));
+    const maxSafeDeficit = isYoYo ? 250 : 500; // Si YoYo on limite fortement le déficit
 
     let rawCalories = tdee;
-    if (data.goal === 'perte_poids') rawCalories = tdee - requiredDailyDeficit;
-    else if (data.goal === 'prise_masse') rawCalories = tdee + 300;
-    // Si Maintien, rawCalories = tdee
+    if (data.goal === 'perte_poids') {
+        const weightToLose = currentWeight - targetWInput;
+        let requiredDailyDeficit = maxSafeDeficit; // Par défaut perte saine
 
-    // 7. Plancher Médical (Anti-privation : Interdit de descendre sous 1200/1500)
-    const floorCalories = isMale ? 1500 : 1200;
-    const finalCalories = Math.max(floorCalories, rawCalories);
+        if (data.targetDate) {
+            const userTargetDate = new Date(data.targetDate);
+            const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24)));
+            if (weightToLose > 0) {
+                const calculatedDeficit = (weightToLose * 7700) / daysToTarget;
+                requiredDailyDeficit = Math.min(calculatedDeficit, maxSafeDeficit);
+            }
+        }
+
+        rawCalories = tdee - requiredDailyDeficit;
+
+    } else if (data.goal === 'prise_masse') {
+        rawCalories = tdee + 300;
+    }
+
+    // 5. Plancher Médical Absolu (Anti-privation : Interdit de descendre sous BMR)
+    const floorCalories = Math.round(bmr);
+    const finalCalories = Math.max(floorCalories, Math.round(rawCalories));
 
     return {
-        calories: Math.round(finalCalories),
+        calories: finalCalories,
         deficit: Math.round(tdee - finalCalories),
         tdee: Math.round(tdee),
         hitFloor: finalCalories === floorCalories,
-        hitCeiling: requiredDailyDeficit === 1000
+        hitCeiling: false
     };
 };
-
-
-
 
   const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1889,13 +1892,23 @@ export default function NutritionDashboard() {
       const calcResult = calculateDailyCalories(diagData);
       const dailyCalories = calcResult.calories;
 
+      let carbsRatio = 0.50;
+      let proteinRatio = 0.20;
+      let fatsRatio = 0.30;
+
+      if (diagData.healthProfile === "Diabète" || diagData.healthProfile === "Pré-diabète" || diagData.femaleSpecific === "SOPK") {
+          carbsRatio = 0.40;
+          proteinRatio = 0.25;
+          fatsRatio = 0.35;
+      }
+
       const results = {
           calories: dailyCalories,
           bmr: Math.round(calcResult.tdee / 1.2), // Sera géré par le core engine
           tdee: calcResult.tdee,
-          protein: calcResult.protein_goal || Math.round((dailyCalories * 0.20) / 4),
-          carbs: calcResult.carbs_goal || Math.round((dailyCalories * 0.50) / 4),
-          fats: calcResult.fats_goal || Math.round((dailyCalories * 0.30) / 9)
+          protein: Math.round((dailyCalories * proteinRatio) / 4),
+          carbs: Math.round((dailyCalories * carbsRatio) / 4),
+          fats: Math.round((dailyCalories * fatsRatio) / 9)
       };
 
       setCalorieGoal(results.calories);
@@ -4047,10 +4060,10 @@ const currentHour = new Date().getHours();
                      {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                          const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
                          return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }}>
+                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setSelectedMealModal({ type: mealType, action: 'add' }); setShowFoodSearch(true); }}>
                              <div className="flex justify-between items-center">
                                  <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
-                                 <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                 <button onClick={(e) => { e.stopPropagation(); setSelectedMealModal({ type: mealType, action: 'add' }); setShowFoodSearch(true); }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                                     <Plus size={14}/> Ajouter un repas
                                  </button>
                              </div>
