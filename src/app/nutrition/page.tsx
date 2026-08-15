@@ -6520,7 +6520,7 @@ const currentHour = new Date().getHours();
             </button>
             <div className="text-center mb-8 shrink-0">
                <Trophy className="mx-auto mb-3 text-yellow-400" size={40} />
-               <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Classement Jongoma XP</h3>
+               <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Classement NutriAfro XP</h3>
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Les membres les plus assidues de ce mois</p>
             </div>
 
@@ -6536,7 +6536,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-zinc-100 w-20 h-24 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-zinc-300">
                            <span className="text-[10px] font-bold mt-1 text-zinc-500">{leaderboardData[1].xp} XP</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[1].full_name.split(' ')[0]} {leaderboardData[1].xp >= 100 && <img src={getJongomaLevel(leaderboardData[1].xp).badgeUrl} className="w-3 h-3" alt="Badge"/>}</p>
+                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[1].full_name.split(' ')[0]} {leaderboardData[1].xp >= 100 && <img src={getJongomaLevel(leaderboardData[1].xp).badgeUrl} className="w-5 h-5" alt="Badge"/>}</p>
                      </div>
                   )}
                   {leaderboardData.length > 0 && (
@@ -6548,7 +6548,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-yellow-50 w-24 h-32 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-yellow-400">
                            <span className="text-xs font-black mt-1 text-yellow-600">{leaderboardData[0].xp} XP</span>
                         </div>
-                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px] flex items-center gap-1 justify-center">{leaderboardData[0].full_name.split(' ')[0]} {leaderboardData[0].xp >= 100 && <img src={getJongomaLevel(leaderboardData[0].xp).badgeUrl} className="w-4 h-4" alt="Badge"/>}</p>
+                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px] flex items-center gap-1 justify-center">{leaderboardData[0].full_name.split(' ')[0]} {leaderboardData[0].xp >= 100 && <img src={getJongomaLevel(leaderboardData[0].xp).badgeUrl} className="w-6 h-6" alt="Badge"/>}</p>
                      </div>
                   )}
                   {leaderboardData.length > 2 && (
@@ -6560,7 +6560,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-orange-50 w-20 h-20 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-orange-400">
                            <span className="text-[10px] font-bold mt-1 text-orange-600">{leaderboardData[2].xp} XP</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[2].full_name.split(' ')[0]} {leaderboardData[2].xp >= 100 && <img src={getJongomaLevel(leaderboardData[2].xp).badgeUrl} className="w-3 h-3" alt="Badge"/>}</p>
+                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[2].full_name.split(' ')[0]} {leaderboardData[2].xp >= 100 && <img src={getJongomaLevel(leaderboardData[2].xp).badgeUrl} className="w-5 h-5" alt="Badge"/>}</p>
                      </div>
                   )}
                </div>
@@ -6575,7 +6575,7 @@ const currentHour = new Date().getHours();
                                                       <p className={`font-bold text-sm ${student.id === clientProfile?.id ? 'text-[#39FF14]' : 'text-black'} flex items-center gap-2`}>
                               {student.full_name} {student.id === clientProfile?.id ? '(Vous)' : ''}
                               {student.xp >= 100 && (
-                                <img src={getJongomaLevel(student.xp).badgeUrl} alt="Badge" className="w-5 h-5 object-contain" title={getJongomaLevel(student.xp).name} />
+                                <img src={getJongomaLevel(student.xp).badgeUrl} alt="Badge" className="w-6 h-6 object-contain" title={getJongomaLevel(student.xp).name} />
                               )}
                            </p>
                         </div>
@@ -6585,7 +6585,7 @@ const currentHour = new Date().getHours();
                </div>
             </div>
             <div className="pt-6 border-t border-zinc-100 shrink-0">
-               <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Salut ! Je te mets au défi de me battre sur le classement Jongoma XP de OnyxNutrition ! Rejoins-moi et voyons qui aura le plus de points cette semaine 🔥💪\n\nhttps://onyxlinks.com/nutrition")}`, '_blank')} className="w-full bg-[#25D366] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+               <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Salut ! Je te mets au défi de me battre sur le classement XP de NutriAfro ! Rejoins-moi, fais ton bilan nutritionnel personnalisé et voyons qui aura le plus de points cette semaine 🔥💪 https://nutriafro.app")}`, '_blank')} className="w-full bg-[#25D366] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
                   <MessageCircle size={18}/> Défier une amie sur WhatsApp
                </button>
             </div>
