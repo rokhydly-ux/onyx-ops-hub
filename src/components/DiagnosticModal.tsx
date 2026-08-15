@@ -7,10 +7,10 @@ import { Space_Grotesk } from 'next/font/google';
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] });
 
 export const calculateDailyCalories = (data: any) => {
-    const heightCm = parseFloat(data.height) || 0;
-    const currentWeight = parseFloat(data.currentWeight) || 0;
-    const targetWInput = parseFloat(data.targetWeight) || 0;
-    const age = parseFloat(data.age) || 0;
+    const heightCm = Number(data.height);
+    const currentWeight = Number(data.currentWeight);
+    const targetWInput = Number(data.targetWeight);
+    const age = Number(data.age);
     const isMale = data.gender === "Homme";
 
     let bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;

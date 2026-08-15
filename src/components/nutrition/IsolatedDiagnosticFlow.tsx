@@ -110,7 +110,7 @@ export default function IsolatedDiagnosticFlow({ onComplete }: { onComplete?: (d
 
   const handleFinish = () => {
     if (onComplete) {
-      onComplete({ ...formData, calories: calculateCalories() });
+      onComplete({ ...formData, age: calculateAge(), calories: calculateCalories() });
     } else {
       alert("Redirection vers Sama Menu !");
     }
