@@ -390,6 +390,15 @@ const getEmbedUrl = (url: string) => {
   return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
 };
 
+const DELIVERY_ZONES: Record<string, number> = {
+  'Plateau': 1500, 'Médina': 1500, 'Fann': 1500, 'Point E': 1500, 'Amitié': 1500, 'Mermoz': 1500, 'Sacré-Cœur': 1500, 'Liberté': 1500, 'Dieuppeul': 1500, 'Fass': 1500, 'Colobane': 1500, 'Grand Dakar': 1500,
+  'Ouakam': 2000, 'Ngor': 2000, 'Almadies': 2000, 'Yoff': 2000, 'Grand Yoff': 2000, 'Maristes': 2000, 'Parcelles Assainies': 2000, 'Patte d\'Oie': 2000, 'Pikine': 2000, 'Guédiawaye': 2000, 'Cambérène': 2000, 'Thiaroye': 2000, 'Dalifort': 2000,
+  'Mbao': 3000, 'Yeumbeul': 3000, 'Keur Massar': 3000, 'Rufisque': 3000, 'Tivaouane Peulh': 3000, 'Malika': 3000,
+  'Diamniadio': 5000, 'Sangalkam': 5000, 'Lac Rose': 5000, 'Sebikotane': 5000
+};
+
+const QUARTIERS = Object.keys(DELIVERY_ZONES);
+
 export default function NutritionDashboard() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -700,6 +709,11 @@ export default function NutritionDashboard() {
   const [productMediaView, setProductMediaView] = useState<'image' | 'video'>('image');
   const [productActiveImage, setProductActiveImage] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryZone, setDeliveryZone] = useState('');
+  const [deliveryCost, setDeliveryCost] = useState(0);
+  const [showZoneSuggestions, setShowZoneSuggestions] = useState(false);
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [isEditingAddress, setIsEditingAddress] = useState(true);
   const [clientOrders, setClientOrders] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
   const [showCartModal, setShowCartModal] = useState(false);
@@ -1176,10 +1190,24 @@ export default function NutritionDashboard() {
               setExcludedIngredients(nutritionData.excluded_ingredients || []);
           }
 
-          if (activeProfile.address) setDeliveryAddress(activeProfile.address);
+          if (activeProfile.address) {
+            setDeliveryAddress(activeProfile.address);
+            setIsEditingAddress(false);
+          }
 
           // Fetch des commandes du client
           const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
+
+          if (ordersData && ordersData.length > 0) {
+            // Find the most recent order with a delivery zone
+            const lastOrderWithZone = ordersData.find((o: any) => o.delivery_zone);
+            if (lastOrderWithZone) {
+                setDeliveryZone(lastOrderWithZone.delivery_zone);
+                if (DELIVERY_ZONES[lastOrderWithZone.delivery_zone]) {
+                    setDeliveryCost(DELIVERY_ZONES[lastOrderWithZone.delivery_zone]);
+                }
+            }
+          }
           if (ordersData) setClientOrders(ordersData);
           } // Fin if (activeProfile.id)
 
@@ -3347,8 +3375,8 @@ const currentHour = new Date().getHours();
 
   const handleShopCheckout = async () => {
     if (shopCart.length === 0) return alert("Votre panier est vide.");
-    if (!deliveryAddress.trim()) {
-        alert("Veuillez renseigner votre adresse de livraison dans le panier avant de commander.");
+    if (!deliveryAddress.trim() || !deliveryZone.trim()) {
+        alert("Veuillez renseigner votre quartier et votre adresse de livraison dans le panier avant de commander.");
         setShowCartModal(true);
         return;
     }
@@ -3358,7 +3386,12 @@ const currentHour = new Date().getHours();
 
     const originalTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
     const discountAmount = Math.round(originalTotal * (discountPct / 100));
-    const total = Math.round(originalTotal * discountMultiplier);
+
+    // Logique de livraison intelligente
+    const baseTotal = Math.round(originalTotal * discountMultiplier);
+    const effectiveDeliveryCost = baseTotal >= 30000 ? Math.max(0, deliveryCost - 1500) : deliveryCost;
+    const finalTotalAmount = baseTotal + effectiveDeliveryCost;
+
     const cartText = shopCart.map(item => `- ${item.quantity}x ${item.nom} (${((item.finalPrice || item.prix_premium || item.prix_standard || 0) * item.quantity).toLocaleString()} F)`).join('\n');
 
     // Sauvegarde en DB
@@ -3370,11 +3403,13 @@ const currentHour = new Date().getHours();
           client_name: user?.full_name || 'Inconnu',
           phone: clientProfile.phone || '',
           items: shopCart.map(p => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
-          total: total,
+          total_amount: finalTotalAmount,
           status: 'Nouveau',
           promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
           discount_amount: discountAmount,
-          address: deliveryAddress
+          delivery_address: deliveryAddress,
+          delivery_zone: deliveryZone,
+          delivery_notes: deliveryNotes
        }).select();
 
        if (error) {
@@ -3383,14 +3418,21 @@ const currentHour = new Date().getHours();
        } else if (data && data.length > 0) {
            setClientOrders([data[0], ...clientOrders]);
            await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
+           setClientProfile({...clientProfile, address: deliveryAddress});
        }
     }
 
-    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
+    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Sous-Total : ${baseTotal} F*\n`;
     if (isShopPromoApplied && appliedPromoData) {
-       msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
+       msg += ` *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
-    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}\n*Frais de livraison :* ${deliveryCost} F`;
+    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}`;
+    if (deliveryNotes) msg += `\n*Notes de livraison :* ${deliveryNotes}`;
+    msg += `\n*Frais de livraison :* ${effectiveDeliveryCost} F`;
+    if (baseTotal >= 30000 && deliveryCost > 0) {
+      msg += ` (Réduction de 1500 F appliquée)`;
+    }
+    msg += `\n\n*TOTAL À PAYER : ${finalTotalAmount} F*\n`;
 
     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
     setShopCart([]);
@@ -6649,7 +6691,7 @@ const currentHour = new Date().getHours();
             </button>
             <div className="text-center mb-8 shrink-0">
                <Trophy className="mx-auto mb-3 text-yellow-400" size={40} />
-               <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Classement Jongoma XP</h3>
+               <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Classement NutriAfro XP</h3>
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Les membres les plus assidues de ce mois</p>
             </div>
 
@@ -6665,7 +6707,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-zinc-100 w-20 h-24 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-zinc-300">
                            <span className="text-[10px] font-bold mt-1 text-zinc-500">{leaderboardData[1].xp} XP</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[1].full_name.split(' ')[0]} {leaderboardData[1].xp >= 100 && <img src={getJongomaLevel(leaderboardData[1].xp).badgeUrl} className="w-3 h-3" alt="Badge"/>}</p>
+                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[1].full_name.split(' ')[0]} {leaderboardData[1].xp >= 100 && <img src={getJongomaLevel(leaderboardData[1].xp).badgeUrl} className="w-5 h-5" alt="Badge"/>}</p>
                      </div>
                   )}
                   {leaderboardData.length > 0 && (
@@ -6677,7 +6719,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-yellow-50 w-24 h-32 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-yellow-400">
                            <span className="text-xs font-black mt-1 text-yellow-600">{leaderboardData[0].xp} XP</span>
                         </div>
-                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px] flex items-center gap-1 justify-center">{leaderboardData[0].full_name.split(' ')[0]} {leaderboardData[0].xp >= 100 && <img src={getJongomaLevel(leaderboardData[0].xp).badgeUrl} className="w-4 h-4" alt="Badge"/>}</p>
+                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px] flex items-center gap-1 justify-center">{leaderboardData[0].full_name.split(' ')[0]} {leaderboardData[0].xp >= 100 && <img src={getJongomaLevel(leaderboardData[0].xp).badgeUrl} className="w-6 h-6" alt="Badge"/>}</p>
                      </div>
                   )}
                   {leaderboardData.length > 2 && (
@@ -6689,7 +6731,7 @@ const currentHour = new Date().getHours();
                         <div className="bg-orange-50 w-20 h-20 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-orange-400">
                            <span className="text-[10px] font-bold mt-1 text-orange-600">{leaderboardData[2].xp} XP</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[2].full_name.split(' ')[0]} {leaderboardData[2].xp >= 100 && <img src={getJongomaLevel(leaderboardData[2].xp).badgeUrl} className="w-3 h-3" alt="Badge"/>}</p>
+                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px] flex items-center gap-1 justify-center">{leaderboardData[2].full_name.split(' ')[0]} {leaderboardData[2].xp >= 100 && <img src={getJongomaLevel(leaderboardData[2].xp).badgeUrl} className="w-5 h-5" alt="Badge"/>}</p>
                      </div>
                   )}
                </div>
@@ -6704,7 +6746,7 @@ const currentHour = new Date().getHours();
                                                       <p className={`font-bold text-sm ${student.id === clientProfile?.id ? 'text-[#39FF14]' : 'text-black'} flex items-center gap-2`}>
                               {student.full_name} {student.id === clientProfile?.id ? '(Vous)' : ''}
                               {student.xp >= 100 && (
-                                <img src={getJongomaLevel(student.xp).badgeUrl} alt="Badge" className="w-5 h-5 object-contain" title={getJongomaLevel(student.xp).name} />
+                                <img src={getJongomaLevel(student.xp).badgeUrl} alt="Badge" className="w-6 h-6 object-contain" title={getJongomaLevel(student.xp).name} />
                               )}
                            </p>
                         </div>
@@ -6714,7 +6756,7 @@ const currentHour = new Date().getHours();
                </div>
             </div>
             <div className="pt-6 border-t border-zinc-100 shrink-0">
-               <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Salut ! Je te mets au défi de me battre sur le classement Jongoma XP de OnyxNutrition ! Rejoins-moi et voyons qui aura le plus de points cette semaine 🔥💪\n\nhttps://onyxlinks.com/nutrition")}`, '_blank')} className="w-full bg-[#25D366] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+               <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Salut ! Je te mets au défi de me battre sur le classement XP de NutriAfro ! Rejoins-moi, fais ton bilan nutritionnel personnalisé et voyons qui aura le plus de points cette semaine 🔥💪 https://nutriafro.app")}`, '_blank')} className="w-full bg-[#25D366] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
                   <MessageCircle size={18}/> Défier une amie sur WhatsApp
                </button>
             </div>
