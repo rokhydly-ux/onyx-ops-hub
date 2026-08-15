@@ -13,6 +13,32 @@ import {YAxis, ResponsiveContainer, AreaChart, PieChart, Pie, LineChart, XAxis, 
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
+
+const VISUAL_EQUIVALENCES = {
+  louche: { grams: 70, label: "louche" },
+  bol: { grams: 350, label: "bol" },
+  cuillere_soupe: { grams: 15, label: "c. à soupe" },
+  morceau: { grams: 100, label: "morceau" },
+  poignee: { grams: 30, label: "poignée" }
+};
+
+const formatVisualPortion = (grams: number, unit: keyof typeof VISUAL_EQUIVALENCES) => {
+  if (!grams || !VISUAL_EQUIVALENCES[unit]) return "1 portion";
+  const rawValue = grams / VISUAL_EQUIVALENCES[unit].grams;
+  const roundedValue = Math.round(rawValue * 2) / 2; // Arrondi au 0.5 près
+  return `${roundedValue} ${VISUAL_EQUIVALENCES[unit].label}${roundedValue > 1 && !VISUAL_EQUIVALENCES[unit].label.endsWith('s') ? 's' : ''}`;
+};
+
+const guessVisualPortion = (cals: number, mealType: string) => {
+   // Fallback pour convertir les calories totales en portions simples
+   const totalGrams = cals / 1.5; // Approximation grossière 150kcal = 100g
+   if (mealType === 'Petit-déjeuner' || mealType === 'Collation') {
+       return formatVisualPortion(totalGrams, 'poignee');
+   } else {
+       if (totalGrams > 300) return formatVisualPortion(totalGrams, 'bol');
+       return formatVisualPortion(totalGrams, 'louche');
+   }
+};
 import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -651,7 +677,22 @@ export default function NutritionDashboard() {
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
   const [shopPromoCode, setShopPromoCode] = useState("");
   const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
+  const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
+  const [createdOrderRef, setCreatedOrderRef] = useState("");
+  const [userOrders, setUserOrders] = useState<any[]>([]);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
+
+  // Persistance du panier
+  useEffect(() => {
+      const savedCart = localStorage.getItem('onyx_shop_cart');
+      if (savedCart) {
+          try { setShopCart(JSON.parse(savedCart)); } catch(e) {}
+      }
+  }, []);
+
+  useEffect(() => {
+      localStorage.setItem('onyx_shop_cart', JSON.stringify(shopCart));
+  }, [shopCart]);
   const [productMediaView, setProductMediaView] = useState<'image' | 'video'>('image');
   const [productActiveImage, setProductActiveImage] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -1844,10 +1885,11 @@ export default function NutritionDashboard() {
 };
 
   const calculateDailyCalories = (data: any) => {
-    const heightCm = parseFloat(data.height) || 0;
-    const currentWeight = parseFloat(data.currentWeight) || 0;
-    const targetWInput = parseFloat(data.targetWeight) || 0;
-    const age = parseFloat(data.age) || 0;
+    // Conversion stricte exigée (Number)
+    const heightCm = Number(data.height);
+    const currentWeight = Number(data.currentWeight);
+    const targetWInput = Number(data.targetWeight);
+    const age = Number(data.age);
     const isMale = data.gender === "Homme";
 
     // 1. Calcul du BMR (Mifflin-St Jeor)
@@ -1901,16 +1943,27 @@ export default function NutritionDashboard() {
     const floorCalories = Math.round(bmr);
     const finalCalories = Math.max(floorCalories, Math.round(rawCalories));
 
+    let carbRatio = 0.50;
+    let proteinRatio = 0.20;
+    let fatRatio = 0.30;
+
+    if (data.healthProfile === "Diabète" || data.healthProfile === "Pré-diabète" || data.femaleSpecific === "SOPK") {
+        carbRatio = 0.40;
+        proteinRatio = 0.25;
+        fatsRatio = 0.35;
+    }
+
     return {
         calories: finalCalories,
         deficit: Math.round(tdee - finalCalories),
         tdee: Math.round(tdee),
         hitFloor: finalCalories === floorCalories,
-        hitCeiling: false
+        hitCeiling: false,
+        carbs_goal: Math.round((finalCalories * carbRatio) / 4),
+        protein_goal: Math.round((finalCalories * proteinRatio) / 4),
+        fats_goal: Math.round((finalCalories * fatRatio) / 9)
     };
-};
-
-  const handleDiagSubmit = async (e: React.FormEvent) => {
+};  const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       setIsSubmittingDiag(true);
@@ -3279,7 +3332,14 @@ const currentHour = new Date().getHours();
   };
 
   const applyShopPromo = () => {
-     const codeObj = shopPromoCodesDB.find(c => c.code.toUpperCase() === shopPromoCode.toUpperCase());
+     const codeInput = shopPromoCode.trim().toUpperCase();
+     let codeObj = shopPromoCodesDB.find(c => c.code.toUpperCase() === codeInput);
+
+     // Injection forcée pour CODE10 si non présent dans la DB
+     if (!codeObj && codeInput === 'CODE10') {
+         codeObj = { code: 'CODE10', discount_pct: 10, min_xp: 0, active: true };
+     }
+
      if (codeObj) {
          if (jongomaXP >= codeObj.min_xp) {
              setIsShopPromoApplied(true);
@@ -3798,8 +3858,8 @@ const currentHour = new Date().getHours();
                 {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
             </button>
 
-            <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title="Toggle Kcal">
-                <Eye size={16}/>
+            <button onClick={() => { setIsExpertMode(!isExpertMode); handleExpertModeChange(!isExpertMode); }} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title={isExpertMode ? "Mode Expert Actif" : "Mode Simple"}>
+                {isExpertMode ? <Eye size={16}/> : <EyeOff size={16}/>}
             </button>
 
             {/* Cart */}
@@ -4301,7 +4361,9 @@ const currentHour = new Date().getHours();
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
                                              </div>
                                           ) : (
-                                             <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.ux_unit || "1 portion"}</span>
+                                             <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md`}>
+                                                 {recipe.ux_unit ? recipe.ux_unit : guessVisualPortion(recipe.calories || 300, mealType)}
+                                             </span>
                                           )}
 
                                           <div className="flex items-center gap-1 mt-0.5">
@@ -4969,6 +5031,47 @@ const currentHour = new Date().getHours();
         )}
 
         {/* VUE BOUTIQUE */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-5xl mx-auto px-4 sm:px-6">
+             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l'accueil</button>
+             <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><ShoppingBag className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Mes Commandes</h2>
+
+             {userOrders.length === 0 ? (
+                 <div className="bg-white p-12 rounded-[2rem] text-center border border-zinc-200">
+                    <Package size={48} className="mx-auto text-zinc-300 mb-4" />
+                    <p className="font-bold text-zinc-500">Vous n'avez passé aucune commande pour le moment.</p>
+                 </div>
+             ) : (
+                 <div className="space-y-4">
+                     {userOrders.map((order, i) => (
+                         <div key={i} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Commande #{order.id.slice(0,8)}</p>
+                               <p className="text-sm font-bold text-black">{new Date(order.created_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                               <div className="mt-3 space-y-1">
+                                  {order.nutrition_order_items?.map((item: any, idx: number) => (
+                                      <p key={idx} className="text-xs text-zinc-600">- {item.quantity}x {item.product_name}</p>
+                                  ))}
+                               </div>
+                            </div>
+                            <div className="flex flex-col items-start md:items-end gap-3 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0 border-zinc-100">
+                               <div className="flex items-center gap-4 w-full justify-between md:justify-end">
+                                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'Livré' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-orange-100 text-orange-600'}`}>
+                                       {order.status}
+                                   </span>
+                                   <span className="font-black text-xl text-black">{order.total_amount.toLocaleString()} F</span>
+                               </div>
+                               <button onClick={() => window.open(`https://wa.me/221785338417?text=Bonjour, je souhaite suivre ma commande N° ${order.id} du ${new Date(order.created_at).toLocaleDateString('fr-FR')} de ${user?.full_name}. Lien admin: https://nutriafro.app/admin/orders/${order.id}`, '_blank')} className="w-full md:w-auto bg-[#25D366] text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                                   <MessageSquare size={14}/> Suivre sur WhatsApp
+                               </button>
+                            </div>
+                         </div>
+                     ))}
+                 </div>
+             )}
+          </div>
+        )}
+
         {activeTab === 'shop' && (
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
@@ -5227,7 +5330,21 @@ const currentHour = new Date().getHours();
                               </div>
                               <div className="flex flex-col gap-2 w-full sm:w-auto">
                                  <div className="flex items-center gap-2">
-                                   <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
+                                   {(() => {
+                                       const inCart = shopCart.find(p => p.id === selectedProduct.id);
+                                       if (inCart) {
+                                           return (
+                                               <div className="flex-1 flex items-center justify-between bg-zinc-100 rounded-2xl p-2 px-4 shadow-inner">
+                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity - 1)} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
+                                                   <span className="font-black text-xl text-black px-6">{inCart.quantity}</span>
+                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity + 1)} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
+                                               </div>
+                                           );
+                                       }
+                                       return (
+                                           <button onClick={() => { addToCart(selectedProduct); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
+                                       );
+                                   })()}
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
                                  </div>
                                  <div className="flex gap-2">
@@ -7881,7 +7998,43 @@ const currentHour = new Date().getHours();
           </div>
       )}
 
-                 {/* MODALE TIROIR HUB MOBILE */}
+                 {/* MODALE ORDER SUCCESS */}
+      <AnimatePresence>
+        {showOrderSuccessModal && (
+            <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center relative border-t-[8px] border-[#39FF14]">
+                    <button onClick={() => setShowOrderSuccessModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={20}/></button>
+                    <img src={MENU_ICONS.dashboard} alt="Success" className="w-24 h-24 rounded-full mx-auto mb-6 object-cover shadow-lg border-4 border-white" />
+                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black mb-2`}>Félicitations !</h2>
+                    <p className="text-zinc-500 font-bold mb-6">Votre commande <span className="text-black font-black uppercase">#{createdOrderRef.slice(0, 8)}</span> a bien été enregistrée.</p>
+                    <button onClick={() => { setShowOrderSuccessModal(false); handleTabChange('orders'); }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform">
+                        Suivre ma commande
+                    </button>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
+
+      {/* EXIT INTENT PANIER */}
+      <AnimatePresence>
+        {showCartExitIntent && (
+            <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center relative border-t-[8px] border-orange-500">
+                    <button onClick={() => setShowCartExitIntent(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-orange-500 transition-colors"><X size={20}/></button>
+                    <div className="text-6xl mb-4">🎁</div>
+                    <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase text-black mb-2`}>Attendez !</h2>
+                    <p className="text-zinc-500 font-bold mb-6">Ne partez pas les mains vides. Utilisez le code <strong className="text-black">GIFT15</strong> pour -15% sur votre panier actuel !</p>
+                    <div className="flex gap-4">
+                        <button onClick={() => { setShowCartExitIntent(false); setShowCartModal(true); setShopPromoCode('GIFT15'); }} className="flex-1 bg-black text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform">
+                            J&apos;en profite
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODALE TIROIR HUB MOBILE */}
                  <AnimatePresence>
                      {showMobileHub && (
                          <>
