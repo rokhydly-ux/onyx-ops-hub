@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper, User, LogOut, Settings, List, LayoutGrid, ChevronUp, Phone, MapPin } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
-import { jsPDF } from 'jspdf';
+
 import autoTable from 'jspdf-autotable';
 
 const spaceGrotesk = { className: "font-sans" };
@@ -1445,8 +1445,12 @@ export default function AdminNutritionAfricaine() {
       }, {});
   }, [foods, foodSearch, foodBudgetFilter, foodHealthFilter, foodUsageCounts]);
 
+
   const generateClientReportPDF = async (profile: any, sendWhatsApp: boolean = false) => {
+      const { jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
       const doc = new jsPDF();
+
       const clientName = profile.client?.full_name || "Client";
       doc.setFontSize(22);
       doc.text(`Rapport Mensuel - ${clientName}`, 14, 20);
@@ -1535,9 +1539,13 @@ export default function AdminNutritionAfricaine() {
       setReportCoachNotes("");
   };
 
-  const downloadGroceryListPDFAdmin = () => {
+
+  const downloadGroceryListPDFAdmin = async () => {
       if (!showGroceryModal) return;
+      const { jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
       const doc = new jsPDF();
+
       doc.setFontSize(22);
       doc.text("Liste de Courses - Onyx Nutrition", 14, 20);
       doc.setFontSize(12);
@@ -1595,9 +1603,14 @@ export default function AdminNutritionAfricaine() {
   
 
 
-  const downloadReceiptPDF = (order: any, e: any) => {
+
+  const downloadReceiptPDF = async (order: any, e: any) => {
       e.stopPropagation();
+      const { jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
       const doc = new jsPDF();
+
 
       // En-tête
       doc.setFontSize(20);
