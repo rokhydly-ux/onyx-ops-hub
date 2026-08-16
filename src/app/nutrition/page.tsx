@@ -5034,7 +5034,8 @@ const currentHour = new Date().getHours();
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
-              <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-4">
                  <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
                  <div>
                     <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Onyx</h2>
@@ -7660,11 +7661,11 @@ const currentHour = new Date().getHours();
                      </div>
                   </div>
 
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
                      {remainingForFreeShipping > 0 ? (
-                         <p className="text-sm font-black uppercase tracking-widest text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14]">{remainingForFreeShipping.toLocaleString()} FCFA</span> pour la livraison gratuite !</p>
+                         <p className="text-xs font-bold text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14] font-black">{remainingForFreeShipping.toLocaleString()} F</span> pour la livraison gratuite !</p>
                      ) : (
-                         <p className="text-sm font-black uppercase tracking-widest text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={16}/> Livraison gratuite débloquée !</p>
+                         <p className="text-xs font-bold text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={14}/> Livraison gratuite débloquée !</p>
                      )}
                      <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
                          <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
