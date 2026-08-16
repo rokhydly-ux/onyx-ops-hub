@@ -165,6 +165,7 @@ export default function AdminNutritionAfricaine() {
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   const [isExpertMode, setIsExpertMode] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isEcommerceMenuOpen, setIsEcommerceMenuOpen] = useState(false);
 
   const handleLogout = () => {
     router.push('/login');
@@ -1586,6 +1587,21 @@ export default function AdminNutritionAfricaine() {
   const totalShopPages = Math.ceil(filteredShop.length / shopItemsPerPage);
   const paginatedShop = filteredShop.slice((shopPage - 1) * shopItemsPerPage, shopPage * shopItemsPerPage);
   
+  const currentMonthOrders = React.useMemo(() => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      return orders.filter(o => new Date(o.created_at) >= firstDay);
+  }, [orders]);
+
+  const currentMonthRevenue = React.useMemo(() => {
+      return currentMonthOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  }, [currentMonthOrders]);
+
+  const currentMonthAOV = React.useMemo(() => {
+      if (currentMonthOrders.length === 0) return 0;
+      return Math.round(currentMonthRevenue / currentMonthOrders.length);
+  }, [currentMonthRevenue, currentMonthOrders.length]);
+
   const salesStats = React.useMemo(() => {
       const stats: Record<string, { qty: number, revenue: number, name: string, image: string }> = {};
       orders.forEach(o => {
@@ -1601,8 +1617,29 @@ export default function AdminNutritionAfricaine() {
               stats[pid].revenue += (i.finalPrice || i.price || 0) * (i.quantity || 1);
           });
       });
-      return Object.values(stats).sort((a,b) => b.qty - a.qty).slice(0, 5);
+      return Object.values(stats).sort((a,b) => b.qty - a.qty).slice(0, 3);
   }, [orders, products]);
+
+  const dormantAndLowStockStats = React.useMemo(() => {
+      const lowStockCount = products.filter(p => p.stock < 5).length;
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const productsSoldLast30Days = new Set<string>();
+      orders.filter(o => new Date(o.created_at) >= thirtyDaysAgo).forEach(o => {
+          let items = o.items || [];
+          if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+          items.forEach((i: any) => {
+             if (i.id) productsSoldLast30Days.add(i.id);
+          });
+      });
+
+      const dormantCount = products.filter(p => !productsSoldLast30Days.has(p.id)).length;
+
+      return { lowStockCount, dormantCount };
+  }, [products, orders]);
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
@@ -1669,14 +1706,14 @@ export default function AdminNutritionAfricaine() {
                    <button onClick={() => setActiveTab('challenges')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'challenges' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Trophy size={14}/> Challenges</button>
                    
                    <div className="relative group">
-                       <button className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
+                       <button onClick={() => setIsEcommerceMenuOpen(!isEcommerceMenuOpen)} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
                           <ShoppingBag size={14}/> E-Commerce <ChevronDown size={14} className="ml-1"/>
                        </button>
-                       <div className="absolute top-full left-0 pt-2 min-w-[160px] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 delay-100 hover:delay-0 z-50">
+                       <div className={`absolute top-full left-0 pt-2 min-w-[160px] transition-all duration-300 z-50 ${isEcommerceMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto lg:delay-100 lg:hover:delay-0'}`}>
                            <div className="bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 flex flex-col gap-1">
-                               <button onClick={() => setActiveTab('shop')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'shop' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><ShoppingCart size={14}/> Boutique</button>
-                               <button onClick={() => setActiveTab('orders')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'orders' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Package size={14}/> Commandes</button>
-                               <button onClick={() => setActiveTab('promos')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'promos' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Ticket size={14}/> Codes Promo</button>
+                               <button onClick={() => { setActiveTab('shop'); setIsEcommerceMenuOpen(false); }} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'shop' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><ShoppingCart size={14}/> Boutique</button>
+                               <button onClick={() => { setActiveTab('orders'); setIsEcommerceMenuOpen(false); }} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'orders' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Package size={14}/> Commandes</button>
+                               <button onClick={() => { setActiveTab('promos'); setIsEcommerceMenuOpen(false); }} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'promos' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Ticket size={14}/> Codes Promo</button>
                            </div>
                        </div>
                    </div>
@@ -2394,34 +2431,6 @@ export default function AdminNutritionAfricaine() {
 
         {activeTab === 'shop' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-           {salesStats.length > 0 && (
-               <div className="mb-8 bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
-                   <h3 className="text-lg font-black uppercase tracking-tighter mb-6 flex items-center gap-2"><TrendingUp className="text-[#39FF14]"/> Tendances des Ventes</h3>
-                   <div className="overflow-x-auto">
-                       <table className="w-full text-left">
-                           <thead className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                               <tr>
-                                   <th className="p-4">Produit</th>
-                                   <th className="p-4 text-center">Qté Vendue</th>
-                                   <th className="p-4 text-right">CA Généré</th>
-                               </tr>
-                           </thead>
-                           <tbody className="divide-y divide-zinc-50">
-                               {salesStats.map((s, idx) => (
-                                   <tr key={idx} className="hover:bg-zinc-50 transition-colors">
-                                       <td className="p-4 flex items-center gap-4">
-                                           <img src={s.image || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={s.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-100 border border-zinc-200" onError={(e:any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                                           <span className="font-bold text-sm text-black">{s.name}</span>
-                                       </td>
-                                       <td className="p-4 text-center font-black text-lg">{s.qty}</td>
-                                       <td className="p-4 text-right font-black text-[#39FF14] text-lg">{s.revenue.toLocaleString()} F</td>
-                                   </tr>
-                               ))}
-                           </tbody>
-                       </table>
-                   </div>
-               </div>
-           )}
            <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide gap-3 pb-2 mb-4 w-full">
               {shopCategoriesList.map((cat: any) => (
                  <button
@@ -2588,7 +2597,75 @@ export default function AdminNutritionAfricaine() {
         {activeTab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
 
-           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+           {/* 3 NOUVEAUX WIDGETS D'ANALYSE */}
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+               {/* Widget CA & Panier Moyen */}
+               <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between">
+                   <div className="flex justify-between items-start mb-4">
+                       <h3 className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2"><Activity size={16} className="text-[#39FF14]"/> CA & Panier (Mois)</h3>
+                   </div>
+                   <div className="space-y-4">
+                       <div>
+                           <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Chiffre d'affaires</p>
+                           <p className="text-3xl font-black text-black">{currentMonthRevenue.toLocaleString()} <span className="text-lg text-[#39FF14]">F</span></p>
+                       </div>
+                       <div className="pt-4 border-t border-zinc-100">
+                           <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Panier Moyen</p>
+                           <p className="text-xl font-black text-black">{currentMonthAOV.toLocaleString()} F</p>
+                       </div>
+                   </div>
+               </div>
+
+               {/* Widget Top Ventes */}
+               <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
+                   <h3 className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2 mb-4"><TrendingUp size={16} className="text-[#39FF14]"/> Top 3 Ventes</h3>
+                   <div className="space-y-3">
+                       {salesStats.length > 0 ? salesStats.map((s, idx) => (
+                           <div key={idx} className="flex items-center gap-3">
+                               <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-zinc-50 border border-zinc-100">
+                                   <img src={s.image || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={s.name} className="w-full h-full object-cover" onError={(e:any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                   <p className="text-xs font-bold text-black truncate">{s.name}</p>
+                                   <p className="text-[10px] text-zinc-500 font-bold uppercase">{s.qty} vendus</p>
+                               </div>
+                               <div className="text-right">
+                                   <p className="text-xs font-black text-[#39FF14]">{s.revenue.toLocaleString()} F</p>
+                               </div>
+                           </div>
+                       )) : (
+                           <p className="text-xs text-zinc-400 font-bold italic py-4">Aucune vente enregistrée.</p>
+                       )}
+                   </div>
+               </div>
+
+               {/* Widget Alertes & Dormants */}
+               <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between">
+                   <h3 className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2 mb-4"><AlertTriangle size={16} className="text-[#39FF14]"/> Alertes & Dormants</h3>
+                   <div className="space-y-4">
+                       <div className="flex items-center gap-4 bg-orange-50 p-3 rounded-xl border border-orange-100">
+                           <div className="w-10 h-10 bg-orange-100 text-orange-500 rounded-lg flex items-center justify-center shrink-0">
+                               <Package size={20}/>
+                           </div>
+                           <div>
+                               <p className="text-xl font-black text-orange-600">{dormantAndLowStockStats.lowStockCount}</p>
+                               <p className="text-[10px] font-black uppercase text-orange-500 tracking-widest">Stock &lt; 5</p>
+                           </div>
+                       </div>
+                       <div className="flex items-center gap-4 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                           <div className="w-10 h-10 bg-zinc-200 text-zinc-500 rounded-lg flex items-center justify-center shrink-0">
+                               <Clock size={20}/>
+                           </div>
+                           <div>
+                               <p className="text-xl font-black text-zinc-600">{dormantAndLowStockStats.dormantCount}</p>
+                               <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">0 Vente (30j)</p>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6">
                <div>
                   <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Package className="text-[#39FF14]"/> Gestion des Commandes</h3>
                   <p className="text-xs text-zinc-500 font-bold mt-1">Gérez vos expéditions et statuts</p>
