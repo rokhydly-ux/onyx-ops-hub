@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper, User, LogOut, Settings, List, LayoutGrid, ChevronUp, Phone, MapPin } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const spaceGrotesk = { className: "font-sans" };
