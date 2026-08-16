@@ -4,6 +4,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AdminFitnessView from "@/components/admin/AdminFitnessView";
+import OrdersRevenueWidget from "@/components/admin/OrdersRevenueWidget";
+import OrdersMonthModal from "@/components/admin/OrdersMonthModal";
+
 import { supabase } from "@/lib/supabaseClient";
 import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper, User, LogOut, Settings, List, LayoutGrid, ChevronUp, Phone, MapPin } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -1532,7 +1535,6 @@ export default function AdminNutritionAfricaine() {
               alert("Erreur lors de l'upload du PDF.");
           }
       } else {
-          doc.save(`Rapport_Nutrition_${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
       }
       
       setShowReportModal(null);
@@ -1604,142 +1606,8 @@ export default function AdminNutritionAfricaine() {
 
 
 
-  async function downloadReceiptPDF(order: any, e: any) {
-      e.stopPropagation();
-      const { jsPDF } = await import("jspdf");
-      const { default: autoTable } = await import("jspdf-autotable");
-
-      const doc = new jsPDF();
 
 
-      // En-tête
-      doc.setFontSize(20);
-      doc.setFont("helvetica", "bold");
-      doc.text("ONYX HUB", 105, 20, { align: "center" });
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text("Reçu de commande", 105, 28, { align: "center" });
-
-      // Infos commande
-      doc.setFontSize(11);
-      doc.text(`Date: ${new Date(order.created_at).toLocaleDateString('fr-FR')} ${new Date(order.created_at).toLocaleTimeString('fr-FR')}`, 20, 45);
-      doc.text(`Commande N°: ${order.id.slice(0, 8)}`, 20, 52);
-
-      // Infos client
-      doc.setFont("helvetica", "bold");
-      doc.text("Client:", 20, 65);
-      doc.setFont("helvetica", "normal");
-      doc.text(order.client_name || "N/A", 40, 65);
-      doc.text(order.client_phone || "N/A", 40, 72);
-
-      const addr = order.delivery_address || order.address || "Adresse non renseignée";
-      const addrLines = doc.splitTextToSize(addr, 100);
-      doc.text("Adresse:", 20, 79);
-      doc.text(addrLines, 40, 79);
-
-      let items = [];
-      if (order.items) {
-          if (typeof order.items === 'string') {
-              try { items = JSON.parse(order.items); } catch(e) {}
-          } else {
-              items = order.items;
-          }
-      }
-
-      const tableData = items.map((item: any) => [
-          item.name || item.produit_id || 'Produit',
-          item.quantity || item.qty || 1,
-          `${item.price || item.prix || 0} F`,
-          `${(item.quantity || item.qty || 1) * (item.price || item.prix || 0)} F`
-      ]);
-
-      let startY = 85 + (addrLines.length * 5);
-
-      autoTable(doc, {
-          startY: startY,
-          head: [['Produit', 'Qté', 'Prix U.', 'Total']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [57, 255, 20], textColor: [0, 0, 0] },
-          styles: { font: "helvetica" }
-      });
-
-      const finalY = (doc as any).lastAutoTable.finalY || startY + 20;
-
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text(`TOTAL: ${order.total?.toLocaleString() || 0} F`, 190, finalY + 15, { align: "right" });
-
-      // Pied de page
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.text("Merci de votre confiance !", 105, 280, { align: "center" });
-
-      doc.save(`Recu_Commande_${order.id.slice(0, 8)}.pdf`);
-  };
-
-  const caStats = React.useMemo(() => {
-      const now = new Date();
-      let startDate: Date;
-      let endDate: Date;
-      let prevStartDate: Date | null = null;
-      let prevEndDate: Date | null = null;
-
-      if (caFilterMode === 'current_month') {
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-          prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          prevEndDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-      } else if (caFilterMode === 'last_month') {
-          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-          prevStartDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-          prevEndDate = new Date(now.getFullYear(), now.getMonth() - 1, 0, 23, 59, 59);
-      } else {
-          startDate = caCustomStartDate ? new Date(caCustomStartDate) : new Date(0);
-          endDate = caCustomEndDate ? new Date(caCustomEndDate) : now;
-          if (caCustomEndDate) { endDate.setHours(23, 59, 59, 999); }
-      }
-
-      const filteredOrders = orders.filter(o => {
-          const date = new Date(o.created_at);
-          return date >= startDate && date <= endDate;
-      });
-
-      const prevOrders = prevStartDate && prevEndDate ? orders.filter(o => {
-          const date = new Date(o.created_at);
-          return date >= prevStartDate! && date <= prevEndDate!;
-      }) : [];
-
-      const revenue = filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-      const aov = filteredOrders.length > 0 ? Math.round(revenue / filteredOrders.length) : 0;
-
-      const prevRevenue = prevOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-      const prevAov = prevOrders.length > 0 ? Math.round(prevRevenue / prevOrders.length) : 0;
-
-      let revenueTrend = null;
-      let aovTrend = null;
-
-      if (caFilterMode !== 'custom' && prevStartDate) {
-          if (prevRevenue > 0) {
-              revenueTrend = ((revenue - prevRevenue) / prevRevenue) * 100;
-          }
-          if (prevAov > 0) {
-              aovTrend = ((aov - prevAov) / prevAov) * 100;
-          }
-      }
-
-      return {
-          filteredOrders,
-          revenue,
-          aov,
-          revenueTrend,
-          aovTrend,
-          prevRevenue,
-          prevAov
-      };
-  }, [orders, caFilterMode, caCustomStartDate, caCustomEndDate]);
 
 
   const salesStats = React.useMemo(() => {
@@ -1761,11 +1629,6 @@ export default function AdminNutritionAfricaine() {
   }, [orders, products]);
 
     const [showOrdersWidgetModal, setShowOrdersWidgetModal] = useState<'ca' | 'alertes' | null>(null);
-  const [caFilterMode, setCaFilterMode] = useState<'current_month' | 'last_month' | 'custom'>('current_month');
-  const [caCustomStartDate, setCaCustomStartDate] = useState('');
-  const [caCustomEndDate, setCaCustomEndDate] = useState('');
-  const [showCaFilterDropdown, setShowCaFilterDropdown] = useState(false);
-  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
 
   const dormantAndLowStockStats = React.useMemo(() => {
@@ -1810,7 +1673,7 @@ export default function AdminNutritionAfricaine() {
 
         <div className="flex items-center gap-6">
           {/* Mode Expert Switch */}
-          <button onClick={() => setIsExpertMode(!isExpertMode)} className={`flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors ${isExpertMode ? 'text-[#39FF14] border-[#39FF14]' : 'text-zinc-400 border-zinc-800 hover:text-white'}`}>
+          <button onClick={() => setIsExpertMode(!isExpertMode)} className={isExpertMode ? "flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors text-[#39FF14] border-[#39FF14]" : "flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors text-zinc-400 border-zinc-800 hover:text-white"}>
             <Eye size={16}/>
             <span className="hidden sm:block">Kcal (Mode Expert)</span>
           </button>
@@ -2754,60 +2617,7 @@ export default function AdminNutritionAfricaine() {
            {/* 3 NOUVEAUX WIDGETS D'ANALYSE */}
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {/* Widget CA & Panier Moyen */}
-               <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between hover:border-[#39FF14] hover:shadow-xl transition-all relative">
-                   <div className="flex justify-between items-start mb-4">
-                       <h3 onClick={() => setShowOrdersWidgetModal('ca')} className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2 cursor-pointer group hover:text-[#39FF14] transition-colors"><Activity size={16} className="text-[#39FF14]"/> CA & Panier <div className="bg-zinc-50 group-hover:bg-[#39FF14] group-hover:text-black p-1 rounded-full transition-colors text-zinc-400 ml-1"><ChevronRight size={14}/></div></h3>
-
-                       <div className="relative">
-                           <button onClick={(e) => {e.stopPropagation(); setShowCaFilterDropdown(!showCaFilterDropdown);}} className="text-[10px] font-bold uppercase tracking-widest bg-zinc-100 px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-zinc-200 transition-colors">
-                               {caFilterMode === 'current_month' ? 'Ce mois-ci' : caFilterMode === 'last_month' ? 'Mois précédent' : 'Personnalisé'} <ChevronDown size={12}/>
-                           </button>
-                           {showCaFilterDropdown && (
-                               <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-20 overflow-hidden">
-                                   <div className="p-1 space-y-1">
-                                       <button onClick={() => {setCaFilterMode('current_month'); setShowCaFilterDropdown(false);}} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-colors ${caFilterMode === 'current_month' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-600'}`}>Ce mois-ci</button>
-                                       <button onClick={() => {setCaFilterMode('last_month'); setShowCaFilterDropdown(false);}} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-colors ${caFilterMode === 'last_month' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-600'}`}>Mois précédent</button>
-                                       <button onClick={() => {setCaFilterMode('custom'); setShowCaFilterDropdown(false);}} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-colors ${caFilterMode === 'custom' ? 'bg-[#39FF14]/10 text-black' : 'hover:bg-zinc-50 text-zinc-600'}`}>Période personnalisée</button>
-                                   </div>
-                               </div>
-                           )}
-                       </div>
-                   </div>
-
-                   {caFilterMode === 'custom' && (
-                       <div className="flex gap-2 mb-4">
-                           <input type="date" value={caCustomStartDate} onChange={(e) => setCaCustomStartDate(e.target.value)} className="w-1/2 p-2 text-[10px] border border-zinc-200 rounded-lg bg-zinc-50 focus:outline-none focus:border-[#39FF14]" />
-                           <input type="date" value={caCustomEndDate} onChange={(e) => setCaCustomEndDate(e.target.value)} className="w-1/2 p-2 text-[10px] border border-zinc-200 rounded-lg bg-zinc-50 focus:outline-none focus:border-[#39FF14]" />
-                       </div>
-                   )}
-
-                   <div className="space-y-4">
-                       <div onClick={() => setShowOrdersWidgetModal('ca')} className="cursor-pointer">
-                           <div className="flex justify-between items-end">
-                               <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Chiffre d'affaires</p>
-                               {caStats.revenueTrend !== null && (
-                                   <div className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${caStats.revenueTrend > 0 ? 'bg-green-100 text-green-700' : caStats.revenueTrend < 0 ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'}`}>
-                                       {caStats.revenueTrend > 0 ? <TrendingUp size={10}/> : caStats.revenueTrend < 0 ? <TrendingUp size={10} className="transform rotate-180"/> : <Minus size={10}/>}
-                                       {Math.abs(caStats.revenueTrend).toFixed(1)}%
-                                   </div>
-                               )}
-                           </div>
-                           <p className="text-3xl font-black text-black">{caStats.revenue.toLocaleString()} <span className="text-lg text-[#39FF14]">F</span></p>
-                       </div>
-                       <div onClick={() => setShowOrdersWidgetModal('ca')} className="pt-4 border-t border-zinc-100 cursor-pointer">
-                           <div className="flex justify-between items-end">
-                               <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Panier Moyen</p>
-                               {caStats.aovTrend !== null && (
-                                   <div className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${caStats.aovTrend > 0 ? 'bg-green-100 text-green-700' : caStats.aovTrend < 0 ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'}`}>
-                                       {caStats.aovTrend > 0 ? <TrendingUp size={10}/> : caStats.aovTrend < 0 ? <TrendingUp size={10} className="transform rotate-180"/> : <Minus size={10}/>}
-                                       {Math.abs(caStats.aovTrend).toFixed(1)}%
-                                   </div>
-                               )}
-                           </div>
-                           <p className="text-xl font-black text-black">{caStats.aov.toLocaleString()} F</p>
-                       </div>
-                   </div>
-               </div>
+               <OrdersRevenueWidget orders={orders} setShowOrdersWidgetModal={setShowOrdersWidgetModal} />
 
                {/* Widget Top Ventes */}
                <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
@@ -3817,85 +3627,7 @@ export default function AdminNutritionAfricaine() {
       )}
 
       {/* MODALES WIDGETS COMMANDES */}
-      {showOrdersWidgetModal === 'ca' && (
-         <div id="ca-modal-overlay" onClick={(e: any) => e.target.id === 'ca-modal-overlay' && setShowOrdersWidgetModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black max-h-[90vh] overflow-y-auto custom-scrollbar">
-               <button onClick={() => setShowOrdersWidgetModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
-               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}><Activity className="text-[#39FF14]"/> Commandes du Mois</h2>
-               <p className="text-zinc-500 font-bold text-xs mb-6">Liste détaillée des commandes de ce mois-ci.</p>
-
-               <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                     <thead className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                        <tr>
-                           <th className="p-4">Date</th>
-                           <th className="p-4">Client</th>
-                           <th className="p-4">Statut</th>
-                           <th className="p-4 text-right">Montant</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-zinc-50">
-                        {[...caStats.filteredOrders].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(o => (
-                           <React.Fragment key={o.id}>
-                               <tr onClick={() => setExpandedOrderId(expandedOrderId === o.id ? null : o.id)} className="hover:bg-zinc-50 transition-colors cursor-pointer">
-                                  <td className="p-4 text-xs font-bold text-zinc-500 flex items-center gap-2">
-                                      {expandedOrderId === o.id ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
-                                      {new Date(o.created_at).toLocaleDateString('fr-FR')}
-                                  </td>
-                                  <td className="p-4 font-bold text-sm text-black">{o.client_name}</td>
-                                  <td className="p-4"><span className="px-2 py-1 rounded bg-zinc-100 text-zinc-500 text-[10px] font-black uppercase">{o.status}</span></td>
-                                  <td className="p-4 text-right">
-                                      <div className="flex items-center justify-end gap-3">
-                                          <span className="font-black text-[#39FF14]">{o.total?.toLocaleString()} F</span>
-                                          <button onClick={(e) => downloadReceiptPDF(o, e)} className="p-1.5 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-black hover:text-[#39FF14] transition-colors" title="Télécharger le reçu">
-                                              <Download size={14} />
-                                          </button>
-                                      </div>
-                                  </td>
-                               </tr>
-                               {expandedOrderId === o.id && (
-                                   <tr className="bg-zinc-50/50">
-                                       <td colSpan={4} className="p-4">
-                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                               <div>
-                                                   <h4 className="text-[10px] font-black uppercase text-zinc-500 mb-2 tracking-widest flex items-center gap-1"><User size={12}/> Client</h4>
-                                                   <p className="text-sm font-bold text-black mb-1">{o.client_name}</p>
-                                                   <p className="text-xs text-zinc-600 mb-1 flex items-center gap-1"><Phone size={12}/> {o.client_phone || 'Non renseigné'}</p>
-                                                   <p className="text-xs text-zinc-600 flex items-center gap-1"><MapPin size={12}/> {o.delivery_address || o.address || 'Non renseignée'}</p>
-                                               </div>
-                                               <div>
-                                                   <h4 className="text-[10px] font-black uppercase text-zinc-500 mb-2 tracking-widest flex items-center gap-1"><Package size={12}/> Produits</h4>
-                                                   <ul className="space-y-1">
-                                                       {(() => {
-                                                           let items = [];
-                                                           if (o.items) {
-                                                               if (typeof o.items === 'string') {
-                                                                   try { items = JSON.parse(o.items); } catch(e) {}
-                                                               } else {
-                                                                   items = o.items;
-                                                               }
-                                                           }
-                                                           return items.map((item: any, idx: number) => (
-                                                               <li key={idx} className="text-xs text-black flex justify-between border-b border-zinc-200/50 pb-1 last:border-0">
-                                                                   <span><span className="font-bold">{item.quantity || item.qty || 1}x</span> {item.name || item.produit_id || 'Produit'}</span>
-                                                                   <span className="font-bold">{((item.quantity || item.qty || 1) * (item.price || item.prix || 0)).toLocaleString()} F</span>
-                                                               </li>
-                                                           ));
-                                                       })()}
-                                                   </ul>
-                                               </div>
-                                           </div>
-                                       </td>
-                                   </tr>
-                               )}
-                           </React.Fragment>
-                        ))}
-                     </tbody>
-                  </table>
-               </div>
-            </div>
-         </div>
-      )}
+      {showOrdersWidgetModal === 'ca' && <OrdersMonthModal orders={orders} setShowOrdersWidgetModal={setShowOrdersWidgetModal} />}
 
       {showOrdersWidgetModal === 'alertes' && (
          <div id="alertes-modal-overlay" onClick={(e: any) => e.target.id === 'alertes-modal-overlay' && setShowOrdersWidgetModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
