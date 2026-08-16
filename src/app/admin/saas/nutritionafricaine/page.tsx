@@ -171,7 +171,7 @@ export default function AdminNutritionAfricaine() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isEcommerceMenuOpen, setIsEcommerceMenuOpen] = useState(false);
 
-  const handleLogout = () => {
+  function handleLogout() {
     router.push('/login');
   };
 
@@ -303,7 +303,7 @@ export default function AdminNutritionAfricaine() {
     return true;
   });
 
-  const handleOpenClientModal = (profile: any) => {
+  function handleOpenClientModal(profile: any) {
     setEditingClient(profile);
     setClientForm({
         id: profile.id,
@@ -381,7 +381,7 @@ export default function AdminNutritionAfricaine() {
       } else alert(error.message);
   };
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -551,7 +551,7 @@ export default function AdminNutritionAfricaine() {
       }
   };
 
-  const handleAIGenerateRecipe = () => {
+  function handleAIGenerateRecipe() {
       const intent = prompt("Quel est l'objectif ou l'ingrédient principal de cette recette ?\n(Ex: Diabète, Ventre plat, Sport, Poulet, Petit-déjeuner...)");
       if (intent === null) return;
       
@@ -737,7 +737,7 @@ export default function AdminNutritionAfricaine() {
       }
   };
 
-  const handleOpenRecipeModal = (recipe?: any) => {
+  function handleOpenRecipeModal(recipe?: any) {
      if (recipe) {
          setEditingRecipe(recipe);
          setRecipeForm({ ...recipe, preparation_time: recipe.preparation_time || 15, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '', price_cfa: recipe.price_cfa || 0, budget_tier: recipe.budget_tier || 'Famille 15k' });
@@ -748,7 +748,7 @@ export default function AdminNutritionAfricaine() {
      setShowRecipeModal(true);
   };
 
-  const handleDuplicateRecipe = (recipe: any) => {
+  function handleDuplicateRecipe(recipe: any) {
      const duplicated = { 
          ...recipe, 
          id: '', 
@@ -841,7 +841,7 @@ export default function AdminNutritionAfricaine() {
       } catch(e: any) { alert("Erreur lors de la suppression: " + e.message); }
   };
 
-  const handleRelanceInactifs = () => {
+  function handleRelanceInactifs() {
       const inactifs = clients.filter(c => {
          const todayLog = c.logs?.find((l: any) => l.log_date === todayStr);
          return !todayLog;
@@ -862,14 +862,14 @@ export default function AdminNutritionAfricaine() {
       }
   };
 
-  const downloadFoodCsvTemplate = () => {
+  function downloadFoodCsvTemplate() {
       const csv = "nom;categorie;portion_standard_nom;portion_standard_grammes;calories;proteines;glucides;lipides;fibres;message_coach_ia\nFonio;Céréales locales;100g;100;350;8;75;1;3;Excellent choix à index glycémique bas.";
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'Modele_Aliments_Vierge.csv'; a.click();
   };
 
-  const handleImportFoodCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleImportFoodCSV(e: React.ChangeEvent<HTMLInputElement>) {
       const file = e.target.files?.[0];
       if (!file) return;
       setLoading(true);
@@ -920,7 +920,7 @@ export default function AdminNutritionAfricaine() {
       });
   };
 
-  const handleImportProductCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleImportProductCSV(e: React.ChangeEvent<HTMLInputElement>) {
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -1108,7 +1108,7 @@ export default function AdminNutritionAfricaine() {
       }
   };
 
-  const handleOpenProductModal = (prod?: any) => {
+  function handleOpenProductModal(prod?: any) {
      if (prod) {
          setEditingProduct(prod);
          setProductForm({ ...prod, gallery: prod.gallery || [], video_url: prod.video_url || '' });
@@ -1119,7 +1119,7 @@ export default function AdminNutritionAfricaine() {
      setShowProductModal(true);
   };
 
-  const handleOpenFoodModal = (food?: any) => {
+  function handleOpenFoodModal(food?: any) {
       if (food) {
           setEditingFood(food);
           setFoodFormState({
@@ -1235,7 +1235,7 @@ export default function AdminNutritionAfricaine() {
       setProducts(products.filter(p => p.id !== id));
   };
 
-  const handleOpenPromoModal = (promo?: any) => {
+  function handleOpenPromoModal(promo?: any) {
       if (promo) {
           setEditingPromo(promo);
           setPromoForm({ ...promo, expiration_date: promo.expiration_date ? promo.expiration_date.split('T')[0] : '' });
@@ -1246,14 +1246,14 @@ export default function AdminNutritionAfricaine() {
       setShowPromoModal(true);
   };
 
-  const downloadProductCsvTemplate = () => {
+  function downloadProductCsvTemplate() {
       const csv = "nom;categorie_nom;prix_standard;prix_premium;stock;description_courte;description_longue;image_url;badge;goal\nFonio Premium;Super-Aliments;2500;2100;100;Fonio précuit;Description complète;https://...;Best Seller;cooking";
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'Modele_Produits_Vierge.csv'; a.click();
   };
 
-  const downloadRecipeCsvTemplate = () => {
+  function downloadRecipeCsvTemplate() {
       const csv = "nom;type;calories;proteines;glucides;lipides;preparation_time;is_bol_commun;etapes_cuisson;bienfaits;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;45;oui;Cuire le riz...;Riche en oméga-3;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1345,7 +1345,7 @@ export default function AdminNutritionAfricaine() {
       }
   };
 
-  const handleEditChallenge = (challenge: any) => {
+  function handleEditChallenge(challenge: any) {
       setChallengeForm(challenge);
       setIsEditingChallenge(true);
   };
@@ -1375,7 +1375,7 @@ export default function AdminNutritionAfricaine() {
       setShowVitrineModal(false);
   };
 
-  const getGroceryListForAdmin = (profile: any) => {
+  function getGroceryListForAdmin(profile: any) {
       const list: any = { 'Supermarché': {}, 'Marché local': {}, 'Boucherie / Pêche': {} };
       const weeklyMenu = Array.isArray(profile.weekly_menu) ? profile.weekly_menu : [];
       weeklyMenu.forEach((dayInfo: any) => {
@@ -1446,7 +1446,7 @@ export default function AdminNutritionAfricaine() {
   }, [foods, foodSearch, foodBudgetFilter, foodHealthFilter, foodUsageCounts]);
 
 
-  const generateClientReportPDF = async (profile: any, sendWhatsApp: boolean = false) => {
+  async function generateClientReportPDF(profile: any, sendWhatsApp: boolean = false) {
       const { jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
       const doc = new jsPDF();
@@ -1540,7 +1540,7 @@ export default function AdminNutritionAfricaine() {
   };
 
 
-  const downloadGroceryListPDFAdmin = async () => {
+  async function downloadGroceryListPDFAdmin() {
       if (!showGroceryModal) return;
       const { jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
@@ -1604,7 +1604,7 @@ export default function AdminNutritionAfricaine() {
 
 
 
-  const downloadReceiptPDF = async (order: any, e: any) => {
+  async function downloadReceiptPDF(order: any, e: any) {
       e.stopPropagation();
       const { jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
