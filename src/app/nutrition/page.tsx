@@ -1,5 +1,5 @@
 "use client";
-import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf , Users, MapPin} from 'lucide-react';
+import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf , Users} from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 
@@ -364,15 +364,6 @@ const getEmbedUrl = (url: string) => {
   return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
 };
 
-const DELIVERY_ZONES: Record<string, number> = {
-  'Plateau': 1500, 'Médina': 1500, 'Fann': 1500, 'Point E': 1500, 'Amitié': 1500, 'Mermoz': 1500, 'Sacré-Cœur': 1500, 'Liberté': 1500, 'Dieuppeul': 1500, 'Fass': 1500, 'Colobane': 1500, 'Grand Dakar': 1500,
-  'Ouakam': 2000, 'Ngor': 2000, 'Almadies': 2000, 'Yoff': 2000, 'Grand Yoff': 2000, 'Maristes': 2000, 'Parcelles Assainies': 2000, 'Patte d\'Oie': 2000, 'Pikine': 2000, 'Guédiawaye': 2000, 'Cambérène': 2000, 'Thiaroye': 2000, 'Dalifort': 2000,
-  'Mbao': 3000, 'Yeumbeul': 3000, 'Keur Massar': 3000, 'Rufisque': 3000, 'Tivaouane Peulh': 3000, 'Malika': 3000,
-  'Diamniadio': 5000, 'Sangalkam': 5000, 'Lac Rose': 5000, 'Sebikotane': 5000
-};
-
-const QUARTIERS = Object.keys(DELIVERY_ZONES);
-
 export default function NutritionDashboard() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -655,11 +646,6 @@ export default function NutritionDashboard() {
   const [productMediaView, setProductMediaView] = useState<'image' | 'video'>('image');
   const [productActiveImage, setProductActiveImage] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [deliveryZone, setDeliveryZone] = useState('');
-  const [deliveryCost, setDeliveryCost] = useState(0);
-  const [showZoneSuggestions, setShowZoneSuggestions] = useState(false);
-  const [deliveryNotes, setDeliveryNotes] = useState('');
-  const [isEditingAddress, setIsEditingAddress] = useState(true);
   const [clientOrders, setClientOrders] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
   const [showCartModal, setShowCartModal] = useState(false);
@@ -1136,24 +1122,10 @@ export default function NutritionDashboard() {
               setExcludedIngredients(nutritionData.excluded_ingredients || []);
           }
 
-          if (activeProfile.address) {
-            setDeliveryAddress(activeProfile.address);
-            setIsEditingAddress(false);
-          }
+          if (activeProfile.address) setDeliveryAddress(activeProfile.address);
 
           // Fetch des commandes du client
           const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
-
-          if (ordersData && ordersData.length > 0) {
-            // Find the most recent order with a delivery zone
-            const lastOrderWithZone = ordersData.find((o: any) => o.delivery_zone);
-            if (lastOrderWithZone) {
-                setDeliveryZone(lastOrderWithZone.delivery_zone);
-                if (DELIVERY_ZONES[lastOrderWithZone.delivery_zone]) {
-                    setDeliveryCost(DELIVERY_ZONES[lastOrderWithZone.delivery_zone]);
-                }
-            }
-          }
           if (ordersData) setClientOrders(ordersData);
           } // Fin if (activeProfile.id)
 
@@ -3289,8 +3261,8 @@ const currentHour = new Date().getHours();
 
   const handleShopCheckout = async () => {
     if (shopCart.length === 0) return alert("Votre panier est vide.");
-    if (!deliveryAddress.trim() || !deliveryZone.trim()) {
-        alert("Veuillez renseigner votre quartier et votre adresse de livraison dans le panier avant de commander.");
+    if (!deliveryAddress.trim()) {
+        alert("Veuillez renseigner votre adresse de livraison dans le panier avant de commander.");
         setShowCartModal(true);
         return;
     }
@@ -3300,12 +3272,7 @@ const currentHour = new Date().getHours();
 
     const originalTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
     const discountAmount = Math.round(originalTotal * (discountPct / 100));
-
-    // Logique de livraison intelligente
-    const baseTotal = Math.round(originalTotal * discountMultiplier);
-    const effectiveDeliveryCost = baseTotal >= 30000 ? Math.max(0, deliveryCost - 1500) : deliveryCost;
-    const finalTotalAmount = baseTotal + effectiveDeliveryCost;
-
+    const total = Math.round(originalTotal * discountMultiplier);
     const cartText = shopCart.map(item => `- ${item.quantity}x ${item.nom} (${((item.finalPrice || item.prix_premium || item.prix_standard || 0) * item.quantity).toLocaleString()} F)`).join('\n');
 
     // Sauvegarde en DB
@@ -3317,13 +3284,11 @@ const currentHour = new Date().getHours();
           client_name: user?.full_name || 'Inconnu',
           phone: clientProfile.phone || '',
           items: shopCart.map(p => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
-          total_amount: finalTotalAmount,
+          total: total,
           status: 'Nouveau',
           promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
           discount_amount: discountAmount,
-          delivery_address: deliveryAddress,
-          delivery_zone: deliveryZone,
-          delivery_notes: deliveryNotes
+          address: deliveryAddress
        }).select();
 
        if (error) {
@@ -3332,21 +3297,14 @@ const currentHour = new Date().getHours();
        } else if (data && data.length > 0) {
            setClientOrders([data[0], ...clientOrders]);
            await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
-           setClientProfile({...clientProfile, address: deliveryAddress});
        }
     }
 
-    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Sous-Total : ${baseTotal} F*\n`;
+    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
     if (isShopPromoApplied && appliedPromoData) {
-       msg += ` *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
+       msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
-    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}`;
-    if (deliveryNotes) msg += `\n*Notes de livraison :* ${deliveryNotes}`;
-    msg += `\n*Frais de livraison :* ${effectiveDeliveryCost} F`;
-    if (baseTotal >= 30000 && deliveryCost > 0) {
-      msg += ` (Réduction de 1500 F appliquée)`;
-    }
-    msg += `\n\n*TOTAL À PAYER : ${finalTotalAmount} F*\n`;
+    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}\n*Frais de livraison :* ${deliveryCost} F`;
 
     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
     setShopCart([]);
@@ -7572,11 +7530,11 @@ const currentHour = new Date().getHours();
                      </div>
                   </div>
 
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                      {remainingForFreeShipping > 0 ? (
-                         <p className="text-xs font-bold text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14] font-black">{remainingForFreeShipping.toLocaleString()} F</span> pour la livraison gratuite !</p>
+                         <p className="text-sm font-black uppercase tracking-widest text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14]">{remainingForFreeShipping.toLocaleString()} FCFA</span> pour la livraison gratuite !</p>
                      ) : (
-                         <p className="text-xs font-bold text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={14}/> Livraison gratuite débloquée !</p>
+                         <p className="text-sm font-black uppercase tracking-widest text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={16}/> Livraison gratuite débloquée !</p>
                      )}
                      <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
                          <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
@@ -7637,92 +7595,41 @@ const currentHour = new Date().getHours();
 
                   {shopCart.length > 0 && (
                      <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-
-                        {!isEditingAddress && deliveryAddress ? (
-                            <div className="mb-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 relative">
-                                <div className="flex justify-between items-start mb-2">
-                                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-1">
-                                        <MapPin size={12}/> Adresse de Livraison
-                                    </label>
-                                    <button onClick={() => setIsEditingAddress(true)} className="text-[10px] font-bold text-[#39FF14] uppercase tracking-widest hover:underline">
-                                        Modifier
-                                    </button>
-                                </div>
-                                <p className="text-sm font-bold text-black dark:text-white">{deliveryZone}</p>
-                                <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{deliveryAddress}</p>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="mb-4 relative z-50">
-                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Quartier (Dakar)</label>
-                                <input type="text" placeholder="Saisissez votre quartier (ex: Mermoz)..." value={deliveryZone} onChange={e => {
-                                    setDeliveryZone(e.target.value);
-                                    setShowZoneSuggestions(e.target.value.length >= 2);
-                                    if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
-                                }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
-                                {showZoneSuggestions && deliveryZone.length >= 2 && (
-                                    <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-                                        {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
-                                            <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
-                                                <span>{q}</span>
-                                                <span className="text-[#39FF14]">{DELIVERY_ZONES[q]} F</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                </div>
-                                <div className="mb-4">
-                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse Complète</label>
-                                <input type="text" placeholder="Ex: Cité Keur Gorgui, Immeuble Y, Appt 4..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
-                                </div>
-
-                                {deliveryAddress && deliveryZone && QUARTIERS.includes(deliveryZone) && (
-                                    <button onClick={() => setIsEditingAddress(false)} className="w-full mb-4 bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white py-2 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors">
-                                        Valider l'adresse
-                                    </button>
-                                )}
-                            </>
-                        )}
-
-                        <div className="mb-6">
-                            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Infos complémentaires (facultatif)</label>
-                            <textarea placeholder="Digicode, numéro d'appartement, indications pour le livreur..." value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                        <div className="mb-4 relative z-50">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Quartier (Dakar)</label>
+                           <input type="text" placeholder="Saisissez votre quartier (ex: Mermoz)..." value={deliveryZone} onChange={e => {
+                               setDeliveryZone(e.target.value);
+                               setShowZoneSuggestions(e.target.value.length >= 2);
+                               if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
+                           }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                           {showZoneSuggestions && deliveryZone.length >= 2 && (
+                               <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                                   {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
+                                       <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
+                                          <span>{q}</span>
+                                          <span className="text-[#39FF14]">{DELIVERY_ZONES[q]} F</span>
+                                       </div>
+                                   ))}
+                               </div>
+                           )}
                         </div>
-
-                        {(() => {
-                            const originalTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
-                            const discountMultiplier = isShopPromoApplied && appliedPromoData ? (1 - appliedPromoData.discount_pct / 100) : 1;
-                            const baseTotal = Math.round(originalTotal * discountMultiplier);
-                            const effectiveDeliveryCost = baseTotal >= 30000 ? Math.max(0, deliveryCost - 1500) : deliveryCost;
-                            const finalTotalAmount = baseTotal + effectiveDeliveryCost;
-                            return (
-                                <>
-                                    <div className="flex justify-between items-center mb-4 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Frais de livraison</span>
-                                        <div className="text-right">
-                                            {baseTotal >= 30000 && deliveryCost > 0 ? (
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] text-zinc-400 line-through">{deliveryCost.toLocaleString()} F</span>
-                                                    <span className="text-xs font-black text-[#39FF14]">+{effectiveDeliveryCost.toLocaleString()} F</span>
-                                                    <span className="text-[9px] text-[#39FF14] font-bold bg-[#39FF14]/10 px-1.5 py-0.5 rounded mt-0.5">-1500F Offerts</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs font-black text-black dark:text-white">{deliveryCost > 0 ? `+${deliveryCost.toLocaleString()} F` : 'À déterminer'}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center mb-6">
-                                    <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total à payer</span>
-                                    <div className="text-right">
-                                        {isShopPromoApplied && <span className="text-xs line-through text-zinc-400 block">{(originalTotal + effectiveDeliveryCost).toLocaleString()} F</span>}
-                                        <span className="font-black text-2xl text-black dark:text-white">
-                                            {finalTotalAmount.toLocaleString()} <span className="text-[#39FF14]">F</span>
-                                        </span>
-                                    </div>
-                                    </div>
-                                </>
-                            );
-                        })()}
+                        <div className="mb-4">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse Complète</label>
+                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Immeuble Y, Appt 4..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                        </div>
+                        <div className="flex justify-between items-center mb-4 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Frais de livraison</span>
+                            <span className="text-xs font-black text-black dark:text-white">{deliveryCost > 0 ? `+${deliveryCost.toLocaleString()} F` : 'À déterminer'}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-6">
+                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total à payer</span>
+                           <div className="text-right">
+                               {isShopPromoApplied && <span className="text-xs line-through text-zinc-400 block">{(shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) + deliveryCost).toLocaleString()} F</span>}
+                               <span className="font-black text-2xl text-black dark:text-white">
+                                  {((shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) * (isShopPromoApplied && appliedPromoData ? (1 - appliedPromoData.discount_pct / 100) : 1)) + deliveryCost).toLocaleString()} <span className="text-[#39FF14]">F</span>
+                               </span>
+                           </div>
+                        </div>
                         <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
                            <ShoppingCart size={16}/> Commander via WhatsApp
                         </button>
