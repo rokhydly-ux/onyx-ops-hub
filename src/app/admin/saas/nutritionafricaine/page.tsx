@@ -109,6 +109,9 @@ export default function AdminNutritionAfricaine() {
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersViewMode, setOrdersViewMode] = useState<'table' | 'grid'>('table');
   const [ordersSortDesc, setOrdersSortDesc] = useState(true);
+  const [ordersSearchTerm, setOrdersSearchTerm] = useState("");
+  const [ordersStartDate, setOrdersStartDate] = useState("");
+  const [ordersEndDate, setOrdersEndDate] = useState("");
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -123,7 +126,7 @@ export default function AdminNutritionAfricaine() {
   const [promos, setPromos] = useState<any[]>([]);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
-  const [promoForm, setPromoForm] = useState({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true });
+  const [promoForm, setPromoForm] = useState({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true, expiration_date: '' });
 
   const [pendingProductCsvFile, setPendingProductCsvFile] = useState<any>(null);
   const [isImportingProductCsv, setIsImportingProductCsv] = useState(false);
@@ -1234,10 +1237,10 @@ export default function AdminNutritionAfricaine() {
   const handleOpenPromoModal = (promo?: any) => {
       if (promo) {
           setEditingPromo(promo);
-          setPromoForm({ ...promo });
+          setPromoForm({ ...promo, expiration_date: promo.expiration_date ? promo.expiration_date.split('T')[0] : '' });
       } else {
           setEditingPromo(null);
-          setPromoForm({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true });
+          setPromoForm({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true, expiration_date: '' });
       }
       setShowPromoModal(true);
   };
@@ -1260,8 +1263,8 @@ export default function AdminNutritionAfricaine() {
       e.preventDefault();
       const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
       delete payload.id;
-      delete (payload as any).tenant_id;
-      if (tenantId) (payload as any).tenant_id = tenantId;
+      delete (payload as any).tenant_id; // FIX SQL BUG: Enforce tenant_id removal
+
       let res;
       if (editingPromo) res = await supabase.from('nutrition_promo_codes').update(payload).eq('id', promoForm.id).select().single();
       else res = await supabase.from('nutrition_promo_codes').insert([payload]).select().single();
@@ -1578,6 +1581,8 @@ export default function AdminNutritionAfricaine() {
       if (shopSort === "old") return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
       if (shopSort === "views") return (b.views || 0) - (a.views || 0);
       if (shopSort === "rating") return (b.rating || 0) - (a.rating || 0);
+      if (shopSort === "stock_asc") return (a.stock || 0) - (b.stock || 0);
+      if (shopSort === "stock_desc") return (b.stock || 0) - (a.stock || 0);
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(); // recent default
   });
 
@@ -1620,8 +1625,10 @@ export default function AdminNutritionAfricaine() {
       return Object.values(stats).sort((a,b) => b.qty - a.qty).slice(0, 3);
   }, [orders, products]);
 
+  const [showOrdersWidgetModal, setShowOrdersWidgetModal] = useState<'ca' | 'alertes' | null>(null);
+
   const dormantAndLowStockStats = React.useMemo(() => {
-      const lowStockCount = products.filter(p => p.stock < 5).length;
+      const lowStockProducts = products.filter(p => p.stock < 5);
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -1635,9 +1642,9 @@ export default function AdminNutritionAfricaine() {
           });
       });
 
-      const dormantCount = products.filter(p => !productsSoldLast30Days.has(p.id)).length;
+      const dormantProducts = products.filter(p => !productsSoldLast30Days.has(p.id));
 
-      return { lowStockCount, dormantCount };
+      return { lowStockCount: lowStockProducts.length, dormantCount: dormantProducts.length, lowStockProducts, dormantProducts };
   }, [products, orders]);
 
 
@@ -2464,6 +2471,8 @@ export default function AdminNutritionAfricaine() {
                  <option value="old">Plus anciens</option>
                  <option value="views">Plus consultés</option>
                  <option value="rating">Mieux notés</option>
+                 <option value="stock_asc">Stock (Croissant)</option>
+                 <option value="stock_desc">Stock (Décroissant)</option>
               </select>
            </div>
 
@@ -2472,7 +2481,11 @@ export default function AdminNutritionAfricaine() {
                   <div key={p.id} className="bg-white border border-zinc-200 rounded-2xl p-4 flex flex-col hover:border-[#39FF14] transition-colors relative shadow-sm">
                      <div className="h-40 bg-zinc-50 rounded-xl overflow-hidden mb-3 relative shrink-0">
                          <img src={p.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={p.nom} className="w-full h-full object-cover" onError={(e:any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                         <span className="absolute top-2 right-2 bg-black text-white px-2 py-0.5 rounded text-[10px] font-black">{p.stock} stock</span>
+                         <span className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-black shadow-sm ${
+                             p.stock === 0 ? 'bg-red-500 text-white' : p.stock <= 5 ? 'bg-yellow-400 text-black' : 'bg-green-500 text-white'
+                         }`}>
+                             {p.stock === 0 ? '🔴 Rupture' : p.stock <= 5 ? `🟡 Faible (${p.stock})` : `🟢 En stock (${p.stock})`}
+                         </span>
                      </div>
                      <p className="font-bold text-sm line-clamp-1">{p.nom}</p>
                      <div className="flex justify-between items-center mt-1">
@@ -2600,9 +2613,10 @@ export default function AdminNutritionAfricaine() {
            {/* 3 NOUVEAUX WIDGETS D'ANALYSE */}
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {/* Widget CA & Panier Moyen */}
-               <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between">
+               <div onClick={() => setShowOrdersWidgetModal('ca')} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between hover:border-[#39FF14] hover:shadow-xl transition-all cursor-pointer group">
                    <div className="flex justify-between items-start mb-4">
                        <h3 className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2"><Activity size={16} className="text-[#39FF14]"/> CA & Panier (Mois)</h3>
+                       <div className="bg-zinc-50 group-hover:bg-[#39FF14] group-hover:text-black p-2 rounded-full transition-colors text-zinc-400"><ChevronRight size={14}/></div>
                    </div>
                    <div className="space-y-4">
                        <div>
@@ -2640,8 +2654,11 @@ export default function AdminNutritionAfricaine() {
                </div>
 
                {/* Widget Alertes & Dormants */}
-               <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between">
-                   <h3 className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2 mb-4"><AlertTriangle size={16} className="text-[#39FF14]"/> Alertes & Dormants</h3>
+               <div onClick={() => setShowOrdersWidgetModal('alertes')} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between hover:border-orange-500 hover:shadow-xl transition-all cursor-pointer group">
+                   <div className="flex justify-between items-start mb-4">
+                       <h3 className="text-sm font-black uppercase tracking-tighter text-black flex items-center gap-2"><AlertTriangle size={16} className="text-[#39FF14]"/> Alertes & Dormants</h3>
+                       <div className="bg-zinc-50 group-hover:bg-orange-500 group-hover:text-white p-2 rounded-full transition-colors text-zinc-400"><ChevronRight size={14}/></div>
+                   </div>
                    <div className="space-y-4">
                        <div className="flex items-center gap-4 bg-orange-50 p-3 rounded-xl border border-orange-100">
                            <div className="w-10 h-10 bg-orange-100 text-orange-500 rounded-lg flex items-center justify-center shrink-0">
@@ -2665,14 +2682,24 @@ export default function AdminNutritionAfricaine() {
                </div>
            </div>
 
-           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6">
+           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 gap-4">
                <div>
                   <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Package className="text-[#39FF14]"/> Gestion des Commandes</h3>
                   <p className="text-xs text-zinc-500 font-bold mt-1">Gérez vos expéditions et statuts</p>
                </div>
-               <div className="flex items-center gap-3">
-                  <button onClick={() => setOrdersSortDesc(!ordersSortDesc)} className="bg-zinc-100 p-3 rounded-xl hover:bg-zinc-200 transition-colors flex items-center gap-2 text-xs font-black uppercase"><Activity size={16}/> {ordersSortDesc ? 'Récents' : 'Anciens'}</button>
-                  <div className="flex bg-zinc-100 p-1 rounded-xl">
+               <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                  <div className="relative w-full sm:w-64">
+                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                     <input type="text" placeholder="Client ou Téléphone..." value={ordersSearchTerm} onChange={e => setOrdersSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:border-black" />
+                  </div>
+                  <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 p-1.5 rounded-xl w-full sm:w-auto">
+                     <Calendar size={14} className="text-zinc-400 ml-2" />
+                     <input type="date" value={ordersStartDate} onChange={e => setOrdersStartDate(e.target.value)} className="bg-transparent text-xs font-bold outline-none text-zinc-600" />
+                     <span className="text-zinc-300">-</span>
+                     <input type="date" value={ordersEndDate} onChange={e => setOrdersEndDate(e.target.value)} className="bg-transparent text-xs font-bold outline-none text-zinc-600" />
+                  </div>
+                  <button onClick={() => setOrdersSortDesc(!ordersSortDesc)} className="bg-zinc-100 p-3 rounded-xl hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 text-xs font-black uppercase shrink-0"><Activity size={16}/> {ordersSortDesc ? 'Récents' : 'Anciens'}</button>
+                  <div className="flex bg-zinc-100 p-1 rounded-xl shrink-0">
                       <button onClick={() => setOrdersViewMode('table')} className={`p-2 rounded-lg transition-colors ${ordersViewMode === 'table' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}><List size={16}/></button>
                       <button onClick={() => setOrdersViewMode('grid')} className={`p-2 rounded-lg transition-colors ${ordersViewMode === 'grid' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}><LayoutGrid size={16}/></button>
                   </div>
@@ -2691,7 +2718,27 @@ export default function AdminNutritionAfricaine() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {[...orders].sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
+                    {[...orders].filter(o => {
+                        const matchSearch = !ordersSearchTerm || o.client_name?.toLowerCase().includes(ordersSearchTerm.toLowerCase()) || o.phone?.includes(ordersSearchTerm);
+
+                        let matchDate = true;
+                        const orderDate = new Date(o.created_at);
+                        // Reset time to start of day for accurate comparison
+                        orderDate.setHours(0, 0, 0, 0);
+
+                        if (ordersStartDate) {
+                            const start = new Date(ordersStartDate);
+                            start.setHours(0, 0, 0, 0);
+                            if (orderDate < start) matchDate = false;
+                        }
+                        if (ordersEndDate) {
+                            const end = new Date(ordersEndDate);
+                            end.setHours(0, 0, 0, 0);
+                            if (orderDate > end) matchDate = false;
+                        }
+
+                        return matchSearch && matchDate;
+                    }).sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
                        <tr key={o.id} className="hover:bg-zinc-50 transition-colors cursor-pointer" onClick={() => handleOpenOrderDetails(o)}>
                           <td className="p-4">
                              <p className="font-bold text-sm text-black">{o.client_name}</p>
@@ -2724,7 +2771,26 @@ export default function AdminNutritionAfricaine() {
            </div>
            ) : (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...orders].sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
+              {[...orders].filter(o => {
+                        const matchSearch = !ordersSearchTerm || o.client_name?.toLowerCase().includes(ordersSearchTerm.toLowerCase()) || o.phone?.includes(ordersSearchTerm);
+
+                        let matchDate = true;
+                        const orderDate = new Date(o.created_at);
+                        orderDate.setHours(0, 0, 0, 0);
+
+                        if (ordersStartDate) {
+                            const start = new Date(ordersStartDate);
+                            start.setHours(0, 0, 0, 0);
+                            if (orderDate < start) matchDate = false;
+                        }
+                        if (ordersEndDate) {
+                            const end = new Date(ordersEndDate);
+                            end.setHours(0, 0, 0, 0);
+                            if (orderDate > end) matchDate = false;
+                        }
+
+                        return matchSearch && matchDate;
+                    }).sort((a,b) => ordersSortDesc ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(o => (
                   <div key={o.id} onClick={() => handleOpenOrderDetails(o)} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group">
                       <div className="flex justify-between items-start mb-4">
                          <div>
@@ -2784,27 +2850,36 @@ export default function AdminNutritionAfricaine() {
                     <tr>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Code Promo</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Remise (%)</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Minimum XP</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Expiration</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Utilisations</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {promos.map(p => (
+                    {promos.map(p => {
+                       const isExpired = p.expiration_date && new Date(p.expiration_date).getTime() < new Date().setHours(0,0,0,0);
+                       const uses = orders.filter(o => o.promo_code === p.code).length;
+                       return (
                        <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
                           <td className="p-4 font-black text-sm text-black">{p.code}</td>
                           <td className="p-4 font-black text-[#39FF14] text-lg">-{p.discount_pct}%</td>
-                          <td className="p-4 text-xs font-bold text-zinc-500">{p.min_xp} XP</td>
+                          <td className="p-4 text-xs font-bold text-zinc-500">{p.expiration_date ? new Date(p.expiration_date).toLocaleDateString('fr-FR') : 'Permanente'}</td>
+                          <td className="p-4 text-xs font-bold text-zinc-500">{uses}</td>
                           <td className="p-4">
-                             <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${p.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.active ? 'Actif' : 'Inactif'}</span>
+                             {isExpired ? (
+                                <span className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-500">Expiré</span>
+                             ) : (
+                                <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${p.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.active ? 'Actif' : 'Inactif'}</span>
+                             )}
                           </td>
                           <td className="p-4 text-right flex justify-end gap-2">
                              <button onClick={() => handleOpenPromoModal(p)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
                              <button onClick={() => handleDeletePromo(p.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
                           </td>
                        </tr>
-                    ))}
-                    {promos.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-400 font-bold">Aucun code promo créé.</td></tr>}
+                    )})}
+                    {promos.length === 0 && <tr><td colSpan={6} className="p-10 text-center text-zinc-400 font-bold">Aucun code promo créé.</td></tr>}
                  </tbody>
               </table>
            </div>
@@ -3388,9 +3463,10 @@ export default function AdminNutritionAfricaine() {
                
                <form onSubmit={handleSavePromo} className="space-y-4">
                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Code Promo</label><input type="text" required value={promoForm.code} onChange={e => setPromoForm({...promoForm, code: e.target.value.toUpperCase()})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-black text-sm outline-none focus:border-black uppercase" placeholder="Ex: JONGOMA1000" /></div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Remise (%)</label><input type="number" min="0" max="100" required value={promoForm.discount_pct} onChange={e => setPromoForm({...promoForm, discount_pct: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Minimum XP requis</label><input type="number" required value={promoForm.min_xp} onChange={e => setPromoForm({...promoForm, min_xp: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Expiration</label><input type="date" value={promoForm.expiration_date} onChange={e => setPromoForm({...promoForm, expiration_date: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
                   
                   <label className="flex items-center gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl cursor-pointer hover:bg-zinc-100 transition-colors mt-4">
@@ -3556,6 +3632,92 @@ export default function AdminNutritionAfricaine() {
                   <button onClick={handleSendWelcomeMessage} className="w-full bg-purple-500 text-white py-4 rounded-[2rem] font-black uppercase text-sm hover:bg-purple-600 transition-colors shadow-lg flex items-center justify-center gap-2">
                      <MessageSquare size={18}/> {scheduleAutoSend ? 'Confirmer la programmation' : 'Envoyer maintenant'}
                   </button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODALES WIDGETS COMMANDES */}
+      {showOrdersWidgetModal === 'ca' && (
+         <div id="ca-modal-overlay" onClick={(e: any) => e.target.id === 'ca-modal-overlay' && setShowOrdersWidgetModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black max-h-[90vh] overflow-y-auto custom-scrollbar">
+               <button onClick={() => setShowOrdersWidgetModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}><Activity className="text-[#39FF14]"/> Commandes du Mois</h2>
+               <p className="text-zinc-500 font-bold text-xs mb-6">Liste détaillée des commandes de ce mois-ci.</p>
+
+               <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                     <thead className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                        <tr>
+                           <th className="p-4">Date</th>
+                           <th className="p-4">Client</th>
+                           <th className="p-4">Statut</th>
+                           <th className="p-4 text-right">Montant</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-zinc-50">
+                        {[...currentMonthOrders].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(o => (
+                           <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                              <td className="p-4 text-xs font-bold text-zinc-500">{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
+                              <td className="p-4 font-bold text-sm text-black">{o.client_name}</td>
+                              <td className="p-4"><span className="px-2 py-1 rounded bg-zinc-100 text-zinc-500 text-[10px] font-black uppercase">{o.status}</span></td>
+                              <td className="p-4 text-right font-black text-[#39FF14]">{o.total?.toLocaleString()} F</td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {showOrdersWidgetModal === 'alertes' && (
+         <div id="alertes-modal-overlay" onClick={(e: any) => e.target.id === 'alertes-modal-overlay' && setShowOrdersWidgetModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-orange-500 my-auto text-black max-h-[90vh] overflow-y-auto custom-scrollbar">
+               <button onClick={() => setShowOrdersWidgetModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}><AlertTriangle className="text-orange-500"/> Alertes & Dormants</h2>
+               <p className="text-zinc-500 font-bold text-xs mb-6">Produits nécessitant votre attention.</p>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Colonne Alertes Stock */}
+                  <div>
+                     <h3 className="font-black text-sm uppercase text-orange-600 mb-4 bg-orange-50 p-3 rounded-xl border border-orange-100 flex items-center justify-between">
+                        Rupture imminente <span className="bg-orange-500 text-white px-2 py-1 rounded-full text-[10px]">{dormantAndLowStockStats.lowStockCount}</span>
+                     </h3>
+                     <div className="space-y-3">
+                        {dormantAndLowStockStats.lowStockProducts.map(p => (
+                           <div key={p.id} className="flex items-center gap-3 bg-white border border-zinc-200 p-3 rounded-xl hover:border-orange-300 transition-colors">
+                               <img src={p.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-50" />
+                               <div className="flex-1 min-w-0">
+                                   <p className="text-sm font-bold text-black truncate">{p.nom}</p>
+                                   <p className="text-[10px] font-black uppercase text-zinc-400">{p.categorie_nom}</p>
+                               </div>
+                               <span className={`px-2 py-1 rounded text-[10px] font-black shadow-sm ${p.stock === 0 ? 'bg-red-500 text-white' : 'bg-yellow-400 text-black'}`}>
+                                   {p.stock} en stock
+                               </span>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+
+                  {/* Colonne Produits Dormants */}
+                  <div>
+                     <h3 className="font-black text-sm uppercase text-zinc-600 mb-4 bg-zinc-50 p-3 rounded-xl border border-zinc-200 flex items-center justify-between">
+                        Dormants (30 jours) <span className="bg-zinc-800 text-white px-2 py-1 rounded-full text-[10px]">{dormantAndLowStockStats.dormantCount}</span>
+                     </h3>
+                     <div className="space-y-3">
+                        {dormantAndLowStockStats.dormantProducts.map(p => (
+                           <div key={p.id} className="flex items-center gap-3 bg-white border border-zinc-200 p-3 rounded-xl hover:border-zinc-300 transition-colors">
+                               <img src={p.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-50" />
+                               <div className="flex-1 min-w-0">
+                                   <p className="text-sm font-bold text-black truncate">{p.nom}</p>
+                                   <p className="text-[10px] font-black uppercase text-zinc-400">{p.categorie_nom}</p>
+                               </div>
+                               <span className="text-[10px] font-black uppercase text-zinc-400 bg-zinc-100 px-2 py-1 rounded">0 vente</span>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
                </div>
             </div>
          </div>
