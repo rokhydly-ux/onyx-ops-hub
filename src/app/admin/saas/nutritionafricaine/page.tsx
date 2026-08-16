@@ -1643,7 +1643,7 @@ export default function AdminNutritionAfricaine() {
 
       let startY = 85 + (addrLines.length * 5);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
           startY: startY,
           head: [['Produit', 'Qté', 'Prix U.', 'Total']],
           body: tableData,
