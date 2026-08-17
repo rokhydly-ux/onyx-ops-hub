@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import AdminFitnessView from "@/components/admin/AdminFitnessView";
 import OrdersRevenueWidget from "@/components/admin/OrdersRevenueWidget";
 import OrdersMonthModal from "@/components/admin/OrdersMonthModal";
+import AIAudienceModal from "@/components/admin/AIAudienceModal";
+
 
 import { supabase } from "@/lib/supabaseClient";
 import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper, User, LogOut, Settings, List, LayoutGrid, ChevronUp, Phone, MapPin } from "lucide-react";
@@ -1629,6 +1631,8 @@ export default function AdminNutritionAfricaine() {
   }, [orders, products]);
 
     const [showOrdersWidgetModal, setShowOrdersWidgetModal] = useState<'ca' | 'alertes' | null>(null);
+  const [showAIAudienceModal, setShowAIAudienceModal] = useState(false);
+
 
 
   const dormantAndLowStockStats = React.useMemo(() => {
@@ -1744,6 +1748,7 @@ export default function AdminNutritionAfricaine() {
                              className="w-full p-3 pl-12 bg-white border border-zinc-200 rounded-xl font-bold text-xs outline-none focus:border-black shadow-sm"
                           />
                        </div>
+                       <button onClick={() => setShowAIAudienceModal(true)} className="bg-purple-600 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2" title="Analyser ma clientèle par IA"><Sparkles size={14}/> CRM & IA</button>
                        <button onClick={handleBulkRefreshMenus} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2" title="Forcer le recalcul des menus clients"><RefreshCcw size={14}/> Recalc. Menus</button>
                        <button onClick={() => setFilterInactive(!filterInactive)} className={`px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${filterInactive ? 'bg-orange-500 text-white border-transparent' : 'bg-white text-zinc-500 hover:text-black border border-zinc-200'}`} title="Inactifs depuis plus de 3 jours">
                           <Clock size={14}/> Inactifs
@@ -1803,15 +1808,17 @@ export default function AdminNutritionAfricaine() {
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              <div className="bg-black text-[#39FF14] p-6 rounded-2xl shadow-sm border border-zinc-800 flex flex-col justify-center">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Moyenne Kcal (Aujourd'hui)</p>
-                <div className="flex items-center gap-4">
-                   <div className="bg-[#39FF14]/10 p-4 rounded-xl"><Flame size={28} className="text-[#39FF14]"/></div>
-                   <div>
-                     <p className="text-4xl font-black">{averageCaloriesToday} <span className="text-sm font-bold text-zinc-500">kcal</span></p>
-                     <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Sur {clientsWithLogsToday} clients ayant logué</p>
+                <div className="flex flex-col gap-4">
+                   <div className="flex items-center gap-4">
+                       <div className="bg-[#39FF14]/10 p-4 rounded-xl"><Flame size={28} className="text-[#39FF14]"/></div>
+                       <div>
+                         <p className="text-4xl font-black">{averageCaloriesToday} <span className="text-sm font-bold text-zinc-500">kcal</span></p>
+                         <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Sur {clientsWithLogsToday} clients ayant logué</p>
+                       </div>
                    </div>
-              <button onClick={handleRelanceInactifs} className="mt-6 w-full md:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-md flex justify-center items-center gap-2">
-                 <MessageSquare size={16}/> Relancer inactifs du jour ({clients.length - clientsWithLogsToday})
-              </button>
+                   <button onClick={handleRelanceInactifs} className="w-full bg-zinc-900 text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-md flex justify-center items-center gap-2">
+                     <MessageSquare size={16}/> Relancer inactifs ({clients.length - clientsWithLogsToday})
+                   </button>
                 </div>
              </div>
              
@@ -3628,6 +3635,9 @@ export default function AdminNutritionAfricaine() {
 
       {/* MODALES WIDGETS COMMANDES */}
       {showOrdersWidgetModal === 'ca' && <OrdersMonthModal orders={orders} setShowOrdersWidgetModal={setShowOrdersWidgetModal} />}
+
+
+      {showAIAudienceModal && <AIAudienceModal clients={clients} orders={orders} onClose={() => setShowAIAudienceModal(false)} />}
 
       {showOrdersWidgetModal === 'alertes' && (
          <div id="alertes-modal-overlay" onClick={(e: any) => e.target.id === 'alertes-modal-overlay' && setShowOrdersWidgetModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
