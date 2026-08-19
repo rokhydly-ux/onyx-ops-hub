@@ -2620,6 +2620,14 @@ export default function AdminNutritionAfricaine() {
 
         {activeTab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm border border-zinc-200">
+               <div>
+                  <h3 className="text-xl font-black uppercase text-black flex items-center gap-2"><Package className="text-[#39FF14]"/> Gestion des Commandes</h3>
+                  <p className="text-xs text-zinc-500 font-bold mt-1">Suivez les ventes et l'état des livraisons de votre boutique.</p>
+               </div>
+               <button onClick={() => setShowAIAudienceModal(true)} className="bg-purple-600 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2" title="Analyser ma clientèle par IA"><Sparkles size={14}/> CRM & IA Marketing</button>
+           </div>
+
 
            {/* 3 NOUVEAUX WIDGETS D'ANALYSE */}
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
