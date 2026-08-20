@@ -7647,7 +7647,7 @@ const currentHour = new Date().getHours();
                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                  className={`w-full max-w-md h-full ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl relative`}
                >
-                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
                         <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
                      </h2>
@@ -7674,7 +7674,7 @@ const currentHour = new Date().getHours();
                      </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-4 custom-scrollbar">
                      {shopCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-zinc-500">
                            <ShoppingBag size={48} className="mb-4 opacity-50"/>
@@ -7727,7 +7727,7 @@ const currentHour = new Date().getHours();
                   </div>
 
                   {shopCart.length > 0 && (
-                     <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                     <div className="shrink-0 p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
                         <div className="mb-4 relative z-50">
                            <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Quartier (Dakar)</label>
                            <input type="text" placeholder="Saisissez votre quartier (ex: Mermoz)..." value={deliveryZone} onChange={e => {
