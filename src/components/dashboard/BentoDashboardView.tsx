@@ -31,8 +31,35 @@ interface BentoDashboardViewProps {
 export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const [hiddenMeals, setHiddenMeals] = useState<string[]>([]);
-    const currentHour = new Date().getHours();
-    const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
+    const generateCoachMessage = () => {
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Salam' : 'Bonsoir';
+        const name = user?.full_name?.split(' ')[0] || 'la team';
+
+        const goalCals = Number(clientProfile?.diagnostic_data?.bmr || 2000);
+        const progressPct = goalCals > 0 ? (calories / goalCals) * 100 : 0;
+
+        if (waterGlasses < 4 && hour > 14) {
+            return `${greeting} ${name} ! Il fait soif cet après-midi ! Pense à boire tes verres d'eau pour rester au top.`;
+        }
+
+        if (progressPct >= 90) {
+            return `Super journée ${name} ! Tu as presque atteint tes objectifs macros, on lâche rien pour le dernier repas !`;
+        }
+
+        if (progressPct === 0 && hour > 10) {
+            return `${greeting} ${name} ! Tu n'as pas encore tracké tes repas aujourd'hui. N'oublie pas de le faire pour rester focus !`;
+        }
+
+        if (hour < 12) {
+             return `${greeting} ${name} ! Prête pour une nouvelle journée ? Pense à bien t'hydrater dès ce matin.`;
+        }
+
+        return `${greeting} ${name} ! Continue comme ça, la constance c'est la clé de tes résultats.`;
+    };
+
+    const coachMessage = generateCoachMessage();
+
 
     const waterTips = [
         "L'eau booste votre métabolisme de 30% en 10 min.",
@@ -190,7 +217,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
 
                     <div className="flex-1 bg-zinc-50 rounded-xl p-4 mb-4 overflow-y-auto space-y-3 border border-zinc-100">
                         <div className="bg-black text-white text-xs p-3 rounded-2xl rounded-tl-sm w-fit max-w-[85%] shadow-sm">
-                            Salut ! T&apos;as bien mangé ton Thiéboudienne ce midi ? Pense à faire léger ce soir, un petit bouillon fera l'affaire.
+                            {coachMessage}
                         </div>
                     </div>
 
