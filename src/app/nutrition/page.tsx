@@ -687,6 +687,7 @@ export default function NutritionDashboard() {
   const [productMediaView, setProductMediaView] = useState<'image' | 'video'>('image');
   const [productActiveImage, setProductActiveImage] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryZone, setDeliveryZone] = useState('');
   const [clientOrders, setClientOrders] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
   const [showCartModal, setShowCartModal] = useState(false);
