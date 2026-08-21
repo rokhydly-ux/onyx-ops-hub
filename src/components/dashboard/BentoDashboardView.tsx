@@ -39,12 +39,12 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
         const goalCals = Number(clientProfile?.diagnostic_data?.bmr || 2000);
         const progressPct = goalCals > 0 ? (calories / goalCals) * 100 : 0;
 
-        if (waterGlasses < 4 && hour > 14) {
-            return `${greeting} ${name} ! Il fait soif cet après-midi ! Pense à boire tes verres d'eau pour rester au top.`;
+        if (waterGlasses < 4 && hour >= 15) {
+            return `Salam ${name}, il fait soif cet après-midi ! Pense à ton eau.`;
         }
 
         if (progressPct >= 90) {
-            return `Super journée ${name} ! Tu as presque atteint tes objectifs macros, on lâche rien pour le dernier repas !`;
+            return `Super journée ${name}, tu as presque atteint tes objectifs macros, on lâche rien !`;
         }
 
         if (progressPct === 0 && hour > 10) {
