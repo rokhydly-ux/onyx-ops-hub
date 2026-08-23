@@ -1858,10 +1858,10 @@ export default function DynamicShopPage() {
 
         {/* --- CART DRAWER --- */}
         {isCartOpen && (
-          <div className="fixed inset-0 z-[60] flex flex-col justify-end md:flex-row md:justify-end">
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-full md:max-w-md max-h-[90vh] h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-300 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
-               <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
+          <div className="fixed inset-0 z-[60] flex flex-col justify-end md:items-center md:justify-center animate-in fade-in">
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
+            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl rounded-t-[2rem] md:rounded-3xl mt-auto md:mt-0 overflow-hidden">
+               <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
                     {cartCount > 0 && (
@@ -1922,9 +1922,9 @@ export default function DynamicShopPage() {
                   ))}
                </div>
                {cart.length > 0 && (
-                 <div className="mt-auto bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800 shrink-0 overflow-y-auto custom-scrollbar">
+                 <div className="shrink-0 bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
 
-                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 shrink-0">
+                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
                             <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
