@@ -1840,7 +1840,8 @@ export default function DynamicShopPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="fixed inset-0" onClick={() => setIsCartOpen(false)}></div>
             <div className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-950 flex flex-col shadow-2xl rounded-3xl overflow-hidden z-10">
-               <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
+
+               <div className="shrink-0 p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
                     {cartCount > 0 && (
@@ -1868,14 +1869,15 @@ export default function DynamicShopPage() {
                         </div>
                     )}
                   </h2>
-                  <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
+                  <button onClick={() => setIsCartOpen(false)} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={20}/></button>
                </div>
        {showStockUpdate && (
-          <div className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
+          <div className="shrink-0 bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
              <RefreshCcw size={12} className="animate-spin" /> Mise à jour du stock en temps réel
           </div>
        )}
-               <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
+
+               <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-6 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
                   {cart.length === 0 ? <p className="text-center text-zinc-500 mt-20">Votre panier est vide.</p> : cart.map(item => (
                     <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                          <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl bg-zinc-200 dark:bg-zinc-800" />
@@ -1923,7 +1925,7 @@ export default function DynamicShopPage() {
 
                </div>
                {cart.length > 0 && (
-                 <div className="shrink-0 bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
+                 <div className="shrink-0 p-6 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 space-y-4">
 
                     <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
                         <div className="flex justify-between items-center mb-2">
