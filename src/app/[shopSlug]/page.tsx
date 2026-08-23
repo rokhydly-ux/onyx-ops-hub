@@ -1839,8 +1839,8 @@ export default function DynamicShopPage() {
         {isCartOpen && (
           <div className="fixed inset-0 z-[60] flex flex-col justify-end md:flex-row md:justify-end">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-full md:max-w-md max-h-[90vh] md:h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-300 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
-               <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
+            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-full md:max-w-md max-h-[90vh] h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-300 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
+               <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
                     {cartCount > 0 && (
@@ -1871,7 +1871,7 @@ export default function DynamicShopPage() {
                   <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
                </div>
        {showStockUpdate && (
-          <div className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
+          <div className="shrink-0 bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
              <RefreshCcw size={12} className="animate-spin" /> Mise à jour du stock en temps réel
           </div>
        )}
