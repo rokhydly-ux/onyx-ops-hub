@@ -7676,16 +7676,15 @@ const currentHour = new Date().getHours();
       {/* MODALE PANIER */}
       <AnimatePresence>
          {showCartModal && (
-            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] flex flex-col justify-end md:items-center md:justify-center animate-in fade-in">
-               <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCartModal(false)}></div>
+            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 p-4 md:p-8 animate-in fade-in">
                <motion.div
                  initial={{ y: '100%', x: 0, scale: 0.95 }}
                  animate={{ y: 0, x: 0, scale: 1 }}
                  exit={{ y: '100%', x: 0, scale: 0.95 }}
                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                 className={`relative w-full max-w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] md:rounded-3xl ${theme === 'dark' ? 'bg-zinc-950 border border-zinc-800' : 'bg-white border border-zinc-200'} flex flex-col shadow-2xl mt-auto md:mt-0 rounded-t-[2rem]`}
+                 className={`relative w-full max-w-2xl max-h-[95vh] flex flex-col ${theme === 'dark' ? 'bg-zinc-950 border border-zinc-800' : 'bg-white'} rounded-2xl shadow-2xl overflow-hidden`}
                >
-                  <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center rounded-t-[2rem] md:rounded-none">
+                  <div className="shrink-0 p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
                         <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
                      </h2>
