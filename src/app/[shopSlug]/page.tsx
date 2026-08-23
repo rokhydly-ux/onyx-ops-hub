@@ -1624,9 +1624,14 @@ export default function DynamicShopPage() {
 
         <div className="p-8 md:p-12 md:pt-32 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-80px)]">
           <div className="flex-1">
-            <div className="mb-12">
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Catalogue <span className="text-[#39FF14]">Produits</span></h2>
-              <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Bienvenue sur la boutique de {shopInfo.name}. Ajoutez au panier et validez via WhatsApp !</p>
+            <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2">L'Épicerie <span className="text-[#39FF14]">Lekk Gu Set</span></h2>
+                <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Vos essentiels détox, minceur et vitalité. Des super-aliments d'ici pour une santé de fer.</p>
+              </div>
+              <button onClick={() => setIsTrackingModalOpen(true)} className="bg-[#39FF14] text-black px-6 py-3 rounded-full font-black uppercase tracking-widest text-xs hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg animate-pulse flex items-center gap-2 border-2 border-[#39FF14] self-start md:self-center shrink-0">
+                  <Package size={16} /> Suivre mes commandes
+              </button>
             </div>
 
             {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice && homepageLayout && homepageLayout.length > 0 ? (
@@ -1697,16 +1702,24 @@ export default function DynamicShopPage() {
                             {product.old_price && product.old_price > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.old_price, shopInfo.currency)}</p>}
                           </div>
                         </div>
-                        <button onClick={(e) => { 
-                            e.stopPropagation(); 
-                            if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
-                                setViewingProduct(product);
-                            } else {
-                                addToCart(product); 
-                            }
-                        }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
-                          <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Choisir Options' : 'Ajouter au Panier'}
-                        </button>
+                        {((cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) > 0 && !(Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) && !(Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? (
+                            <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => updateQuantity(cart.find(i => i.id === product.id)!, -1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-700 text-black dark:text-white rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors shadow-sm"><Minus size={14}/></button>
+                                <span className="text-sm font-black w-6 text-center text-black dark:text-white">{(cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0)}</span>
+                                <button onClick={() => updateQuantity(cart.find(i => i.id === product.id)!, 1)} disabled={product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-700 text-black dark:text-white rounded-lg hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={14}/></button>
+                            </div>
+                        ) : (
+                            <button onClick={(e) => {
+                                e.stopPropagation();
+                                if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
+                                    setViewingProduct(product);
+                                } else {
+                                    addToCart(product);
+                                }
+                            }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
+                              <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Choisir Options' : 'Ajouter'}
+                            </button>
+                        )}
                       </div>
                     </div>
                         </div>
