@@ -7636,19 +7636,15 @@ const currentHour = new Date().getHours();
         </div>
       </footer>
 
-      {/* MODALE PANIER */}
+      {/* VUE PANIER PLEIN ÉCRAN */}
       <AnimatePresence>
          {showCartModal && (
-            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex justify-end animate-in fade-in">
-               <motion.div
-                 initial={{ x: '100%' }}
-                 animate={{ x: 0 }}
-                 exit={{ x: '100%' }}
-                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                 className={`w-full max-w-md max-h-[90vh] ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl relative`}
-               >
-                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
-                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
+            <div className="fixed inset-0 z-[250] bg-zinc-50 dark:bg-black overflow-y-auto">
+               <div className="min-h-screen flex flex-col max-w-3xl mx-auto bg-white dark:bg-zinc-950 shadow-2xl">
+
+                  {/* HEADER STICKY */}
+                  <div className="shrink-0 p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-950 z-20">
+                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
                         <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
                      </h2>
                      <div className="flex items-center gap-4">
@@ -7657,24 +7653,22 @@ const currentHour = new Date().getHours();
                                <Trash2 size={14}/> Vider
                             </button>
                         )}
-                        <button onClick={() => setShowCartModal(false)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
+                        <button onClick={() => setShowCartModal(false)} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                            <X size={16}/>
                         </button>
                      </div>
                   </div>
 
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                  {/* CORPS DE LA PAGE */}
+                  <div className="flex-1 p-6 space-y-6">
                      {remainingForFreeShipping > 0 ? (
                          <p className="text-sm font-black uppercase tracking-widest text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14]">{remainingForFreeShipping.toLocaleString()} FCFA</span> pour la livraison gratuite !</p>
                      ) : (
                          <p className="text-sm font-black uppercase tracking-widest text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={16}/> Livraison gratuite débloquée !</p>
                      )}
-                     <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
+                     <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner mb-6">
                          <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
                      </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-4 custom-scrollbar">
                      {shopCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-zinc-500">
                            <ShoppingBag size={48} className="mb-4 opacity-50"/>
@@ -7809,7 +7803,7 @@ const currentHour = new Date().getHours();
                         )}
                      </div>
                   )}
-               </motion.div>
+               </div>
             </div>
          )}
       </AnimatePresence>
