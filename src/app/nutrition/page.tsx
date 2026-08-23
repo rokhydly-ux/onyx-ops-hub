@@ -5135,9 +5135,23 @@ const currentHour = new Date().getHours();
                            <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
                            <div className="flex items-center justify-between mt-2">
                                <p className="text-[#39FF14] font-black text-lg">{product.prix_premium.toLocaleString()} F</p>
-                               <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
-                                   <Plus size={16} />
-                               </button>
+                               {(() => {
+                                   const inCart = shopCart.find((p: any) => p.id === product.id);
+                                   if (inCart) {
+                                       return (
+                                           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1" onClick={(e) => e.stopPropagation()}>
+                                               <button onClick={() => updateCartQuantity(inCart.id, -1)} className="p-1 bg-white dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Minus size={14}/></button>
+                                               <span className="font-black text-sm text-black dark:text-white px-2">{inCart.quantity}</span>
+                                               <button onClick={() => updateCartQuantity(inCart.id, 1)} className="p-1 bg-white dark:bg-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Plus size={14}/></button>
+                                           </div>
+                                       );
+                                   }
+                                   return (
+                                       <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
+                                           <Plus size={16} />
+                                       </button>
+                                   );
+                               })()}
                            </div>
                        </div>
                        ))}
@@ -5193,9 +5207,23 @@ const currentHour = new Date().getHours();
                              <p className="text-sm sm:text-lg font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg w-max italic">{product.prix_premium.toLocaleString()} F</p>
                           </div>
                           <div className="flex gap-2">
-                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                                <Plus size={14}/> Ajouter
-                             </button>
+                             {(() => {
+                                const inCart = shopCart.find(p => p.id === product.id);
+                                if (inCart) {
+                                    return (
+                                        <div className="flex-1 flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 shadow-inner" onClick={(e) => e.stopPropagation()}>
+                                            <button onClick={() => updateCartQuantity(inCart.id, -1)} className="p-2 bg-white dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Minus size={14}/></button>
+                                            <span className="font-black text-sm text-black dark:text-white px-2">{inCart.quantity}</span>
+                                            <button onClick={() => updateCartQuantity(inCart.id, 1)} className="p-2 bg-white dark:bg-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Plus size={14}/></button>
+                                        </div>
+                                    );
+                                }
+                                return (
+                                   <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                      <Plus size={14}/> Ajouter
+                                   </button>
+                                );
+                             })()}
                              <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
                                 <Heart size={16} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
                              </button>
