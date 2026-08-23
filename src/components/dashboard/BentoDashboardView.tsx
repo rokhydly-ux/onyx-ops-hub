@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
