@@ -3206,34 +3206,33 @@ export default function NutritionDashboard() {
       }
   };
 const currentHour = new Date().getHours();
-  const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
+  const greetingText = currentHour < 12 ? "Bonjour" : currentHour < 18 ? "Salam" : "Bonsoir";
 
   // Logic for contextual personalized subtext
-  const hasPendingReport = !reportData || reportData.length === 0;
-  const isMorning = currentHour < 12;
-  const isAfternoon = currentHour >= 12 && currentHour < 18;
-  const isEvening = currentHour >= 18;
+  const [greetingSubtext, setGreetingSubtext] = useState("Prête pour une belle journée ? ✨");
 
-  let greetingSubtext = "Prête pour ta journée ?";
-  if (isMorning) {
-    if (waterGlasses < 2) {
-      greetingSubtext = "N'oublie pas de boire tes premiers verres d'eau ! 💧";
-    } else {
-      greetingSubtext = "Super début de journée ! Continue comme ça. ☀️";
-    }
-  } else if (isAfternoon) {
-    if (waterGlasses < 4) {
-      greetingSubtext = "Une petite pause ? Pense à t'hydrater. 🚰";
-    } else {
-      greetingSubtext = "En pleine forme pour cet après-midi ! 🔥";
-    }
-  } else if (isEvening) {
-    if (hasPendingReport) {
-       greetingSubtext = "N'oublie pas de remplir ton Bilan Quotidien ! 📝";
-    } else {
-       greetingSubtext = "Excellente soirée, pense à bien te reposer. 🌙";
-    }
-  }
+  useEffect(() => {
+      const getCoachMessage = () => {
+          const objectifCalories = Number(clientProfile?.diagnostic_data?.bmr || 2000);
+          if (currentHour >= 15 && waterGlasses < 4) {
+              const phrases = [
+                  "Il fait soif cet après-midi ! Pense à ton eau. 💧",
+                  "Oups, tu es en retard sur ton hydratation ! 🚰",
+                  "Un grand verre d'eau avant de continuer ! 🌊"
+              ];
+              return phrases[Math.floor(Math.random() * phrases.length)];
+          }
+          if (consumedCals >= (objectifCalories * 0.9)) {
+              const phrases = [
+                  "Objectifs presque atteints, on lâche rien ! 💪",
+                  "Super journée, tu gères ! 🔥"
+              ];
+              return phrases[Math.floor(Math.random() * phrases.length)];
+          }
+          return "Prête pour une belle journée ? ✨";
+      };
+      setGreetingSubtext(getCoachMessage());
+  }, [currentHour, waterGlasses, consumedCals, clientProfile]);
 
 
   const subTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
