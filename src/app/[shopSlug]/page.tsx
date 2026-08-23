@@ -1920,57 +1920,61 @@ export default function DynamicShopPage() {
                          </div>
                       </div>
                   ))}
-               </div>
-               {cart.length > 0 && (
-                 <div className="shrink-0 bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
 
-                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
-                            <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
-                        </div>
-                        <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${freeShippingProgress}%` }}></div>
-                        </div>
-                    </div>
+                  {cart.length > 0 && (
+                      <div className="mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6 pb-2">
+                          <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
+                              <div className="flex justify-between items-center mb-2">
+                                  <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
+                                  <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
+                              </div>
+                              <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                                  <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${freeShippingProgress}%` }}></div>
+                              </div>
+                          </div>
 
-                    <div className="mb-6">
-                       <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
-                       <div className="flex gap-3">
-                        {shopInfo.delivery_options?.delivery !== false && (
-                            <button onClick={() => setDeliveryMethod('delivery')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
-                               <Truck size={20} /><span className="text-[10px] font-black uppercase">Livraison</span>
-                            </button>
+                          <div className="mb-6">
+                             <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
+                             <div className="flex gap-3">
+                              {shopInfo.delivery_options?.delivery !== false && (
+                                  <button onClick={() => setDeliveryMethod('delivery')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
+                                     <Truck size={20} /><span className="text-[10px] font-black uppercase">Livraison</span>
+                                  </button>
+                              )}
+                              {shopInfo.delivery_options?.pickup !== false && (
+                                  <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
+                                     <Store size={20} /><span className="text-[10px] font-black uppercase">Retrait</span>
+                                  </button>
+                              )}
+                             </div>
+                          </div>
+
+                        {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
+                            <div className="mb-6">
+                                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
+                                <select
+                                    value={selectedZoneId || ''}
+                                    onChange={(e) => setSelectedZoneId(Number(e.target.value))}
+                                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer"
+                                >
+                                    <option value="">-- Sélectionner votre zone --</option>
+                                    {deliveryZones.map(zone => (
+                                        <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
+                                    ))}
+                                </select>
+                                {selectedZoneId && (
+                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
+                                        {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
+                                    </p>
+                                )}
+                            </div>
                         )}
-                        {shopInfo.delivery_options?.pickup !== false && (
-                            <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
-                               <Store size={20} /><span className="text-[10px] font-black uppercase">Retrait</span>
-                            </button>
-                        )}
-                       </div>
-                    </div>
-
-                  {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
-                      <div className="mb-6">
-                          <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
-                          <select 
-                              value={selectedZoneId || ''} 
-                              onChange={(e) => setSelectedZoneId(Number(e.target.value))}
-                              className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer"
-                          >
-                              <option value="">-- Sélectionner votre zone --</option>
-                              {deliveryZones.map(zone => (
-                                  <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
-                              ))}
-                          </select>
-                          {selectedZoneId && (
-                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
-                                  {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
-                              </p>
-                          )}
                       </div>
                   )}
+               </div>
 
+               {cart.length > 0 && (
+                 <div className="shrink-0 bg-white dark:bg-zinc-950 p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
                     <div className="flex justify-between items-center mb-6"><span className="text-zinc-500 font-bold uppercase text-xs">Total à payer</span><span className="text-2xl font-black text-black dark:text-white">{displayPrice(cartTotal, shopInfo.currency)}</span></div>
                     <button onClick={() => setIsCheckoutModalOpen(true)} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2">Commander sur WhatsApp <ArrowRight size={18} /></button>
                     <button onClick={() => setIsCartOpen(false)} className="w-full mt-3 bg-transparent border-2 border-black dark:border-white text-black dark:text-white py-3 rounded-xl font-bold uppercase text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all flex items-center justify-center">
