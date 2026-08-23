@@ -1837,9 +1837,9 @@ export default function DynamicShopPage() {
 
         {/* --- CART DRAWER --- */}
         {isCartOpen && (
-          <div className="fixed inset-0 z-[60] flex flex-col justify-end md:items-center md:justify-center animate-in fade-in">
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl rounded-t-[2rem] md:rounded-3xl mt-auto md:mt-0 overflow-hidden">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="fixed inset-0" onClick={() => setIsCartOpen(false)}></div>
+            <div className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-950 flex flex-col shadow-2xl rounded-3xl overflow-hidden z-10">
                <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
@@ -1901,7 +1901,7 @@ export default function DynamicShopPage() {
                   ))}
                </div>
                {cart.length > 0 && (
-                 <div className="mt-auto bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800 shrink-0 custom-scrollbar">
+                 <div className="shrink-0 bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
 
                     <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
                         <div className="flex justify-between items-center mb-2">
