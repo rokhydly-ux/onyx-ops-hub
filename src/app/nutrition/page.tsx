@@ -7774,7 +7774,7 @@ const currentHour = new Date().getHours();
                                if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
                            }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
                            {showZoneSuggestions && deliveryZone.length >= 2 && (
-                               <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                               <div className={`absolute top-full left-0 z-50 w-full border shadow-xl rounded-b-xl max-h-48 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
                                    {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
                                        <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
                                           <span>{q}</span>
