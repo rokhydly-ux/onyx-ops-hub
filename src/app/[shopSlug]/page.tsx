@@ -204,7 +204,7 @@ const INITIAL_ZONES = [
   { id: 5, name: "Zone 5", price: 3000, quartiers: ["Keur Massar", "Rufisque"] }
 ];
 
-function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: any) {
+function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone, onUpdateQuantity }: any) {
   const [selectedSize, setSelectedSize] = useState<any | null>(null);
   const [selectedColor, setSelectedColor] = useState<any | null>(null);
   const [selectedQty, setSelectedQty] = useState(1);
@@ -467,18 +467,26 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                
                <div className="flex flex-col gap-3 mb-8 mt-auto">
                   <div className="flex flex-col sm:flex-row gap-3">
-                      <button 
-                        onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onAddToCart(product, { size: selectedSize?.name, color: selectedColor?.name, priceModifier: (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0) }, true, selectedQty || 1); 
-                          onClose();
-                        }} 
-                        disabled={isOutOfStock || selectedQty === 0}
-                        className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                         <Plus size={18} /> {maxAvailable === 0 && product.stock !== 0 ? "Limite panier" : "Ajouter au Panier"}
-                      </button>
+                      {((cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0) > 0 && !(Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) && !(Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? (
+                          <div className="flex-1 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 px-4 shadow-inner" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => onUpdateQuantity(cart.find((i: any) => i.id === product.id)!, -1)} className="p-3 bg-white dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Minus size={18}/></button>
+                              <span className="font-black text-xl text-black dark:text-white px-6">{(cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0)}</span>
+                              <button onClick={() => onUpdateQuantity(cart.find((i: any) => i.id === product.id)!, 1)} disabled={product.stock !== undefined && (cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0) >= product.stock} className="p-3 bg-white dark:bg-zinc-800 hover:bg-[#39FF14] hover:text-black rounded-lg shadow-sm transition-colors text-black dark:text-white font-black disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={18}/></button>
+                          </div>
+                      ) : (
+                          <button
+                            onClick={() => {
+                              if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                              if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
+                              onAddToCart(product, { size: selectedSize?.name, color: selectedColor?.name, priceModifier: (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0) }, true, selectedQty || 1);
+                              onClose();
+                            }}
+                            disabled={isOutOfStock || selectedQty === 0}
+                            className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                             <Plus size={18} /> {maxAvailable === 0 && product.stock !== 0 ? "Limite panier" : "Ajouter au Panier"}
+                          </button>
+                      )}
                       <button 
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
@@ -2283,6 +2291,7 @@ export default function DynamicShopPage() {
           isOpen={!!viewingProduct}
           onClose={() => setViewingProduct(null)}
           onAddToCart={(p: any, v: any, openCart: boolean, qty: number) => addToCart(p, v, openCart, qty)}
+          onUpdateQuantity={(item: any, delta: number) => updateQuantity(item, delta)}
           onBuyDirectly={(p: any, v: any, qty: number) => { addToCart(p, v, false, qty); setIsCheckoutModalOpen(true); }}
           onShare={handleShareProduct}
           onViewProduct={setViewingProduct}
