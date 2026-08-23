@@ -1839,7 +1839,7 @@ export default function DynamicShopPage() {
         {isCartOpen && (
           <div className="fixed inset-0 z-[60] flex flex-col justify-end md:flex-row md:justify-end">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-full md:max-w-md h-[90vh] md:h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-300 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
+            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-full md:max-w-md max-h-[90vh] md:h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-300 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
                <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
@@ -1875,7 +1875,7 @@ export default function DynamicShopPage() {
              <RefreshCcw size={12} className="animate-spin" /> Mise à jour du stock en temps réel
           </div>
        )}
-               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
+               <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
                   {cart.length === 0 ? <p className="text-center text-zinc-500 mt-20">Votre panier est vide.</p> : cart.map(item => (
                     <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                          <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl bg-zinc-200 dark:bg-zinc-800" />
