@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
@@ -40,54 +40,25 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
         const progressPct = goalCals > 0 ? (calories / goalCals) * 100 : 0;
 
         if (waterGlasses < 4 && hour >= 15) {
-            const msgs = [
-                `${greeting} ${name}, il fait soif cet après-midi ! Pense à ton eau.`,
-                `Oups ${name}, tu es en retard sur ton hydratation !`,
-                `Allez ${name}, un grand verre d'eau avant de continuer !`
-            ];
-            return msgs[Math.floor(Math.random() * msgs.length)];
+            return `Salam ${name}, il fait soif cet après-midi ! Pense à ton eau.`;
         }
 
         if (progressPct >= 90) {
-            const msgs = [
-                `Super journée ${name}, objectifs macros presque atteints !`,
-                `Tu gères ${name}, on lâche rien !`,
-                `${greeting} ${name}, tu as explosé tes objectifs aujourd'hui, bravo !`
-            ];
-            return msgs[Math.floor(Math.random() * msgs.length)];
+            return `Super journée ${name}, tu as presque atteint tes objectifs macros, on lâche rien !`;
         }
 
         if (progressPct === 0 && hour > 10) {
-            const msgs = [
-                `${greeting} ${name} ! Tu n'as pas encore tracké tes repas aujourd'hui.`,
-                `${greeting} ${name}, n'oublie pas de noter tes repas pour rester focus !`,
-                `Rien de noté encore aujourd'hui ${name} ? Prends 2 min pour tracker !`
-            ];
-            return msgs[Math.floor(Math.random() * msgs.length)];
+            return `${greeting} ${name} ! Tu n'as pas encore tracké tes repas aujourd'hui. N'oublie pas de le faire pour rester focus !`;
         }
 
         if (hour < 12) {
-            const msgs = [
-                `${greeting} ${name} ! Prêt pour une nouvelle journée pleine d'énergie ?`,
-                `${greeting} ${name}, passe une excellente matinée !`,
-                `${greeting} ${name}, c'est parti pour atteindre tes objectifs du jour.`
-            ];
-            return msgs[Math.floor(Math.random() * msgs.length)];
+             return `${greeting} ${name} ! Prête pour une nouvelle journée ? Pense à bien t'hydrater dès ce matin.`;
         }
 
-        const msgs = [
-            `${greeting} ${name} ! Continue comme ça, la constance c'est la clé de tes résultats.`,
-            `${greeting} ${name}, on garde le rythme !`,
-            `${greeting} ${name}, chaque pas compte vers ton objectif.`
-        ];
-        return msgs[Math.floor(Math.random() * msgs.length)];
+        return `${greeting} ${name} ! Continue comme ça, la constance c'est la clé de tes résultats.`;
     };
 
-    // Use state to prevent hydration mismatch with Math.random()
-    const [coachMessage, setCoachMessage] = useState('');
-    useEffect(() => {
-        setCoachMessage(generateCoachMessage());
-    }, [calories, waterGlasses]);
+    const coachMessage = generateCoachMessage();
 
 
     const waterTips = [
