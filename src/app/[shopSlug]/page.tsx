@@ -1914,9 +1914,9 @@ export default function DynamicShopPage() {
                   ))}
                </div>
                {cart.length > 0 && (
-                 <div className="mt-auto bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800 shrink-0 max-h-[55vh] overflow-y-auto custom-scrollbar">
+                 <div className="mt-auto bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800 shrink-0 overflow-y-auto custom-scrollbar">
 
-                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
+                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 shrink-0">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
                             <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
