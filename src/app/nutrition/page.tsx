@@ -707,6 +707,17 @@ export default function NutritionDashboard() {
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const [scratchedBlocks, setScratchedBlocks] = useState<number[]>([]);
 
+  useEffect(() => {
+    if (showCartModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCartModal]);
+
   // Shop dynamic additions
   const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
   const [shopSearchQuery, setShopSearchQuery] = useState("");
@@ -7711,7 +7722,7 @@ const currentHour = new Date().getHours();
                      </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-4 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-6 space-y-4 custom-scrollbar">
                      {shopCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-zinc-500">
                            <ShoppingBag size={48} className="mb-4 opacity-50"/>
@@ -7761,6 +7772,7 @@ const currentHour = new Date().getHours();
                              </div>
                          </div>
                      )}
+
                   </div>
 
                   {shopCart.length > 0 && (
