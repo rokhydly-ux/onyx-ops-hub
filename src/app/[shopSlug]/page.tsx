@@ -707,6 +707,17 @@ export default function DynamicShopPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isCartOpen]);
+
   // Confettis de célébration lors d'une commande
   useEffect(() => {
     if (isOrderSuccessOpen) {
@@ -1896,7 +1907,7 @@ export default function DynamicShopPage() {
              <RefreshCcw size={12} className="animate-spin" /> Mise à jour du stock en temps réel
           </div>
        )}
-               <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
+               <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
                   {cart.length === 0 ? <p className="text-center text-zinc-500 mt-20">Votre panier est vide.</p> : cart.map(item => (
                     <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                          <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl bg-zinc-200 dark:bg-zinc-800" />
