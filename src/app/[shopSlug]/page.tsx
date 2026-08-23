@@ -1899,6 +1899,28 @@ export default function DynamicShopPage() {
                          </div>
                       </div>
                   ))}
+
+                  {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
+                      <div className="mb-6">
+                          <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
+                          <select
+                              value={selectedZoneId || ''}
+                              onChange={(e) => setSelectedZoneId(Number(e.target.value))}
+                              className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer"
+                          >
+                              <option value="">-- Sélectionner votre zone --</option>
+                              {deliveryZones.map(zone => (
+                                  <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
+                              ))}
+                          </select>
+                          {selectedZoneId && (
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
+                                  {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
+                              </p>
+                          )}
+                      </div>
+                  )}
+
                </div>
                {cart.length > 0 && (
                  <div className="shrink-0 bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
@@ -1928,27 +1950,6 @@ export default function DynamicShopPage() {
                         )}
                        </div>
                     </div>
-
-                  {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
-                      <div className="mb-6">
-                          <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
-                          <select
-                              value={selectedZoneId || ''}
-                              onChange={(e) => setSelectedZoneId(Number(e.target.value))}
-                              className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer"
-                          >
-                              <option value="">-- Sélectionner votre zone --</option>
-                              {deliveryZones.map(zone => (
-                                  <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
-                              ))}
-                          </select>
-                          {selectedZoneId && (
-                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
-                                  {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
-                              </p>
-                          )}
-                      </div>
-                  )}
 
                     <div className="flex justify-between items-center mb-6"><span className="text-zinc-500 font-bold uppercase text-xs">Total à payer</span><span className="text-2xl font-black text-black dark:text-white">{displayPrice(cartTotal, shopInfo.currency)}</span></div>
                     <button onClick={() => setIsCheckoutModalOpen(true)} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2">Commander sur WhatsApp <ArrowRight size={18} /></button>
