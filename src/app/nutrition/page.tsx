@@ -5037,12 +5037,17 @@ const currentHour = new Date().getHours();
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
-              <div className="flex items-center gap-4 mb-8">
-                 <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
-                 <div>
-                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique de super aliments</h2>
-                    <p className="text-zinc-500 font-bold text-sm mt-1">Super-aliments & Équipements</p>
-                 </div>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                  <div className="flex items-center gap-4">
+                     <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                     <div>
+                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>L'Épicerie <span className="text-[#39FF14]">Lekk Gu Set</span></h2>
+                        <p className="text-zinc-500 font-bold text-sm mt-1">Vos essentiels détox, minceur et vitalité.</p>
+                     </div>
+                  </div>
+                  <button onClick={() => window.open('/tiak', '_blank')} className="bg-[#39FF14] text-black px-6 py-3 rounded-full font-black uppercase tracking-widest text-xs hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg animate-pulse flex items-center gap-2 border-2 border-[#39FF14] self-start md:self-center shrink-0">
+                      <Package size={16} /> Suivre mes commandes
+                  </button>
               </div>
 
               <div className="w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden mb-12 shadow-xl relative border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
