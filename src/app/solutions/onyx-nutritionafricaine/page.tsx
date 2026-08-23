@@ -1350,7 +1350,7 @@ export default function NutritionAfricaineLanding() {
                                     </p>
                                  </div>
                               </div>
-                              <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique de super aliments Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
+                              <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique Onyx Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
                                  Commander via WhatsApp <ArrowRight size={16}/>
                               </button>
                           </div>

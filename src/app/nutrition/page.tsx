@@ -22,15 +22,6 @@ const VISUAL_EQUIVALENCES = {
   poignee: { grams: 30, label: "poignée" }
 };
 
-const DELIVERY_ZONES: { [key: string]: number } = {
-  "Plateau": 1000, "Médina": 1000, "Fass": 1000, "Point E": 1500, "Fann": 1500,
-  "Mermoz": 1500, "Sacré-Coeur": 1500, "Almadies": 2000, "Ngor": 2000, "Yoff": 2000,
-  "Ouakam": 2000, "Parcelles Assainies": 2500, "Guédiawaye": 2500, "Pikine": 2500,
-  "Thiaroye": 3000, "Keur Massar": 3000, "Rufisque": 3500, "Diamniadio": 4000
-};
-
-const QUARTIERS = Object.keys(DELIVERY_ZONES);
-
 const formatVisualPortion = (grams: number, unit: keyof typeof VISUAL_EQUIVALENCES) => {
   if (!grams || !VISUAL_EQUIVALENCES[unit]) return "1 portion";
   const rawValue = grams / VISUAL_EQUIVALENCES[unit].grams;
@@ -193,36 +184,36 @@ const DEFAULT_RECIPES = [
   { id: "def_3", type: "Petit-déjeuner", nom: "Tartines de Seigle, Sardines & Thé Vert", calories: 310, is_bol_commun: false, bienfaits: "Plein d'Oméga-3 excellents pour le cœur et le cerveau, avec un pain à IG très bas.", ingredients: [{nom: "Pain de seigle", quantite: 2, unite: "tranche", rayon: "Supermarché"}, {nom: "Sardines à l'huile", quantite: 50, unite: "g", rayon: "Supermarché"}, {nom: "Thé vert menthe", quantite: 1, unite: "tasse", rayon: "Supermarché"}] },
   { id: "def_4", type: "Petit-déjeuner", nom: "Omelette aux Légumes & Infusion de Djar", calories: 280, is_bol_commun: false, bienfaits: "Des protéines de haute qualité dès le matin pour nourrir vos muscles.", ingredients: [{nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"}, {nom: "Pain complet", quantite: 1, unite: "tranche", rayon: "Supermarché"}, {nom: "Infusion de Djar", quantite: 1, unite: "tasse", rayon: "Marché local"}] },
   { id: "def_5", type: "Petit-déjeuner", nom: "Arraw (Bouillie de Mil) sans sucre & Kinkeliba", calories: 280, is_bol_commun: false, bienfaits: "Une infusion détoxifiante pour le foie associée à l'énergie douce du mil.", ingredients: [{nom: "Boules de mil (Arraw)", quantite: 50, unite: "g", rayon: "Marché local"}, {nom: "Lait écrémé", quantite: 150, unite: "ml", rayon: "Supermarché"}, {nom: "Feuilles de Kinkeliba", quantite: 1, unite: "poignée", rayon: "Marché local"}] },
-  { id: "def_6", type: "Déjeuner", nom: "Thieboudienne (Option Fonio)", calories: 600, is_bol_commun: true, bienfaits: "Le plat national allégé : riche en fibres et minéraux grâce à l'incorporation du Fonio.", ingredients: [{nom: "Thiof (Poisson)", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 80, unite: "g", rayon: "Boutique de super aliments"}, {nom: "Chou", quantite: 0.5, unite: "pièce", rayon: "Marché local"}, {nom: "Huile d'olive ou colza", quantite: 1, unite: "càs", rayon: "Supermarché"}, {nom: "Carotte", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
-  { id: "def_7", type: "Déjeuner", nom: "Mafé allégé au Poulet (Beurre d'arachide)", calories: 550, is_bol_commun: true, bienfaits: "L'énergie durable des bonnes graisses de l'arachide pure, sans exploser les calories.", ingredients: [{nom: "Blanc de Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Pâte d'arachide pure", quantite: 30, unite: "g", rayon: "Boutique de super aliments"}, {nom: "Fonio ou Riz", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Oignon", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
-  { id: "def_8", type: "Déjeuner", nom: "Salade de Fonio au Poulet", calories: 450, is_bol_commun: false, bienfaits: "Un repas léger et ultra-protéiné, particulièrement recommandé après le sport.", ingredients: [{nom: "Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique de super aliments"}, {nom: "Tomate", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Moutarde", quantite: 1, unite: "càc", rayon: "Supermarché"}] },
+  { id: "def_6", type: "Déjeuner", nom: "Thieboudienne (Option Fonio)", calories: 600, is_bol_commun: true, bienfaits: "Le plat national allégé : riche en fibres et minéraux grâce à l'incorporation du Fonio.", ingredients: [{nom: "Thiof (Poisson)", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 80, unite: "g", rayon: "Boutique Onyx"}, {nom: "Chou", quantite: 0.5, unite: "pièce", rayon: "Marché local"}, {nom: "Huile d'olive ou colza", quantite: 1, unite: "càs", rayon: "Supermarché"}, {nom: "Carotte", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { id: "def_7", type: "Déjeuner", nom: "Mafé allégé au Poulet (Beurre d'arachide)", calories: 550, is_bol_commun: true, bienfaits: "L'énergie durable des bonnes graisses de l'arachide pure, sans exploser les calories.", ingredients: [{nom: "Blanc de Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Pâte d'arachide pure", quantite: 30, unite: "g", rayon: "Boutique Onyx"}, {nom: "Fonio ou Riz", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Oignon", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { id: "def_8", type: "Déjeuner", nom: "Salade de Fonio au Poulet", calories: 450, is_bol_commun: false, bienfaits: "Un repas léger et ultra-protéiné, particulièrement recommandé après le sport.", ingredients: [{nom: "Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique Onyx"}, {nom: "Tomate", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Moutarde", quantite: 1, unite: "càc", rayon: "Supermarché"}] },
   { id: "def_9", type: "Déjeuner", nom: "Yassa Poisson & Riz Étuvé", calories: 500, is_bol_commun: true, bienfaits: "Le citron et l'oignon du Yassa agissent comme des boosters d'immunité naturels.", ingredients: [{nom: "Poisson braisé", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Oignons", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Riz local étuvé", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Moutarde", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
-  { id: "def_10", type: "Déjeuner", nom: "Poisson Braisé (Thiof) & Légumes", calories: 480, is_bol_commun: false, bienfaits: "Extrêmement faible en mauvaises graisses, et ultra riche en protéines marines.", ingredients: [{nom: "Poisson", quantite: 200, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Légumes (Chou, Carotte)", quantite: 200, unite: "g", rayon: "Marché local"}, {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique de super aliments"}] },
-  { id: "def_11", type: "Déjeuner", nom: "Soupe Kandia (Gombo) Diététique", calories: 520, is_bol_commun: true, bienfaits: "Le gombo agit comme un lubrifiant naturel pour un transit intestinal parfait.", ingredients: [{nom: "Bœuf maigre", quantite: 100, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Gombos frais", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique de super aliments"}] },
+  { id: "def_10", type: "Déjeuner", nom: "Poisson Braisé (Thiof) & Légumes", calories: 480, is_bol_commun: false, bienfaits: "Extrêmement faible en mauvaises graisses, et ultra riche en protéines marines.", ingredients: [{nom: "Poisson", quantite: 200, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Légumes (Chou, Carotte)", quantite: 200, unite: "g", rayon: "Marché local"}, {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}] },
+  { id: "def_11", type: "Déjeuner", nom: "Soupe Kandia (Gombo) Diététique", calories: 520, is_bol_commun: true, bienfaits: "Le gombo agit comme un lubrifiant naturel pour un transit intestinal parfait.", ingredients: [{nom: "Bœuf maigre", quantite: 100, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Gombos frais", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique Onyx"}] },
   { id: "def_12", type: "Déjeuner", nom: "Chili de Niébé à la Viande", calories: 490, is_bol_commun: true, bienfaits: "Le Niébé est le super-héros végétal pour consolider la masse musculaire.", ingredients: [{nom: "Viande hachée maigre", quantite: 100, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Niébé", quantite: 80, unite: "g", rayon: "Marché local"}, {nom: "Sauce tomate pure", quantite: 100, unite: "ml", rayon: "Supermarché"}] },
   { id: "def_13", type: "Déjeuner", nom: "Couscous de Mil (Thiéré) Poulet", calories: 540, is_bol_commun: true, bienfaits: "Une céréale ancestrale et ultra digeste car totalement sans gluten.", ingredients: [{nom: "Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Thiéré (Couscous mil)", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Légumes", quantite: 150, unite: "g", rayon: "Marché local"}] },
-  { id: "def_14", type: "Déjeuner", nom: "Mbakhal Saloum Allégé", calories: 510, is_bol_commun: true, bienfaits: "Un plat traditionnel réconfortant avec un apport strictement contrôlé en glucides.", ingredients: [{nom: "Viande maigre", quantite: 100, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Pâte d'arachide pure", quantite: 15, unite: "g", rayon: "Boutique de super aliments"}, {nom: "Riz brisé", quantite: 60, unite: "g", rayon: "Marché local"}] },
-  { id: "def_15", type: "Déjeuner", nom: "Fonio aux Crevettes & Poivrons", calories: 430, is_bol_commun: false, bienfaits: "Apporte une dose de Zinc et d'iode vitale pour réguler la thyroïde.", ingredients: [{nom: "Crevettes", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique de super aliments"}, {nom: "Poivrons", quantite: 150, unite: "g", rayon: "Marché local"}] },
-  { id: "def_16", type: "Déjeuner", nom: "Yassa Poulet au Fonio", calories: 520, is_bol_commun: true, bienfaits: "Une synergie entre la vitamine C du citron et le fer naturel du fonio.", ingredients: [{nom: "Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Oignons", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique de super aliments"}, {nom: "Huile d'olive", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
+  { id: "def_14", type: "Déjeuner", nom: "Mbakhal Saloum Allégé", calories: 510, is_bol_commun: true, bienfaits: "Un plat traditionnel réconfortant avec un apport strictement contrôlé en glucides.", ingredients: [{nom: "Viande maigre", quantite: 100, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Pâte d'arachide pure", quantite: 15, unite: "g", rayon: "Boutique Onyx"}, {nom: "Riz brisé", quantite: 60, unite: "g", rayon: "Marché local"}] },
+  { id: "def_15", type: "Déjeuner", nom: "Fonio aux Crevettes & Poivrons", calories: 430, is_bol_commun: false, bienfaits: "Apporte une dose de Zinc et d'iode vitale pour réguler la thyroïde.", ingredients: [{nom: "Crevettes", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique Onyx"}, {nom: "Poivrons", quantite: 150, unite: "g", rayon: "Marché local"}] },
+  { id: "def_16", type: "Déjeuner", nom: "Yassa Poulet au Fonio", calories: 520, is_bol_commun: true, bienfaits: "Une synergie entre la vitamine C du citron et le fer naturel du fonio.", ingredients: [{nom: "Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Oignons", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Boutique Onyx"}, {nom: "Huile d'olive", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
   { id: "def_17", type: "Déjeuner", nom: "Salade Tiède Patate Douce & Poulet", calories: 480, is_bol_commun: false, bienfaits: "Le bêta-carotène de la patate douce favorise l'éclat de la peau et limite les pics de sucre.", ingredients: [{nom: "Patate douce", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Blanc de poulet", quantite: 120, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Tomates", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
   { id: "def_18", type: "Dîner", nom: "Salade de Niébé Fraîcheur", calories: 400, is_bol_commun: false, bienfaits: "Excellent pour une digestion très légère avant le sommeil sans sensation de faim.", ingredients: [{nom: "Niébé (Haricots)", quantite: 100, unite: "g", rayon: "Marché local"}, {nom: "Concombre", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Vinaigrette légère", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
-  { id: "def_19", type: "Dîner", nom: "Soupe de Légumes Locaux au Soumbala", calories: 300, is_bol_commun: false, bienfaits: "Hydrate en profondeur et régule naturellement la tension artérielle pendant la nuit.", ingredients: [{nom: "Carotte", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Navet", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique de super aliments"}] },
+  { id: "def_19", type: "Dîner", nom: "Soupe de Légumes Locaux au Soumbala", calories: 300, is_bol_commun: false, bienfaits: "Hydrate en profondeur et régule naturellement la tension artérielle pendant la nuit.", ingredients: [{nom: "Carotte", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Navet", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}] },
   { id: "def_20", type: "Dîner", nom: "Poisson braisé (Yaboye) & Jaxatu", calories: 380, is_bol_commun: false, bienfaits: "L'amertume du Jaxatu aide à nettoyer et purifier le foie en douceur.", ingredients: [{nom: "Yaboye", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Jaxatu", quantite: 100, unite: "g", rayon: "Marché local"}] },
   { id: "def_21", type: "Dîner", nom: "Blanc de Poulet Sauté au Djar", calories: 350, is_bol_commun: false, bienfaits: "Des épices locales qui réchauffent le métabolisme sans ajouter aucune calorie.", ingredients: [{nom: "Blanc de poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Haricots verts", quantite: 150, unite: "g", rayon: "Marché local"}, {nom: "Grains de Djar", quantite: 1, unite: "pincée", rayon: "Marché local"}] },
-  { id: "def_22", type: "Dîner", nom: "Omelette Moringa & Champignons", calories: 320, is_bol_commun: false, bienfaits: "Une multivitamine naturelle pure favorisant la réparation cellulaire nocturne.", ingredients: [{nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"}, {nom: "Poudre de Moringa", quantite: 1, unite: "càc", rayon: "Boutique de super aliments"}, {nom: "Champignons", quantite: 100, unite: "g", rayon: "Supermarché"}] },
+  { id: "def_22", type: "Dîner", nom: "Omelette Moringa & Champignons", calories: 320, is_bol_commun: false, bienfaits: "Une multivitamine naturelle pure favorisant la réparation cellulaire nocturne.", ingredients: [{nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"}, {nom: "Poudre de Moringa", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}, {nom: "Champignons", quantite: 100, unite: "g", rayon: "Supermarché"}] },
   { id: "def_23", type: "Dîner", nom: "Sauté de Bœuf aux Gombos", calories: 390, is_bol_commun: false, bienfaits: "Le gombo apporte une satiété ultra-rapide sans alourdir l'estomac le soir.", ingredients: [{nom: "Bœuf maigre", quantite: 120, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Gombo", quantite: 100, unite: "g", rayon: "Marché local"}] },
   { id: "def_24", type: "Dîner", nom: "Papillote de Poisson Citronnée", calories: 310, is_bol_commun: false, bienfaits: "Une cuisson saine sans ajout de matière grasse, permettant au foie de se reposer.", ingredients: [{nom: "Poisson blanc", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Citron", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Courgettes", quantite: 150, unite: "g", rayon: "Marché local"}] },
   { id: "def_25", type: "Dîner", nom: "Salade de Thon, Avocat & Tomates", calories: 420, is_bol_commun: false, bienfaits: "Riche en Oméga-3 pour apaiser le système nerveux et améliorer la qualité du sommeil.", ingredients: [{nom: "Thon nature", quantite: 100, unite: "g", rayon: "Supermarché"}, {nom: "Avocat", quantite: 0.5, unite: "pièce", rayon: "Marché local"}, {nom: "Tomate", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
-  { id: "def_26", type: "Dîner", nom: "Velouté de Courge & Poudre de Moringa", calories: 280, is_bol_commun: false, bienfaits: "Concentré en Vitamine A et fibres très douces pour ne pas irriter les intestins.", ingredients: [{nom: "Courge", quantite: 200, unite: "g", rayon: "Marché local"}, {nom: "Poudre de Moringa", quantite: 1, unite: "càc", rayon: "Boutique de super aliments"}] },
-  { id: "def_27", type: "Dîner", nom: "Émincé de Volaille aux Épices & Soumbala", calories: 360, is_bol_commun: false, bienfaits: "Protège le système cardio-vasculaire en remplaçant totalement le sel industriel.", ingredients: [{nom: "Volaille", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Légumes mélangés", quantite: 200, unite: "g", rayon: "Marché local"}, {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique de super aliments"}] },
+  { id: "def_26", type: "Dîner", nom: "Velouté de Courge & Poudre de Moringa", calories: 280, is_bol_commun: false, bienfaits: "Concentré en Vitamine A et fibres très douces pour ne pas irriter les intestins.", ingredients: [{nom: "Courge", quantite: 200, unite: "g", rayon: "Marché local"}, {nom: "Poudre de Moringa", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}] },
+  { id: "def_27", type: "Dîner", nom: "Émincé de Volaille aux Épices & Soumbala", calories: 360, is_bol_commun: false, bienfaits: "Protège le système cardio-vasculaire en remplaçant totalement le sel industriel.", ingredients: [{nom: "Volaille", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Légumes mélangés", quantite: 200, unite: "g", rayon: "Marché local"}, {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}] },
   { id: "def_28", type: "Dîner", nom: "Brochettes de Poisson et Tomates", calories: 350, is_bol_commun: false, bienfaits: "Apporte des protéines pures et du lycopène, un puissant antioxydant issu de la tomate cuite.", ingredients: [{nom: "Poisson blanc", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Tomates cerises", quantite: 100, unite: "g", rayon: "Marché local"}, {nom: "Huile d'olive", quantite: 1, unite: "càc", rayon: "Supermarché"}] },
   { id: "def_29", type: "Dîner", nom: "Steak de Viande Maigre & Salade Verte", calories: 390, is_bol_commun: false, bienfaits: "Recharge votre corps en fer assimilable, idéal pour la récupération cellulaire nocturne.", ingredients: [{nom: "Viande de Bœuf Maigre", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Salade Verte", quantite: 1, unite: "portion", rayon: "Marché local"}, {nom: "Vinaigrette", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
   { id: "def_30", type: "Collation", nom: "Yaourt Nature & Éclats d'Arachides", calories: 150, is_bol_commun: false, bienfaits: "Protéines du yaourt relevées par les bonnes graisses de l'arachide.", ingredients: [{nom: "Yaourt nature", quantite: 1, unite: "pot", rayon: "Supermarché"}, {nom: "Arachides grillées", quantite: 10, unite: "g", rayon: "Marché local"}] },
   { id: "def_31", type: "Collation", nom: "Fruit de Saison & Lait Caillé (Sow)", calories: 180, is_bol_commun: false, bienfaits: "Un mix parfait entre vitamines et ferments lactiques.", ingredients: [{nom: "Fruit au choix", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Sow Nature", quantite: 100, unite: "ml", rayon: "Marché local"}] },
-  { id: "def_32", type: "Collation", nom: "Infusion Bissap Pur & Noix de Cajou", calories: 160, is_bol_commun: false, bienfaits: "Apport en Magnésium anti-stress et effet jambes légères grâce au Bissap.", ingredients: [{nom: "Bissap rouge séché", quantite: 1, unite: "tasse", rayon: "Boutique de super aliments"}, {nom: "Noix de cajou", quantite: 15, unite: "g", rayon: "Boutique de super aliments"}] },
-  { id: "def_33", type: "Collation", nom: "Yaourt Nature à la Poudre de Bouye", calories: 140, is_bol_commun: false, bienfaits: "Probiotiques du yaourt alliés aux fibres du baobab pour une flore intestinale en béton.", ingredients: [{nom: "Yaourt nature", quantite: 1, unite: "pot", rayon: "Supermarché"}, {nom: "Poudre de Baobab", quantite: 1, unite: "càc", rayon: "Boutique de super aliments"}] },
+  { id: "def_32", type: "Collation", nom: "Infusion Bissap Pur & Noix de Cajou", calories: 160, is_bol_commun: false, bienfaits: "Apport en Magnésium anti-stress et effet jambes légères grâce au Bissap.", ingredients: [{nom: "Bissap rouge séché", quantite: 1, unite: "tasse", rayon: "Boutique Onyx"}, {nom: "Noix de cajou", quantite: 15, unite: "g", rayon: "Boutique Onyx"}] },
+  { id: "def_33", type: "Collation", nom: "Yaourt Nature à la Poudre de Bouye", calories: 140, is_bol_commun: false, bienfaits: "Probiotiques du yaourt alliés aux fibres du baobab pour une flore intestinale en béton.", ingredients: [{nom: "Yaourt nature", quantite: 1, unite: "pot", rayon: "Supermarché"}, {nom: "Poudre de Baobab", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}] },
   { id: "def_34", type: "Collation", nom: "Bâtonnets de Carotte & Concombre", calories: 80, is_bol_commun: false, bienfaits: "Une option zéro culpabilité, ultra-croquante et hydratante.", ingredients: [{nom: "Carotte", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Concombre", quantite: 0.5, unite: "pièce", rayon: "Marché local"}] },
-  { id: "def_35", type: "Collation", nom: "Fromage Blanc & Graines de Courge", calories: 150, is_bol_commun: false, bienfaits: "Excellente source de protéines et de zinc pour embellir la peau.", ingredients: [{nom: "Fromage blanc", quantite: 100, unite: "g", rayon: "Supermarché"}, {nom: "Graines de courge", quantite: 15, unite: "g", rayon: "Boutique de super aliments"}] },
+  { id: "def_35", type: "Collation", nom: "Fromage Blanc & Graines de Courge", calories: 150, is_bol_commun: false, bienfaits: "Excellente source de protéines et de zinc pour embellir la peau.", ingredients: [{nom: "Fromage blanc", quantite: 100, unite: "g", rayon: "Supermarché"}, {nom: "Graines de courge", quantite: 15, unite: "g", rayon: "Boutique Onyx"}] },
   { id: "def_36", type: "Collation", nom: "Infusion Kinkeliba & Chocolat Noir", calories: 120, is_bol_commun: false, bienfaits: "Gourmandise antioxydante couplée au nettoyage hépatique du Kinkeliba.", ingredients: [{nom: "Kinkeliba", quantite: 1, unite: "tasse", rayon: "Marché local"}, {nom: "Chocolat noir 70%", quantite: 1, unite: "carré", rayon: "Supermarché"}] },
   { id: "def_37", type: "Collation", nom: "Lait Caillé (Sow) Nature", calories: 130, is_bol_commun: false, bienfaits: "Riche en calcium et ferments lactiques indispensables pour une bonne digestion.", ingredients: [{nom: "Sow Nature", quantite: 150, unite: "ml", rayon: "Marché local"}] },
   { id: "def_38", type: "Collation", nom: "Dattes & Thé Vert Menthe", calories: 110, is_bol_commun: false, bienfaits: "L'énergie rapide absolue associée aux antioxydants du thé.", ingredients: [{nom: "Dattes", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Thé vert menthe", quantite: 1, unite: "tasse", rayon: "Supermarché"}] }
@@ -325,7 +316,7 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
                     bienfaits: p.description_courte || "Une recette savoureuse et bénéfique.",
                     budget_tier: p.budget_tier || 'Famille 15k',
                     recipe: `Préparez une portion de ${p.nom}. ${p.description_courte || ''}`,
-                    ingredients: [{ nom: p.nom, quantite: 1, unite: "portion", rayon: "Boutique de super aliments" }]
+                    ingredients: [{ nom: p.nom, quantite: 1, unite: "portion", rayon: "Boutique Onyx" }]
                 };
             });
         }
@@ -706,17 +697,6 @@ export default function NutritionDashboard() {
   const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const [scratchedBlocks, setScratchedBlocks] = useState<number[]>([]);
-
-  useEffect(() => {
-    if (showCartModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showCartModal]);
 
   // Shop dynamic additions
   const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
@@ -2042,7 +2022,7 @@ export default function NutritionDashboard() {
               if (!recipe || !Array.isArray(recipe.ingredients)) return;
               recipe.ingredients.forEach((ing: any) => {
                   let finalRayon = ing.rayon || 'Glucides & Laitages';
-                  if (ing.rayon === 'Boutique de super aliments' || ing.rayon === 'Marché local') finalRayon = 'Produits Locaux / Épices';
+                  if (ing.rayon === 'Boutique Onyx' || ing.rayon === 'Marché local') finalRayon = 'Produits Locaux / Épices';
                   if (ing.rayon === 'Boucherie / Pêche') finalRayon = 'Protéines Fraîches';
 
                   if (!list[finalRayon]) list[finalRayon] = {};
@@ -2094,7 +2074,7 @@ export default function NutritionDashboard() {
 
   const handleShareProduct = (product: any) => {
       const url = `${window.location.origin}/solutions/onyx-nutritionafricaine?product=${product.id}`;
-      const text = `Découvrez ${product.nom} sur la boutique de super alimentsNutrition !\n\n${product.description_courte || ''}\n\n👉 Achetez ici : ${url}`;
+      const text = `Découvrez ${product.nom} sur la boutique OnyxNutrition !\n\n${product.description_courte || ''}\n\n👉 Achetez ici : ${url}`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -2346,7 +2326,7 @@ export default function NutritionDashboard() {
 
       if (foodObj?.flags_ia?.ultra_transforme) {
          alertTitle = "Produit Ultra-Transformé ⚠️";
-         alertText = foodObj.message_coach_ia || "Ce produit industriel contient souvent des additifs. Remplaçons-le par nos super-aliments naturels (Fonio, Moringa) disponibles dans la boutique de super aliments !";
+         alertText = foodObj.message_coach_ia || "Ce produit industriel contient souvent des additifs. Remplaçons-le par nos super-aliments naturels (Fonio, Moringa) disponibles dans la boutique Onyx !";
          alertType = 'warning';
       } else if (newlyCompletedGauges) {
          alertTitle = "Journée Parfaite ! 🎯";
@@ -3226,29 +3206,34 @@ export default function NutritionDashboard() {
       }
   };
 const currentHour = new Date().getHours();
-  const greetingText = currentHour < 12 ? "Bonjour" : currentHour < 18 ? "Salam" : "Bonsoir";
+  const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
 
   // Logic for contextual personalized subtext
-  const objectifCalories = Number(clientProfile?.diagnostic_data?.bmr || 2000);
-  const getCoachMessage = () => {
-      if (currentHour >= 15 && waterGlasses < 4) {
-          const phrases = [
-              "Il fait soif cet après-midi ! Pense à ton eau. 💧",
-              "Oups, tu es en retard sur ton hydratation ! 🚰",
-              "Un grand verre d'eau avant de continuer ! 🌊"
-          ];
-          return phrases[Math.floor(Math.random() * phrases.length)];
-      }
-      if (calories >= (objectifCalories * 0.9)) {
-          const phrases = [
-              "Objectifs presque atteints, on lâche rien ! 💪",
-              "Super journée, tu gères ! 🔥"
-          ];
-          return phrases[Math.floor(Math.random() * phrases.length)];
-      }
-      return "Prête pour une belle journée ? ✨";
-  };
-  const greetingSubtext = getCoachMessage();
+  const hasPendingReport = !reportData || reportData.length === 0;
+  const isMorning = currentHour < 12;
+  const isAfternoon = currentHour >= 12 && currentHour < 18;
+  const isEvening = currentHour >= 18;
+
+  let greetingSubtext = "Prête pour ta journée ?";
+  if (isMorning) {
+    if (waterGlasses < 2) {
+      greetingSubtext = "N'oublie pas de boire tes premiers verres d'eau ! 💧";
+    } else {
+      greetingSubtext = "Super début de journée ! Continue comme ça. ☀️";
+    }
+  } else if (isAfternoon) {
+    if (waterGlasses < 4) {
+      greetingSubtext = "Une petite pause ? Pense à t'hydrater. 🚰";
+    } else {
+      greetingSubtext = "En pleine forme pour cet après-midi ! 🔥";
+    }
+  } else if (isEvening) {
+    if (hasPendingReport) {
+       greetingSubtext = "N'oublie pas de remplir ton Bilan Quotidien ! 📝";
+    } else {
+       greetingSubtext = "Excellente soirée, pense à bien te reposer. 🌙";
+    }
+  }
 
 
   const subTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
@@ -3391,7 +3376,7 @@ const currentHour = new Date().getHours();
        }
     }
 
-    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique de super aliments Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
+    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
     if (isShopPromoApplied && appliedPromoData) {
        msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
@@ -4227,7 +4212,7 @@ const currentHour = new Date().getHours();
 
             {/* Suggestions Boutique */}
             <div className="bg-white border border-zinc-200 shadow-sm rounded-[2rem] p-8 mt-12 relative overflow-hidden">
-               <h3 className="text-xl font-black uppercase text-black mb-6 flex items-center gap-2"><ShoppingCart className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={24}/> La Boutique de super aliments</h3>
+               <h3 className="text-xl font-black uppercase text-black mb-6 flex items-center gap-2"><ShoppingCart className="text-[#39FF14] bg-black p-1.5 rounded-lg" size={24}/> La Boutique Onyx</h3>
                <p className="text-zinc-500 font-bold text-sm mb-6">Boostez vos résultats avec nos produits 100% naturels.</p>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {crossSellProducts.slice(0,3).map((p: any) => (
@@ -4781,7 +4766,7 @@ const currentHour = new Date().getHours();
                   {Object.entries(getGroceryList()).map(([rayon, items]: any) => {
                      if (Object.keys(items).length === 0) return null;
                      let subtitle = "";
-                     if (rayon === 'Produits Locaux / Épices') subtitle = "Acheter au marché ou commander sur la boutique de super aliments";
+                     if (rayon === 'Produits Locaux / Épices') subtitle = "Acheter au marché ou commander sur la boutique Onyx";
                      else if (rayon === 'Glucides & Laitages') subtitle = "Acheter au supermarché (Auchan, Casino)";
                      else if (rayon === 'Protéines Fraîches') subtitle = "Acheter chez le boucher / poissonnier";
 
@@ -5052,17 +5037,12 @@ const currentHour = new Date().getHours();
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                  <div className="flex items-center gap-4">
-                     <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
-                     <div>
-                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>L'Épicerie <span className="text-[#39FF14]">Lekk Gu Set</span></h2>
-                        <p className="text-zinc-500 font-bold text-sm mt-1">Vos essentiels détox, minceur et vitalité.</p>
-                     </div>
-                  </div>
-                  <button onClick={() => window.open('/tiak', '_blank')} className="bg-[#39FF14] text-black px-6 py-3 rounded-full font-black uppercase tracking-widest text-xs hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg animate-pulse flex items-center gap-2 border-2 border-[#39FF14] self-start md:self-center shrink-0">
-                      <Package size={16} /> Suivre mes commandes
-                  </button>
+              <div className="flex items-center gap-4 mb-8">
+                 <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                 <div>
+                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Onyx</h2>
+                    <p className="text-zinc-500 font-bold text-sm mt-1">Super-aliments & Équipements</p>
+                 </div>
               </div>
 
               <div className="w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden mb-12 shadow-xl relative border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
@@ -5150,23 +5130,9 @@ const currentHour = new Date().getHours();
                            <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
                            <div className="flex items-center justify-between mt-2">
                                <p className="text-[#39FF14] font-black text-lg">{product.prix_premium.toLocaleString()} F</p>
-                               {(() => {
-                                   const inCart = shopCart.find((p: any) => p.id === product.id);
-                                   if (inCart) {
-                                       return (
-                                           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1" onClick={(e) => e.stopPropagation()}>
-                                               <button onClick={() => updateCartQuantity(inCart.id, -1)} className="p-1 bg-white dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Minus size={14}/></button>
-                                               <span className="font-black text-sm text-black dark:text-white px-2">{inCart.quantity}</span>
-                                               <button onClick={() => updateCartQuantity(inCart.id, 1)} className="p-1 bg-white dark:bg-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Plus size={14}/></button>
-                                           </div>
-                                       );
-                                   }
-                                   return (
-                                       <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
-                                           <Plus size={16} />
-                                       </button>
-                                   );
-                               })()}
+                               <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
+                                   <Plus size={16} />
+                               </button>
                            </div>
                        </div>
                        ))}
@@ -5222,23 +5188,9 @@ const currentHour = new Date().getHours();
                              <p className="text-sm sm:text-lg font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg w-max italic">{product.prix_premium.toLocaleString()} F</p>
                           </div>
                           <div className="flex gap-2">
-                             {(() => {
-                                const inCart = shopCart.find(p => p.id === product.id);
-                                if (inCart) {
-                                    return (
-                                        <div className="flex-1 flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 shadow-inner" onClick={(e) => e.stopPropagation()}>
-                                            <button onClick={() => updateCartQuantity(inCart.id, -1)} className="p-2 bg-white dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Minus size={14}/></button>
-                                            <span className="font-black text-sm text-black dark:text-white px-2">{inCart.quantity}</span>
-                                            <button onClick={() => updateCartQuantity(inCart.id, 1)} className="p-2 bg-white dark:bg-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Plus size={14}/></button>
-                                        </div>
-                                    );
-                                }
-                                return (
-                                   <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                                      <Plus size={14}/> Ajouter
-                                   </button>
-                                );
-                             })()}
+                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                <Plus size={14}/> Ajouter
+                             </button>
                              <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
                                 <Heart size={16} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
                              </button>
@@ -5344,9 +5296,9 @@ const currentHour = new Date().getHours();
                                        if (inCart) {
                                            return (
                                                <div className="flex-1 flex items-center justify-between bg-zinc-100 rounded-2xl p-2 px-4 shadow-inner">
-                                                   <button onClick={() => updateCartQuantity(inCart.id, -1)} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
+                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity - 1)} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
                                                    <span className="font-black text-xl text-black px-6">{inCart.quantity}</span>
-                                                   <button onClick={() => updateCartQuantity(inCart.id, 1)} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
+                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity + 1)} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
                                                </div>
                                            );
                                        }
@@ -7645,7 +7597,7 @@ const currentHour = new Date().getHours();
               <h4 className="font-black text-lg uppercase tracking-widest mb-6 flex items-center gap-2"><Compass className="text-[#39FF14]"/> Ressources</h4>
               <ul className="space-y-4 text-zinc-400 font-bold text-sm">
                  <li><button onClick={() => window.open('https://rokhydiallo.com', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Notre Méthode</button></li>
-                 <li><button onClick={() => window.open('https://rokhydiallo.com/boutique', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Boutique de super aliments</button></li>
+                 <li><button onClick={() => window.open('https://rokhydiallo.com/boutique', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Boutique Onyx</button></li>
                  <li><button onClick={() => window.open('https://rokhydiallo.com/contact', '_blank')} className="hover:text-[#39FF14] transition-colors flex items-center gap-2"><ArrowRight size={14}/> Espace Coaching</button></li>
               </ul>
            </div>
@@ -7687,15 +7639,15 @@ const currentHour = new Date().getHours();
       {/* MODALE PANIER */}
       <AnimatePresence>
          {showCartModal && (
-            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 p-4 md:p-8 animate-in fade-in">
+            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex justify-end animate-in fade-in">
                <motion.div
-                 initial={{ y: '100%', x: 0, scale: 0.95 }}
-                 animate={{ y: 0, x: 0, scale: 1 }}
-                 exit={{ y: '100%', x: 0, scale: 0.95 }}
+                 initial={{ x: '100%' }}
+                 animate={{ x: 0 }}
+                 exit={{ x: '100%' }}
                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                 className={`relative w-full max-w-2xl max-h-[95vh] flex flex-col ${theme === 'dark' ? 'bg-zinc-950 border border-zinc-800' : 'bg-white'} rounded-2xl shadow-2xl overflow-hidden`}
+                 className={`w-full max-w-md max-h-[90vh] ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl relative`}
                >
-                  <div className="shrink-0 p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
                         <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
                      </h2>
@@ -7722,7 +7674,7 @@ const currentHour = new Date().getHours();
                      </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-6 space-y-4 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-4 custom-scrollbar">
                      {shopCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-zinc-500">
                            <ShoppingBag size={48} className="mb-4 opacity-50"/>
@@ -7772,7 +7724,6 @@ const currentHour = new Date().getHours();
                              </div>
                          </div>
                      )}
-
                   </div>
 
                   {shopCart.length > 0 && (
@@ -7785,7 +7736,7 @@ const currentHour = new Date().getHours();
                                if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
                            }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
                            {showZoneSuggestions && deliveryZone.length >= 2 && (
-                               <div className={`absolute top-full left-0 z-50 w-full border shadow-xl rounded-b-xl max-h-48 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                               <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
                                    {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
                                        <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
                                           <span>{q}</span>

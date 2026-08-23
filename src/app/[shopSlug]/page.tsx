@@ -204,7 +204,7 @@ const INITIAL_ZONES = [
   { id: 5, name: "Zone 5", price: 3000, quartiers: ["Keur Massar", "Rufisque"] }
 ];
 
-function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone, onUpdateQuantity }: any) {
+function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: any) {
   const [selectedSize, setSelectedSize] = useState<any | null>(null);
   const [selectedColor, setSelectedColor] = useState<any | null>(null);
   const [selectedQty, setSelectedQty] = useState(1);
@@ -467,26 +467,18 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                
                <div className="flex flex-col gap-3 mb-8 mt-auto">
                   <div className="flex flex-col sm:flex-row gap-3">
-                      {((cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0) > 0 && !(Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) && !(Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? (
-                          <div className="flex-1 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 px-4 shadow-inner" onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => onUpdateQuantity(cart.find((i: any) => i.id === product.id)!, -1)} className="p-3 bg-white dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg shadow-sm transition-colors text-black dark:text-white font-black"><Minus size={18}/></button>
-                              <span className="font-black text-xl text-black dark:text-white px-6">{(cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0)}</span>
-                              <button onClick={() => onUpdateQuantity(cart.find((i: any) => i.id === product.id)!, 1)} disabled={product.stock !== undefined && (cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0) >= product.stock} className="p-3 bg-white dark:bg-zinc-800 hover:bg-[#39FF14] hover:text-black rounded-lg shadow-sm transition-colors text-black dark:text-white font-black disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={18}/></button>
-                          </div>
-                      ) : (
-                          <button
-                            onClick={() => {
-                              if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
-                              if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                              onAddToCart(product, { size: selectedSize?.name, color: selectedColor?.name, priceModifier: (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0) }, true, selectedQty || 1);
-                              onClose();
-                            }}
-                            disabled={isOutOfStock || selectedQty === 0}
-                            className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                             <Plus size={18} /> {maxAvailable === 0 && product.stock !== 0 ? "Limite panier" : "Ajouter au Panier"}
-                          </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
+                          onAddToCart(product, { size: selectedSize?.name, color: selectedColor?.name, priceModifier: (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0) }, true, selectedQty || 1);
+                          onClose();
+                        }}
+                        disabled={isOutOfStock || selectedQty === 0}
+                        className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                         <Plus size={18} /> {maxAvailable === 0 && product.stock !== 0 ? "Limite panier" : "Ajouter au Panier"}
+                      </button>
                       <button 
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
@@ -706,17 +698,6 @@ export default function DynamicShopPage() {
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (isCartOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isCartOpen]);
 
   // Confettis de célébration lors d'une commande
   useEffect(() => {
@@ -1643,14 +1624,9 @@ export default function DynamicShopPage() {
 
         <div className="p-8 md:p-12 md:pt-32 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-80px)]">
           <div className="flex-1">
-            <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2">L'Épicerie <span className="text-[#39FF14]">Lekk Gu Set</span></h2>
-                <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Vos essentiels détox, minceur et vitalité. Des super-aliments d'ici pour une santé de fer.</p>
-              </div>
-              <button onClick={() => setIsTrackingModalOpen(true)} className="bg-[#39FF14] text-black px-6 py-3 rounded-full font-black uppercase tracking-widest text-xs hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg animate-pulse flex items-center gap-2 border-2 border-[#39FF14] self-start md:self-center shrink-0">
-                  <Package size={16} /> Suivre mes commandes
-              </button>
+            <div className="mb-12">
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Catalogue <span className="text-[#39FF14]">Produits</span></h2>
+              <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Bienvenue sur la boutique de {shopInfo.name}. Ajoutez au panier et validez via WhatsApp !</p>
             </div>
 
             {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice && homepageLayout && homepageLayout.length > 0 ? (
@@ -1721,24 +1697,16 @@ export default function DynamicShopPage() {
                             {product.old_price && product.old_price > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.old_price, shopInfo.currency)}</p>}
                           </div>
                         </div>
-                        {((cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) > 0 && !(Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) && !(Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? (
-                            <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => updateQuantity(cart.find(i => i.id === product.id)!, -1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-700 text-black dark:text-white rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors shadow-sm"><Minus size={14}/></button>
-                                <span className="text-sm font-black w-6 text-center text-black dark:text-white">{(cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0)}</span>
-                                <button onClick={() => updateQuantity(cart.find(i => i.id === product.id)!, 1)} disabled={product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-700 text-black dark:text-white rounded-lg hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={14}/></button>
-                            </div>
-                        ) : (
-                            <button onClick={(e) => {
-                                e.stopPropagation();
-                                if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
-                                    setViewingProduct(product);
-                                } else {
-                                    addToCart(product);
-                                }
-                            }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
-                              <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Choisir Options' : 'Ajouter'}
-                            </button>
-                        )}
+                        <button onClick={(e) => {
+                            e.stopPropagation();
+                            if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
+                                setViewingProduct(product);
+                            } else {
+                                addToCart(product);
+                            }
+                        }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
+                          <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Choisir Options' : 'Ajouter au Panier'}
+                        </button>
                       </div>
                     </div>
                         </div>
@@ -1871,8 +1839,8 @@ export default function DynamicShopPage() {
         {isCartOpen && (
           <div className="fixed inset-0 z-[60] flex flex-col justify-end md:items-center md:justify-center animate-in fade-in">
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl rounded-t-[2rem] md:rounded-3xl mt-auto md:mt-0 overflow-hidden">
-               <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900">
+            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl rounded-t-[2rem] md:rounded-3xl mt-auto md:mt-0 overflow-hidden">
+               <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
                     {cartCount > 0 && (
@@ -1903,11 +1871,11 @@ export default function DynamicShopPage() {
                   <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
                </div>
        {showStockUpdate && (
-          <div className="shrink-0 bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
+          <div className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
              <RefreshCcw size={12} className="animate-spin" /> Mise à jour du stock en temps réel
           </div>
        )}
-               <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
+               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
                   {cart.length === 0 ? <p className="text-center text-zinc-500 mt-20">Votre panier est vide.</p> : cart.map(item => (
                     <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                          <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl bg-zinc-200 dark:bg-zinc-800" />
@@ -1931,61 +1899,57 @@ export default function DynamicShopPage() {
                          </div>
                       </div>
                   ))}
+               </div>
+               {cart.length > 0 && (
+                 <div className="mt-auto bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800 shrink-0 custom-scrollbar">
 
-                  {cart.length > 0 && (
-                      <div className="mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6 pb-2">
-                          <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
-                              <div className="flex justify-between items-center mb-2">
-                                  <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
-                                  <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
-                              </div>
-                              <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
-                                  <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${freeShippingProgress}%` }}></div>
-                              </div>
-                          </div>
+                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
+                            <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
+                        </div>
+                        <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${freeShippingProgress}%` }}></div>
+                        </div>
+                    </div>
 
-                          <div className="mb-6">
-                             <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
-                             <div className="flex gap-3">
-                              {shopInfo.delivery_options?.delivery !== false && (
-                                  <button onClick={() => setDeliveryMethod('delivery')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
-                                     <Truck size={20} /><span className="text-[10px] font-black uppercase">Livraison</span>
-                                  </button>
-                              )}
-                              {shopInfo.delivery_options?.pickup !== false && (
-                                  <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
-                                     <Store size={20} /><span className="text-[10px] font-black uppercase">Retrait</span>
-                                  </button>
-                              )}
-                             </div>
-                          </div>
-
-                        {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
-                            <div className="mb-6">
-                                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
-                                <select
-                                    value={selectedZoneId || ''}
-                                    onChange={(e) => setSelectedZoneId(Number(e.target.value))}
-                                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer"
-                                >
-                                    <option value="">-- Sélectionner votre zone --</option>
-                                    {deliveryZones.map(zone => (
-                                        <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
-                                    ))}
-                                </select>
-                                {selectedZoneId && (
-                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
-                                        {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
-                                    </p>
-                                )}
-                            </div>
+                    <div className="mb-6">
+                       <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
+                       <div className="flex gap-3">
+                        {shopInfo.delivery_options?.delivery !== false && (
+                            <button onClick={() => setDeliveryMethod('delivery')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
+                               <Truck size={20} /><span className="text-[10px] font-black uppercase">Livraison</span>
+                            </button>
                         )}
+                        {shopInfo.delivery_options?.pickup !== false && (
+                            <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}>
+                               <Store size={20} /><span className="text-[10px] font-black uppercase">Retrait</span>
+                            </button>
+                        )}
+                       </div>
+                    </div>
+
+                  {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
+                      <div className="mb-6">
+                          <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
+                          <select
+                              value={selectedZoneId || ''}
+                              onChange={(e) => setSelectedZoneId(Number(e.target.value))}
+                              className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer"
+                          >
+                              <option value="">-- Sélectionner votre zone --</option>
+                              {deliveryZones.map(zone => (
+                                  <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
+                              ))}
+                          </select>
+                          {selectedZoneId && (
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
+                                  {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
+                              </p>
+                          )}
                       </div>
                   )}
-               </div>
 
-               {cart.length > 0 && (
-                 <div className="shrink-0 bg-white dark:bg-zinc-950 p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800">
                     <div className="flex justify-between items-center mb-6"><span className="text-zinc-500 font-bold uppercase text-xs">Total à payer</span><span className="text-2xl font-black text-black dark:text-white">{displayPrice(cartTotal, shopInfo.currency)}</span></div>
                     <button onClick={() => setIsCheckoutModalOpen(true)} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2">Commander sur WhatsApp <ArrowRight size={18} /></button>
                     <button onClick={() => setIsCartOpen(false)} className="w-full mt-3 bg-transparent border-2 border-black dark:border-white text-black dark:text-white py-3 rounded-xl font-bold uppercase text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all flex items-center justify-center">
@@ -2306,7 +2270,6 @@ export default function DynamicShopPage() {
           isOpen={!!viewingProduct}
           onClose={() => setViewingProduct(null)}
           onAddToCart={(p: any, v: any, openCart: boolean, qty: number) => addToCart(p, v, openCart, qty)}
-          onUpdateQuantity={(item: any, delta: number) => updateQuantity(item, delta)}
           onBuyDirectly={(p: any, v: any, qty: number) => { addToCart(p, v, false, qty); setIsCheckoutModalOpen(true); }}
           onShare={handleShareProduct}
           onViewProduct={setViewingProduct}
