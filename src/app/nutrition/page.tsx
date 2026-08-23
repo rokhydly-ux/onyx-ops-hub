@@ -22,6 +22,15 @@ const VISUAL_EQUIVALENCES = {
   poignee: { grams: 30, label: "poignée" }
 };
 
+const DELIVERY_ZONES: { [key: string]: number } = {
+  "Plateau": 1000, "Médina": 1000, "Fass": 1000, "Point E": 1500, "Fann": 1500,
+  "Mermoz": 1500, "Sacré-Coeur": 1500, "Almadies": 2000, "Ngor": 2000, "Yoff": 2000,
+  "Ouakam": 2000, "Parcelles Assainies": 2500, "Guédiawaye": 2500, "Pikine": 2500,
+  "Thiaroye": 3000, "Keur Massar": 3000, "Rufisque": 3500, "Diamniadio": 4000
+};
+
+const QUARTIERS = Object.keys(DELIVERY_ZONES);
+
 const formatVisualPortion = (grams: number, unit: keyof typeof VISUAL_EQUIVALENCES) => {
   if (!grams || !VISUAL_EQUIVALENCES[unit]) return "1 portion";
   const rawValue = grams / VISUAL_EQUIVALENCES[unit].grams;
@@ -7667,15 +7676,16 @@ const currentHour = new Date().getHours();
       {/* MODALE PANIER */}
       <AnimatePresence>
          {showCartModal && (
-            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex justify-end animate-in fade-in">
+            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] flex flex-col justify-end md:flex-row md:justify-end animate-in fade-in">
+               <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCartModal(false)}></div>
                <motion.div
-                 initial={{ x: '100%' }}
-                 animate={{ x: 0 }}
-                 exit={{ x: '100%' }}
+                 initial={{ y: '100%', x: 0 }}
+                 animate={{ y: 0, x: 0 }}
+                 exit={{ y: '100%', x: 0 }}
                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                 className={`w-full max-w-md max-h-[90vh] ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl relative`}
+                 className={`relative w-full max-w-full md:max-w-xl max-h-[90vh] md:max-h-[100vh] h-full ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl mt-auto md:mt-0 rounded-t-[2rem] md:rounded-none`}
                >
-                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
+                  <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center rounded-t-[2rem] md:rounded-none">
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
                         <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
                      </h2>
