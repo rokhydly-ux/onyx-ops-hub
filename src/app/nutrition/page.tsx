@@ -7676,14 +7676,14 @@ const currentHour = new Date().getHours();
       {/* MODALE PANIER */}
       <AnimatePresence>
          {showCartModal && (
-            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] flex flex-col justify-end md:flex-row md:justify-end animate-in fade-in">
+            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] flex flex-col justify-end md:items-center md:justify-center animate-in fade-in">
                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCartModal(false)}></div>
                <motion.div
-                 initial={{ y: '100%', x: 0 }}
-                 animate={{ y: 0, x: 0 }}
-                 exit={{ y: '100%', x: 0 }}
+                 initial={{ y: '100%', x: 0, scale: 0.95 }}
+                 animate={{ y: 0, x: 0, scale: 1 }}
+                 exit={{ y: '100%', x: 0, scale: 0.95 }}
                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                 className={`relative w-full max-w-full md:max-w-xl max-h-[90vh] md:max-h-[100vh] h-full ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl mt-auto md:mt-0 rounded-t-[2rem] md:rounded-none`}
+                 className={`relative w-full max-w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] md:rounded-3xl ${theme === 'dark' ? 'bg-zinc-950 border border-zinc-800' : 'bg-white border border-zinc-200'} flex flex-col shadow-2xl mt-auto md:mt-0 rounded-t-[2rem]`}
                >
                   <div className="shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center rounded-t-[2rem] md:rounded-none">
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
