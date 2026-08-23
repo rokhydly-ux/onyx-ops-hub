@@ -3209,30 +3209,26 @@ const currentHour = new Date().getHours();
   const greetingText = currentHour < 12 ? "Bonjour" : currentHour < 18 ? "Salam" : "Bonsoir";
 
   // Logic for contextual personalized subtext
-  const [greetingSubtext, setGreetingSubtext] = useState("Prête pour une belle journée ? ✨");
-
-  useEffect(() => {
-      const getCoachMessage = () => {
-          const objectifCalories = Number(clientProfile?.diagnostic_data?.bmr || 2000);
-          if (currentHour >= 15 && waterGlasses < 4) {
-              const phrases = [
-                  "Il fait soif cet après-midi ! Pense à ton eau. 💧",
-                  "Oups, tu es en retard sur ton hydratation ! 🚰",
-                  "Un grand verre d'eau avant de continuer ! 🌊"
-              ];
-              return phrases[Math.floor(Math.random() * phrases.length)];
-          }
-          if (consumedCals >= (objectifCalories * 0.9)) {
-              const phrases = [
-                  "Objectifs presque atteints, on lâche rien ! 💪",
-                  "Super journée, tu gères ! 🔥"
-              ];
-              return phrases[Math.floor(Math.random() * phrases.length)];
-          }
-          return "Prête pour une belle journée ? ✨";
-      };
-      setGreetingSubtext(getCoachMessage());
-  }, [currentHour, waterGlasses, consumedCals, clientProfile]);
+  const objectifCalories = Number(clientProfile?.diagnostic_data?.bmr || 2000);
+  const getCoachMessage = () => {
+      if (currentHour >= 15 && waterGlasses < 4) {
+          const phrases = [
+              "Il fait soif cet après-midi ! Pense à ton eau. 💧",
+              "Oups, tu es en retard sur ton hydratation ! 🚰",
+              "Un grand verre d'eau avant de continuer ! 🌊"
+          ];
+          return phrases[Math.floor(Math.random() * phrases.length)];
+      }
+      if (calories >= (objectifCalories * 0.9)) {
+          const phrases = [
+              "Objectifs presque atteints, on lâche rien ! 💪",
+              "Super journée, tu gères ! 🔥"
+          ];
+          return phrases[Math.floor(Math.random() * phrases.length)];
+      }
+      return "Prête pour une belle journée ? ✨";
+  };
+  const greetingSubtext = React.useMemo(() => getCoachMessage(), [currentHour, waterGlasses, calories, clientProfile]);
 
 
   const subTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
