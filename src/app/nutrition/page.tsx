@@ -5329,9 +5329,9 @@ const currentHour = new Date().getHours();
                                        if (inCart) {
                                            return (
                                                <div className="flex-1 flex items-center justify-between bg-zinc-100 rounded-2xl p-2 px-4 shadow-inner">
-                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity - 1)} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
+                                                   <button onClick={() => updateCartQuantity(inCart.id, -1)} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
                                                    <span className="font-black text-xl text-black px-6">{inCart.quantity}</span>
-                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity + 1)} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
+                                                   <button onClick={() => updateCartQuantity(inCart.id, 1)} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
                                                </div>
                                            );
                                        }
