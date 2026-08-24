@@ -2,6 +2,7 @@
 import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf , Users} from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
+import { useCartStore } from '@/store/useCartStore';
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -663,37 +664,25 @@ export default function NutritionDashboard() {
   // Boutique states
   const [selectedShopGoal, setSelectedShopGoal] = useState<string>("all");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [shopCart, setShopCart] = useState<any[]>([]);
-  const [savedShopProducts, setSavedShopProducts] = useState<any[]>([]);
+  const {
+    shopCart, addToCart: storeAddToCart,
+    savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts
+  } = useCartStore();
+
+  useEffect(() => {
+      setGlobalShopProducts(shopProducts);
+  }, [shopProducts, setGlobalShopProducts]);
+
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
-  const [shopPromoCode, setShopPromoCode] = useState("");
-  const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
   const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
   const [createdOrderRef, setCreatedOrderRef] = useState("");
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
 
-  // Persistance du panier
-  useEffect(() => {
-      const savedCart = localStorage.getItem('onyx_shop_cart');
-      if (savedCart) {
-          try { setShopCart(JSON.parse(savedCart)); } catch(e) {}
-      }
-  }, []);
-
-  useEffect(() => {
-      localStorage.setItem('onyx_shop_cart', JSON.stringify(shopCart));
-  }, [shopCart]);
   const [productMediaView, setProductMediaView] = useState<'image' | 'video'>('image');
   const [productActiveImage, setProductActiveImage] = useState<string>('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [deliveryZone, setDeliveryZone] = useState('');
   const [showZoneSuggestions, setShowZoneSuggestions] = useState(false);
-  const [deliveryCost, setDeliveryCost] = useState(0);
   const [clientOrders, setClientOrders] = useState<any[]>([]);
-  const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
-  const [showCartModal, setShowCartModal] = useState(false);
-  const [showCartExitIntent, setShowCartExitIntent] = useState(false);
   const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const [scratchedBlocks, setScratchedBlocks] = useState<number[]>([]);
@@ -3335,59 +3324,6 @@ const currentHour = new Date().getHours();
       if (clientProfile) localStorage.setItem(`onyx_nutrition_saved_products_${clientProfile.id}`, JSON.stringify(newSaved));
   };
 
-  const handleShopCheckout = async () => {
-    if (shopCart.length === 0) return alert("Votre panier est vide.");
-    if (!deliveryAddress.trim()) {
-        alert("Veuillez renseigner votre adresse de livraison dans le panier avant de commander.");
-        setShowCartModal(true);
-        return;
-    }
-
-    const discountPct = isShopPromoApplied && appliedPromoData ? appliedPromoData.discount_pct : 0;
-    const discountMultiplier = 1 - (discountPct / 100);
-
-    const originalTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
-    const discountAmount = Math.round(originalTotal * (discountPct / 100));
-    const total = Math.round(originalTotal * discountMultiplier);
-    const cartText = shopCart.map(item => `- ${item.quantity}x ${item.nom} (${((item.finalPrice || item.prix_premium || item.prix_standard || 0) * item.quantity).toLocaleString()} F)`).join('\n');
-
-    // Sauvegarde en DB
-    if (clientProfile) {
-       const tenantIdToUse = shopCart[0]?.tenant_id || clientProfile.tenant_id || '';
-       const { data, error } = await supabase.from('nutrition_orders').insert({
-          client_id: clientProfile.id,
-          tenant_id: tenantIdToUse || null,
-          client_name: user?.full_name || 'Inconnu',
-          phone: clientProfile.phone || '',
-          items: shopCart.map(p => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
-          total: total,
-          status: 'Nouveau',
-          promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
-          discount_amount: discountAmount,
-          address: deliveryAddress
-       }).select();
-
-       if (error) {
-           console.error("Erreur commande:", error);
-           alert("Oups, impossible de sauvegarder la commande dans l'historique. Erreur : " + error.message);
-       } else if (data && data.length > 0) {
-           setClientOrders([data[0], ...clientOrders]);
-           await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
-       }
-    }
-
-    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
-    if (isShopPromoApplied && appliedPromoData) {
-       msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
-    }
-    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryZone} - ${deliveryAddress}\n*Frais de livraison :* ${deliveryCost} F`;
-
-    window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
-    setShopCart([]);
-    setIsShopPromoApplied(false);
-    setShopPromoCode("");
-    setAppliedPromoData(null);
-  };
 
   const handleReorder = (order: any) => {
      const updatedCart = [...shopCart];
@@ -7635,308 +7571,6 @@ const currentHour = new Date().getHours();
            <p className="text-[10px] font-black tracking-widest uppercase text-zinc-700 bg-zinc-900 px-3 py-1.5 rounded-full">Designed in Senegal 🇸🇳</p>
         </div>
       </footer>
-
-      {/* VUE PANIER PLEIN ÉCRAN */}
-      <AnimatePresence>
-         {showCartModal && (
-            <div className="fixed inset-0 z-[250] bg-zinc-50 dark:bg-black overflow-y-auto">
-               <div className="min-h-screen flex flex-col max-w-3xl mx-auto bg-white dark:bg-zinc-950 shadow-2xl">
-
-                  {/* HEADER STICKY */}
-                  <div className="shrink-0 p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-950 z-20">
-                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
-                        <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
-                     </h2>
-                     <div className="flex items-center gap-4">
-                        {shopCart.length > 0 && (
-                            <button onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) setShopCart([]); }} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors flex items-center gap-1">
-                               <Trash2 size={14}/> Vider
-                            </button>
-                        )}
-                        <button onClick={() => setShowCartModal(false)} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                           <X size={16}/>
-                        </button>
-                     </div>
-                  </div>
-
-                  {/* CORPS DE LA PAGE */}
-                  <div className="flex-1 p-6 space-y-6">
-                     {remainingForFreeShipping > 0 ? (
-                         <p className="text-sm font-black uppercase tracking-widest text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14]">{remainingForFreeShipping.toLocaleString()} FCFA</span> pour la livraison gratuite !</p>
-                     ) : (
-                         <p className="text-sm font-black uppercase tracking-widest text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={16}/> Livraison gratuite débloquée !</p>
-                     )}
-                     <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner mb-6">
-                         <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
-                     </div>
-                     {shopCart.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-zinc-500">
-                           <ShoppingBag size={48} className="mb-4 opacity-50"/>
-                           <p className="font-bold uppercase tracking-widest text-xs">Votre panier est vide.</p>
-                           <button onClick={() => { setShowCartModal(false); handleTabChange('shop'); }} className="mt-6 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-md">
-                              Découvrir la boutique
-                           </button>
-                        </div>
-                     ) : (
-                        shopCart.map((item, idx) => (
-                           <div key={idx} className={`flex gap-4 p-4 rounded-2xl border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-100'} relative`}>
-                              <div className="w-20 h-20 rounded-xl bg-white dark:bg-zinc-950 overflow-hidden shrink-0 border border-zinc-100 dark:border-zinc-800">
-                                 <img src={item.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={item.nom} className="w-full h-full object-cover" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                              </div>
-                              <div className="flex-1 flex flex-col justify-center min-w-0">
-                                 <h4 className="font-bold text-sm text-black dark:text-white line-clamp-1">{item.nom}</h4>
-                                 <p className="text-[#39FF14] font-black text-sm mt-1">{((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F</p>
-                                 <div className="flex items-center gap-3 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 mt-2 w-max">
-                                     <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Minus size={14}/></button>
-                                     <span className="font-black text-sm w-6 text-center">{item.quantity}</span>
-                                     <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Plus size={14}/></button>
-                                 </div>
-                              </div>
-                              <button onClick={() => setShopCart(shopCart.filter((_, i) => i !== idx))} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors">
-                                 <Trash2 size={16}/>
-                              </button>
-                           </div>
-                        ))
-                     )}
-
-                     {crossSellProducts.length > 0 && shopCart.length > 0 && (
-                         <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                             <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2"><Sparkles size={14} className="text-yellow-500"/> Complétez votre panier</p>
-                             <div className="space-y-2">
-                                 {crossSellProducts.map((p: any) => (
-                                     <div key={p.id} className="flex items-center gap-3 bg-white dark:bg-zinc-950 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                                         <img src={p.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} className="w-10 h-10 rounded-lg object-cover" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                                         <div className="flex-1 min-w-0">
-                                             <p className="font-bold text-xs truncate text-black dark:text-white">{p.nom}</p>
-                                             <p className="text-[#39FF14] font-black text-xs">{(p.prix_standard || 0).toLocaleString()} F</p>
-                                         </div>
-                                         <button onClick={() => addToCart(p)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors">
-                                             <Plus size={14}/>
-                                         </button>
-                                     </div>
-                                 ))}
-                             </div>
-                         </div>
-                     )}
-                  </div>
-
-                  {shopCart.length > 0 && (
-                     <div className="shrink-0 p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-                        <div className="mb-4 relative z-50">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Quartier (Dakar)</label>
-                           <input type="text" placeholder="Saisissez votre quartier (ex: Mermoz)..." value={deliveryZone} onChange={e => {
-                               setDeliveryZone(e.target.value);
-                               setShowZoneSuggestions(e.target.value.length >= 2);
-                               if(!QUARTIERS.includes(e.target.value)) setDeliveryCost(0);
-                           }} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
-                           {showZoneSuggestions && deliveryZone.length >= 2 && (
-                               <div className={`absolute z-50 w-full border shadow-xl rounded-xl max-h-40 overflow-y-auto mt-1 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-                                   {QUARTIERS.filter(q => q.toLowerCase().includes(deliveryZone.toLowerCase())).map(q => (
-                                       <div key={q} onClick={() => { setDeliveryZone(q); setDeliveryCost(DELIVERY_ZONES[q]); setShowZoneSuggestions(false); }} className={`p-3 cursor-pointer text-xs font-bold flex justify-between ${theme === 'dark' ? 'hover:bg-zinc-800 text-white border-zinc-800' : 'hover:bg-zinc-100 text-black border-zinc-50'} border-b last:border-0`}>
-                                          <span>{q}</span>
-                                          <span className="text-[#39FF14]">{DELIVERY_ZONES[q]} F</span>
-                                       </div>
-                                   ))}
-                               </div>
-                           )}
-                        </div>
-                        <div className="mb-4">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse Complète</label>
-                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Immeuble Y, Appt 4..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
-                        </div>
-                        <div className="flex justify-between items-center mb-4 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Frais de livraison</span>
-                            <span className="text-xs font-black text-black dark:text-white">{deliveryCost > 0 ? `+${deliveryCost.toLocaleString()} F` : 'À déterminer'}</span>
-                        </div>
-                        <div className="flex justify-between items-center mb-6">
-                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total à payer</span>
-                           <div className="text-right">
-                               {isShopPromoApplied && <span className="text-xs line-through text-zinc-400 block">{(shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) + deliveryCost).toLocaleString()} F</span>}
-                               <span className="font-black text-2xl text-black dark:text-white">
-                                  {((shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0) * (isShopPromoApplied && appliedPromoData ? (1 - appliedPromoData.discount_pct / 100) : 1)) + deliveryCost).toLocaleString()} <span className="text-[#39FF14]">F</span>
-                               </span>
-                           </div>
-                        </div>
-                        <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
-                           <ShoppingCart size={16}/> Commander via WhatsApp
-                        </button>
-
-                        <button
-                           onClick={async () => {
-                               let shareMsg = `👋 Bonjour ! Je souhaite sauvegarder mon panier pour plus tard sur Onyx Nutrition :\n\n`;
-                               shopCart.forEach(item => { shareMsg += `- ${item.nom} (x${item.quantity}) : ${((item.finalPrice || item.prix_premium || item.prix_standard || 0) * item.quantity).toLocaleString()} F\n`; });
-                               shareMsg += `\n*Total provisoire : ${subTotal.toLocaleString()} F*\n\nPouvez-vous me garder ces articles au chaud ? 🙏`;
-
-                               try {
-                                   await supabase.from('leads').insert([{
-                                       source: 'Panier Onyx Nutrition',
-                                       intent: 'Sauvegarde Panier WhatsApp',
-                                       message: shareMsg,
-                                       status: 'Nouveau',
-                                       saas: 'Onyx Nutrition'
-                                   }]);
-                               } catch (e) {}
-
-                               window.open(`https://wa.me/221785338417?text=${encodeURIComponent(shareMsg)}`, '_blank');
-                           }}
-                           className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 mt-3 shadow-lg"
-                        >
-                           <MessageSquare size={16}/> M'envoyer mon panier (WhatsApp)
-                        </button>
-
-                        <button
-                           onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setShopCart([]); setIsShopPromoApplied(false); setAppliedPromoData(null); setShopPromoCode(""); setShowCartModal(false); } }}
-                           className="w-full bg-red-50 text-red-500 border border-red-100 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2 mt-3 shadow-sm"
-                        >
-                           <Trash2 size={14}/> Vider mon panier
-                        </button>
-
-                        {isShopPromoApplied && appliedPromoData ? (
-                           <p className="text-center text-[#39FF14] font-black uppercase tracking-widest text-[10px] mt-4">Code {appliedPromoData.code} appliqué !</p>
-                        ) : (
-                           <div className="mt-4 flex gap-2">
-                              <input type="text" placeholder="Code Promo" value={shopPromoCode} onChange={e => setShopPromoCode(e.target.value)} className={`flex-1 p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
-                              <button onClick={applyShopPromo} className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-[#39FF14] hover:text-black transition-colors">
-                                 Appliquer
-                              </button>
-                           </div>
-                        )}
-                     </div>
-                  )}
-               </div>
-            </div>
-         )}
-      </AnimatePresence>
-
-      {/* --- EXIT INTENT PANIER --- */}
-      {showCartExitIntent && (
-        <div id="cart-exit-overlay" onClick={(e: any) => e.target.id === 'cart-exit-overlay' && setShowCartExitIntent(false)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white dark:bg-zinc-950 border-t-8 border-[#39FF14] rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95 text-center">
-                <button onClick={() => setShowCartExitIntent(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
-                <div className="w-20 h-20 bg-black text-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl animate-bounce">
-                    <Gift size={32} />
-                </div>
-                <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white">Attendez !</h3>
-                <p className="text-zinc-600 dark:text-zinc-400 font-medium mb-6">Vous allez laisser vos articles ? Voici <span className="font-black text-black dark:text-white">10% de réduction immédiate</span> pour valider votre panier maintenant.</p>
-                <div className="bg-zinc-100 dark:bg-zinc-900 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-4 mb-6">
-                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Votre code promo</p>
-                    <p className="text-2xl font-black text-[#39FF14] tracking-widest">CODE10</p>
-                </div>
-                <button onClick={() => {
-                    setShopPromoCode('CODE10');
-                    if (!shopPromoCodesDB.some(c => c.code === 'CODE10')) {
-                        setShopPromoCodesDB(prev => [...prev, { id: 999, code: 'CODE10', discount_pct: 10, min_xp: 0, active: true }]);
-                    }
-                    setShowCartExitIntent(false);
-                    setShowCartModal(true);
-                    setAppliedPromoData({ id: 999, code: 'CODE10', discount_pct: 10, min_xp: 0, active: true } as any);
-                    setIsShopPromoApplied(true);
-                    alert("Code promo de 10% appliqué avec succès !");
-                }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-lg">
-                    Appliquer le code & Commander
-                </button>
-                <button onClick={() => setShowCartExitIntent(false)} className="mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-black dark:hover:text-white transition">Non merci, je quitte</button>
-            </div>
-        </div>
-      )}
-
-      {/* TOAST NOTIFICATION */}
-      {toastMessage && (
-         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[400] animate-in slide-in-from-bottom-5">
-             <CheckCircle size={16}/> {toastMessage}
-         </div>
-      )}
-          {/* MODALE CHALLENGE (ÉTAPE 2) */}
-      {showChallengeModal && activeChallenge && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in" onClick={(e: any) => { if(e.target === e.currentTarget) setShowChallengeModal(false); }}>
-              <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-md overflow-hidden relative shadow-2xl border border-zinc-200 dark:border-zinc-800">
-                  <button onClick={() => setShowChallengeModal(false)} className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black text-white rounded-full transition-colors z-20"><X size={20}/></button>
-
-                  <div className="h-56 bg-black relative">
-                      {activeChallenge.cover_url?.includes('.mp4') ? (
-                          <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                      ) : (
-                          <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                      <div className="absolute bottom-6 left-6 right-6">
-                          <span className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md shadow-sm mb-2 inline-block">Défi Tendance</span>
-                          <h3 className="text-2xl font-black text-white tracking-tight leading-tight">{activeChallenge.title}</h3>
-                      </div>
-                  </div>
-
-                  <div className="p-6">
-                      <p className="text-sm font-poppins text-zinc-600 dark:text-zinc-300 mb-6 leading-relaxed">{activeChallenge.description}</p>
-
-                      {activeChallenge.end_date && (
-                          <div className="flex items-center gap-3 mb-6 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                              <Clock className="text-orange-500 w-5 h-5"/>
-                              <div>
-                                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps restant</p>
-                                  <p className="text-sm font-bold text-black dark:text-white">Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')}</p>
-                              </div>
-                          </div>
-                      )}
-
-                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-200 dark:border-yellow-800/50 rounded-2xl p-4 flex items-center justify-between mb-8 shadow-inner">
-                          <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-500 mb-1">Récompense (XP)</p>
-                              <p className="text-2xl font-black text-yellow-700 dark:text-yellow-400">+{activeChallenge.reward_xp || activeChallenge.xp_reward || 100} XP</p>
-                          </div>
-                          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png" className="w-14 h-14 object-contain drop-shadow-md" />
-                      </div>
-
-                      {isParticipating ? (
-                          <div className="space-y-3">
-                              <button disabled className="w-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed">
-                                  <CheckCircle size={18} className="text-[#39FF14]" /> Déjà Inscrit
-                              </button>
-                          </div>
-                      ) : (
-                          <button onClick={() => { handleJoinChallenge(); setShowChallengeModal(false); }} disabled={isSaving} className="w-full bg-black text-[#39FF14] hover:bg-zinc-900 py-4 rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_40px_rgba(57,255,20,0.2)] hover:shadow-[0_10px_40px_rgba(57,255,20,0.4)] transition-all flex items-center justify-center gap-2">
-                              {isSaving ? <Activity className="animate-spin"/> : <><Trophy size={18}/> Relever le défi</>}
-                          </button>
-                      )}
-                  </div>
-              </div>
-          </div>
-      )}
-
-                 {/* MODALE ORDER SUCCESS */}
-      <AnimatePresence>
-        {showOrderSuccessModal && (
-            <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center relative border-t-[8px] border-[#39FF14]">
-                    <button onClick={() => setShowOrderSuccessModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={20}/></button>
-                    <img src={MENU_ICONS.dashboard} alt="Success" className="w-24 h-24 rounded-full mx-auto mb-6 object-cover shadow-lg border-4 border-white" />
-                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black mb-2`}>Félicitations !</h2>
-                    <p className="text-zinc-500 font-bold mb-6">Votre commande <span className="text-black font-black uppercase">#{createdOrderRef.slice(0, 8)}</span> a bien été enregistrée.</p>
-                    <button onClick={() => { setShowOrderSuccessModal(false); handleTabChange('orders'); }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform">
-                        Suivre ma commande
-                    </button>
-                </motion.div>
-            </div>
-        )}
-      </AnimatePresence>
-
-      {/* EXIT INTENT PANIER */}
-      <AnimatePresence>
-        {showCartExitIntent && (
-            <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center relative border-t-[8px] border-orange-500">
-                    <button onClick={() => setShowCartExitIntent(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-orange-500 transition-colors"><X size={20}/></button>
-                    <div className="text-6xl mb-4">🎁</div>
-                    <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase text-black mb-2`}>Attendez !</h2>
-                    <p className="text-zinc-500 font-bold mb-6">Ne partez pas les mains vides. Utilisez le code <strong className="text-black">GIFT15</strong> pour -15% sur votre panier actuel !</p>
-                    <div className="flex gap-4">
-                        <button onClick={() => { setShowCartExitIntent(false); setShowCartModal(true); setShopPromoCode('GIFT15'); }} className="flex-1 bg-black text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform">
-                            J&apos;en profite
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
-        )}
-      </AnimatePresence>
 
       {/* MODALE TIROIR HUB MOBILE */}
                  <AnimatePresence>
