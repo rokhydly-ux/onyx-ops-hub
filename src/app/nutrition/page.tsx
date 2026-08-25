@@ -666,14 +666,17 @@ export default function NutritionDashboard() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const {
     shopCart, addToCart: storeAddToCart,
-    savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts
+    savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
+    setSavedShopProducts
   } = useCartStore();
 
-  useEffect(() => {
-      setGlobalShopProducts(shopProducts);
-  }, [shopProducts, setGlobalShopProducts]);
-
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
+
+  useEffect(() => {
+      const allProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(c => c.produits || []);
+      setGlobalShopProducts(allProducts);
+  }, [shopDataDB, setGlobalShopProducts]);
+
   const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
   const [createdOrderRef, setCreatedOrderRef] = useState("");
   const [userOrders, setUserOrders] = useState<any[]>([]);
@@ -3260,14 +3263,9 @@ const currentHour = new Date().getHours();
   ];
 
   const addToCart = (product: any) => {
-    const existingItem = shopCart.find(item => item.id === product.id);
-    if (existingItem) {
-        setShopCart(shopCart.map(item => item.id === product.id ? { ...item, quantity: (item.quantity || 1) + 1 } : item));
-    } else {
-        const isPremium = clientProfile?.plan_type === 'premium';
-        const price = isPremium ? product.prix_premium : product.prix_standard;
-        setShopCart([...shopCart, { ...product, finalPrice: price, quantity: 1 }]);
-    }
+    const isPremium = clientProfile?.plan_type === 'premium';
+    const price = isPremium ? product.prix_premium : product.prix_standard;
+    storeAddToCart({ ...product, finalPrice: price });
     setIsCartBouncing(true);
     setTimeout(() => setIsCartBouncing(false), 400);
     setToastMessage(`Ajouté au panier : ${product.nom}`);
@@ -3318,29 +3316,18 @@ const currentHour = new Date().getHours();
   };
 
   const toggleSaveProduct = (prod: any) => {
-      const isSaved = savedShopProducts.some(p => p.id === prod.id);
-      const newSaved = isSaved ? savedShopProducts.filter(p => p.id !== prod.id) : [...savedShopProducts, prod];
-      setSavedShopProducts(newSaved);
-      if (clientProfile) localStorage.setItem(`onyx_nutrition_saved_products_${clientProfile.id}`, JSON.stringify(newSaved));
+      storeToggleSavedProduct(prod);
   };
 
-
   const handleReorder = (order: any) => {
-     const updatedCart = [...shopCart];
      const itemsToAdd = order.items || [];
 
      itemsToAdd.forEach((item: any) => {
         const fullProduct = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).find((p: any) => p.id === item.id) || item;
-        const existing = updatedCart.find(c => c.id === item.id);
-        if (existing) {
-           existing.quantity += (item.quantity || 1);
-        } else {
-           updatedCart.push({ ...fullProduct, quantity: item.quantity || 1, finalPrice: item.finalPrice || item.price || fullProduct.prix_standard });
-        }
+        storeAddToCart({ ...fullProduct, finalPrice: item.finalPrice || item.price || fullProduct.prix_standard }, item.quantity || 1);
      });
 
-     setShopCart(updatedCart);
-     setShowCartModal(true);
+     router.push('/nutrition/panier');
      setToastMessage("Commande ajoutée au panier !");
      setTimeout(() => setToastMessage(null), 3000);
   };
@@ -7571,6 +7558,85 @@ const currentHour = new Date().getHours();
            <p className="text-[10px] font-black tracking-widest uppercase text-zinc-700 bg-zinc-900 px-3 py-1.5 rounded-full">Designed in Senegal 🇸🇳</p>
         </div>
       </footer>
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[400] animate-in slide-in-from-bottom-5">
+             <CheckCircle size={16}/> {toastMessage}
+         </div>
+      )}
+          {/* MODALE CHALLENGE (ÉTAPE 2) */}
+      {showChallengeModal && activeChallenge && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in" onClick={(e: any) => { if(e.target === e.currentTarget) setShowChallengeModal(false); }}>
+              <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-md overflow-hidden relative shadow-2xl border border-zinc-200 dark:border-zinc-800">
+                  <button onClick={() => setShowChallengeModal(false)} className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black text-white rounded-full transition-colors z-20"><X size={20}/></button>
+
+                  <div className="h-56 bg-black relative">
+                      {activeChallenge.cover_url?.includes('.mp4') ? (
+                          <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                      ) : (
+                          <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                      <div className="absolute bottom-6 left-6 right-6">
+                          <span className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md shadow-sm mb-2 inline-block">Défi Tendance</span>
+                          <h3 className="text-2xl font-black text-white tracking-tight leading-tight">{activeChallenge.title}</h3>
+                      </div>
+                  </div>
+
+                  <div className="p-6">
+                      <p className="text-sm font-poppins text-zinc-600 dark:text-zinc-300 mb-6 leading-relaxed">{activeChallenge.description}</p>
+
+                      {activeChallenge.end_date && (
+                          <div className="flex items-center gap-3 mb-6 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                              <Clock className="text-orange-500 w-5 h-5"/>
+                              <div>
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps restant</p>
+                                  <p className="text-sm font-bold text-black dark:text-white">Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')}</p>
+                              </div>
+                          </div>
+                      )}
+
+                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-200 dark:border-yellow-800/50 rounded-2xl p-4 flex items-center justify-between mb-8 shadow-inner">
+                          <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-500 mb-1">Récompense (XP)</p>
+                              <p className="text-2xl font-black text-yellow-700 dark:text-yellow-400">+{activeChallenge.reward_xp || activeChallenge.xp_reward || 100} XP</p>
+                          </div>
+                          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png" className="w-14 h-14 object-contain drop-shadow-md" />
+                      </div>
+
+                      {isParticipating ? (
+                          <div className="space-y-3">
+                              <button disabled className="w-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                                  <CheckCircle size={18} className="text-[#39FF14]" /> Déjà Inscrit
+                              </button>
+                          </div>
+                      ) : (
+                          <button onClick={() => { handleJoinChallenge(); setShowChallengeModal(false); }} disabled={isSaving} className="w-full bg-black text-[#39FF14] hover:bg-zinc-900 py-4 rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_40px_rgba(57,255,20,0.2)] hover:shadow-[0_10px_40px_rgba(57,255,20,0.4)] transition-all flex items-center justify-center gap-2">
+                              {isSaving ? <Activity className="animate-spin"/> : <><Trophy size={18}/> Relever le défi</>}
+                          </button>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
+                 {/* MODALE ORDER SUCCESS */}
+      <AnimatePresence>
+        {showOrderSuccessModal && (
+            <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center relative border-t-[8px] border-[#39FF14]">
+                    <button onClick={() => setShowOrderSuccessModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={20}/></button>
+                    <img src={MENU_ICONS.dashboard} alt="Success" className="w-24 h-24 rounded-full mx-auto mb-6 object-cover shadow-lg border-4 border-white" />
+                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black mb-2`}>Félicitations !</h2>
+                    <p className="text-zinc-500 font-bold mb-6">Votre commande <span className="text-black font-black uppercase">#{createdOrderRef.slice(0, 8)}</span> a bien été enregistrée.</p>
+                    <button onClick={() => { setShowOrderSuccessModal(false); handleTabChange('orders'); }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform">
+                        Suivre ma commande
+                    </button>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
 
       {/* MODALE TIROIR HUB MOBILE */}
                  <AnimatePresence>
