@@ -4255,7 +4255,12 @@ const currentHour = new Date().getHours();
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
                                              {isConsumed && (
-                                                <span className="bg-[#39FF14] text-black px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                <div className="flex items-center gap-1">
+                                                   <span className="bg-[#39FF14] text-black px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                   {isToday && (
+                                                      <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-2 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️</button>
+                                                   )}
+                                                </div>
                                              )}
                                              {!isConsumed && !isToday && (
                                                 <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
