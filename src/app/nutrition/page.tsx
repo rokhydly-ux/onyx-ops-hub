@@ -1201,7 +1201,7 @@ export default function NutritionDashboard() {
   useEffect(() => {
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 0 && shopCart.length > 0 && !hasTriggeredCartExit) {
-        setShowCartExitIntent(true);
+        // setShowCartExitIntent(true);
         setHasTriggeredCartExit(true);
       }
     };
@@ -3747,7 +3747,7 @@ const currentHour = new Date().getHours();
             </button>
 
             {/* Cart */}
-            <button onClick={() => setShowCartModal(true)} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
+            <button onClick={() => router.push('/nutrition/panier')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
                 <ShoppingCart size={16} />
                 {shopCart.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
@@ -4976,7 +4976,7 @@ const currentHour = new Date().getHours();
                  </div>
                  {shopCart.length > 0 && (
                      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-end gap-3 z-10 bg-black/60 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                        <button onClick={() => setShowCartModal(true)} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
+                        <button onClick={() => router.push('/nutrition/panier')} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
                            <ShoppingCart size={20}/> Voir mon Panier ({shopCart.length})
                         </button>
                      </div>
@@ -5232,7 +5232,7 @@ const currentHour = new Date().getHours();
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
                                  </div>
                                  <div className="flex gap-2">
-                                    <button onClick={() => { setShowCartModal(true); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
+                                    <button onClick={() => { router.push('/nutrition/panier'); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
                                     <button onClick={() => setSelectedProduct(null)} className="flex-1 bg-zinc-100 text-black px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-zinc-200 transition-colors flex items-center justify-center">Continuer</button>
                                  </div>
                               </div>
