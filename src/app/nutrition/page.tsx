@@ -1652,9 +1652,9 @@ export default function NutritionDashboard() {
               ...recipe,
               calories: Math.round(targetCals),
               kcal: Math.round(targetCals),
-              proteins: Math.round((recipe.proteins || 0) * ratio),
-              carbs: Math.round((recipe.carbs || 0) * ratio),
-              fats: Math.round((recipe.fats || 0) * ratio),
+              proteins: Math.round((recipe.proteins || recipe.prots || recipe.protein || 0) * ratio),
+              carbs: Math.round((recipe.carbs || recipe.glucides || 0) * ratio),
+              fats: Math.round((recipe.fats || recipe.lipides || recipe.fat || 0) * ratio),
               ingredients: recipe.ingredients?.map((ing: any) => ({
                   ...ing,
                   quantite: typeof ing.quantite === 'number' ? Number((ing.quantite * ratio).toFixed(1)) : ing.quantite
@@ -3643,7 +3643,7 @@ const currentHour = new Date().getHours();
               {/* Fixed Action Footer */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
                   <button onClick={() => {
-                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories, selectedRecipeDetail.proteins, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
+                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories || selectedRecipeDetail.cals || selectedRecipeDetail.kcal || 0, selectedRecipeDetail.proteins || selectedRecipeDetail.prots || 0, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
                       alert("Ajouté au tracker du jour !");
                       setSelectedRecipeDetail(null);
                   }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
@@ -4020,22 +4020,22 @@ const currentHour = new Date().getHours();
 
                                     return (
                                        <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
-                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
+                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
                                              <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                              <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                           </div>
                                           <div className="text-right shrink-0 flex flex-col items-end gap-1">
 
                                              <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || recipe.calsRounded || '—'} kcal</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || recipe.prots || recipe.protein || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || recipe.glucides || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || recipe.lipides || recipe.fat || 0}g</span>
                                              </div>
 
                                              {!isConsumed ? (
                                                 <div className="flex gap-2">
-                                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
                                                     <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(0, mealType, recipe.id || ''); }} className="bg-zinc-200 text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Swap</button>
                                                     <button onClick={(e) => { e.stopPropagation(); setConsumedMeals(prev => prev.filter((m: any) => m.name !== recipe.nom || m.type !== mealType)); }} className="bg-red-500 text-white px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">🗑️</button>
                                                 </div>
@@ -4248,7 +4248,7 @@ const currentHour = new Date().getHours();
                                  return (
                                     <React.Fragment key={mealType}>
                                     <div className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
-                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
+                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
@@ -4256,10 +4256,10 @@ const currentHour = new Date().getHours();
 
                                           {isExpertMode ? (
                                              <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || recipe.calsRounded || '—'} kcal</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || recipe.prots || recipe.protein || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || recipe.glucides || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || recipe.lipides || recipe.fat || 0}g</span>
                                              </div>
                                           ) : (
                                              <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md`}>
@@ -4269,7 +4269,7 @@ const currentHour = new Date().getHours();
 
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
-                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
+                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
                                              {isConsumed && (
                                                 <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-3 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️ Supprimer</button>
@@ -6493,12 +6493,9 @@ const currentHour = new Date().getHours();
                                   ) : (
                                       <div className="flex gap-2 overflow-x-auto max-w-[200px] scrollbar-none">
                                           <button onClick={() => setPostMode('normal')} className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500 shrink-0 hover:bg-zinc-300"><X size={14}/></button>
-                                          {[...TEXT_BACKGROUNDS].reverse().map((bg, idx) => {
-                                              const originalIdx = TEXT_BACKGROUNDS.length - 1 - idx;
-                                              return (
-                                                  <button key={originalIdx} onClick={() => setTextBgIndex(originalIdx)} className={`w-8 h-8 rounded-full shrink-0 ${bg.startsWith("url") ? "" : bg} bg-cover border-2 ${textBgIndex === originalIdx ? 'border-black' : 'border-transparent'}`} style={{ backgroundImage: bg.startsWith("url") ? bg : "none", backgroundSize: "cover", backgroundPosition: "center" }}></button>
-                                              );
-                                          })}
+                                          {TEXT_BACKGROUNDS.map((bg, idx) => (
+                                              <button key={idx} onClick={() => setTextBgIndex(idx)} className={`w-8 h-8 rounded-full shrink-0 ${bg} bg-cover border-2 ${textBgIndex === idx ? 'border-black' : 'border-transparent'}`}></button>
+                                          ))}
                                       </div>
                                   )}
                               </div>
@@ -6633,7 +6630,7 @@ const currentHour = new Date().getHours();
                                                  {post.likes_count || post.reactions?.top || post.reactions?.length || 0}
                                              </button>
                                          </div>
-                                         <button onClick={() => handleToggleComments(post.id)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+                                         <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
                                              <MessageSquare size={16}/> {post.comments_count || post.comments?.length || 0} Réponses
                                          </button>
                                      </div>
