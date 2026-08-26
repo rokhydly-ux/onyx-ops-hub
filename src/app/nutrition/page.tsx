@@ -1650,9 +1650,9 @@ export default function NutritionDashboard() {
               ...recipe,
               calories: Math.round(targetCals),
               kcal: Math.round(targetCals),
-              proteins: Math.round((recipe.proteins || 0) * ratio),
-              carbs: Math.round((recipe.carbs || 0) * ratio),
-              fats: Math.round((recipe.fats || 0) * ratio),
+              proteins: Math.round((recipe.proteins || recipe.prots || recipe.protein || 0) * ratio),
+              carbs: Math.round((recipe.carbs || recipe.glucides || 0) * ratio),
+              fats: Math.round((recipe.fats || recipe.lipides || recipe.fat || 0) * ratio),
               ingredients: recipe.ingredients?.map((ing: any) => ({
                   ...ing,
                   quantite: typeof ing.quantite === 'number' ? Number((ing.quantite * ratio).toFixed(1)) : ing.quantite
@@ -3641,7 +3641,7 @@ const currentHour = new Date().getHours();
               {/* Fixed Action Footer */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
                   <button onClick={() => {
-                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories, selectedRecipeDetail.proteins, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
+                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories || selectedRecipeDetail.cals || selectedRecipeDetail.kcal || 0, selectedRecipeDetail.proteins || selectedRecipeDetail.prots || 0, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
                       alert("Ajouté au tracker du jour !");
                       setSelectedRecipeDetail(null);
                   }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
@@ -4018,22 +4018,22 @@ const currentHour = new Date().getHours();
 
                                     return (
                                        <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
-                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
+                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
                                              <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                              <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                           </div>
                                           <div className="text-right shrink-0 flex flex-col items-end gap-1">
 
                                              <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || recipe.calsRounded || '—'} kcal</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || recipe.prots || recipe.protein || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || recipe.glucides || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || recipe.lipides || recipe.fat || 0}g</span>
                                              </div>
 
                                              {!isConsumed ? (
                                                 <div className="flex gap-2">
-                                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
                                                     <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(0, mealType, recipe.id || ''); }} className="bg-zinc-200 text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Swap</button>
                                                     <button onClick={(e) => { e.stopPropagation(); setConsumedMeals(prev => prev.filter((m: any) => m.name !== recipe.nom || m.type !== mealType)); }} className="bg-red-500 text-white px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">🗑️</button>
                                                 </div>
@@ -4246,7 +4246,7 @@ const currentHour = new Date().getHours();
                                  return (
                                     <React.Fragment key={mealType}>
                                     <div className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
-                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
+                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
@@ -4254,10 +4254,10 @@ const currentHour = new Date().getHours();
 
                                           {isExpertMode ? (
                                              <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || recipe.calsRounded || '—'} kcal</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || recipe.prots || recipe.protein || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || recipe.glucides || 0}g</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || recipe.lipides || recipe.fat || 0}g</span>
                                              </div>
                                           ) : (
                                              <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md`}>
@@ -4267,7 +4267,7 @@ const currentHour = new Date().getHours();
 
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
-                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
+                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
                                              {isConsumed && (
                                                 <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-3 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️ Supprimer</button>
@@ -6219,7 +6219,7 @@ const currentHour = new Date().getHours();
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783098237/8_v1l6ms.png" className="w-10 h-10 object-contain drop-shadow-md" alt="Club Lekkologues"/> Club des Lekkologues</h2>
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
                      <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
                             <Search size={16} className="text-zinc-400" />
@@ -6489,14 +6489,11 @@ const currentHour = new Date().getHours();
                                           </button>
                                       </>
                                   ) : (
-                                      <div className="flex gap-2 overflow-x-auto max-w-[300px] scrollbar-none pb-2 items-center">
+                                      <div className="flex gap-2 overflow-x-auto max-w-[200px] scrollbar-none">
                                           <button onClick={() => setPostMode('normal')} className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500 shrink-0 hover:bg-zinc-300"><X size={14}/></button>
-                                          {[...TEXT_BACKGROUNDS].reverse().map((bg, idx) => {
-                                              const originalIdx = TEXT_BACKGROUNDS.length - 1 - idx;
-                                              return (
-                                                  <button key={originalIdx} onClick={() => setTextBgIndex(originalIdx)} className={`w-8 h-8 rounded-full shrink-0 ${bg} bg-cover border-2 ${textBgIndex === originalIdx ? 'border-[#39FF14] scale-110' : 'border-transparent'}`}></button>
-                                              );
-                                          })}
+                                          {TEXT_BACKGROUNDS.map((bg, idx) => (
+                                              <button key={idx} onClick={() => setTextBgIndex(idx)} className={`w-8 h-8 rounded-full shrink-0 ${bg} bg-cover border-2 ${textBgIndex === idx ? 'border-black' : 'border-transparent'}`}></button>
+                                          ))}
                                       </div>
                                   )}
                               </div>
@@ -6631,7 +6628,7 @@ const currentHour = new Date().getHours();
                                                  {post.likes_count || post.reactions?.top || post.reactions?.length || 0}
                                              </button>
                                          </div>
-                                         <button onClick={() => alert("La section commentaires sera bientôt disponible !")} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+                                         <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
                                              <MessageSquare size={16}/> {post.comments_count || post.comments?.length || 0} Réponses
                                          </button>
                                      </div>
@@ -6659,34 +6656,21 @@ const currentHour = new Date().getHours();
 
                          {/* CHALENGES TENDANCE WIDGET */}
                          {activeChallenge && (
-                             <div onClick={() => setShowChallengeModal(true)} className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-0 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
-                                 <div className="h-40 relative bg-black">
-                                     {activeChallenge.cover_url?.includes('.mp4') ? (
-                                         <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                                     ) : (
-                                         <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
-                                     )}
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                                     <div className="absolute top-4 left-4">
-                                         <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">En cours</span>
+                             <div onClick={() => setShowChallengeModal(true)} className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/5 rounded-full blur-3xl group-hover:bg-[#39FF14]/10 transition-colors"></div>
+                                 <div className="flex justify-between items-start mb-4 relative z-10">
+                                     <div>
+                                         <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">En cours</span>
+                                         <h3 className="font-poppins-black text-black dark:text-white leading-tight">{activeChallenge.title}</h3>
                                      </div>
-                                     <div className="absolute bottom-4 left-4 right-4">
-                                         <h3 className="font-poppins-black text-white text-lg leading-tight line-clamp-2">{activeChallenge.title}</h3>
+                                     <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center shrink-0">
+                                         <Trophy className="text-orange-500 w-5 h-5"/>
                                      </div>
                                  </div>
-                                 <div className="p-5">
-                                     <p className="text-xs text-zinc-500 font-poppins mb-4 line-clamp-2">{activeChallenge.description}</p>
-                                     <div className="flex items-center gap-2 mb-4 text-xs font-black uppercase tracking-widest text-zinc-500">
-                                         <Users className="w-4 h-4 text-zinc-400" />
-                                         {challengeParticipants} participants
-                                     </div>
-                                     <div className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl">
-                                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-500 animate-pulse">
-                                             <Clock className="w-4 h-4" />
-                                             {activeChallenge.end_date ? Math.ceil((new Date(activeChallenge.end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : 0} jours restants
-                                         </div>
-                                         <button className="text-[10px] font-black uppercase tracking-widest text-black bg-[#39FF14] px-4 py-2 rounded-xl group-hover:scale-105 transition-transform shadow-sm">Voir le défi</button>
-                                     </div>
+                                 <p className="text-xs text-zinc-500 font-poppins mb-4 relative z-10 line-clamp-2">{activeChallenge.description}</p>
+                                 <div className="flex justify-between items-center relative z-10">
+                                     <span className="text-[10px] font-black uppercase text-zinc-400">{activeChallenge.end_date ? new Date(activeChallenge.end_date).toLocaleDateString('fr-FR') : ''}</span>
+                                     <button className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2 rounded-xl group-hover:scale-105 transition-transform">Voir le défi</button>
                                  </div>
                              </div>
                          )}
@@ -7829,10 +7813,7 @@ const currentHour = new Date().getHours();
                               <Clock className="text-orange-500 w-5 h-5"/>
                               <div>
                                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps restant</p>
-                                  <p className="text-sm font-bold text-black dark:text-white flex items-center gap-2">
-                                      <span className="animate-pulse text-orange-500">{Math.ceil((new Date(activeChallenge.end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} jours</span>
-                                      <span className="text-zinc-400 text-xs">(Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')})</span>
-                                  </p>
+                                  <p className="text-sm font-bold text-black dark:text-white">Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')}</p>
                               </div>
                           </div>
                       )}
@@ -7845,27 +7826,10 @@ const currentHour = new Date().getHours();
                           <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png" className="w-14 h-14 object-contain drop-shadow-md" />
                       </div>
 
-                      <div className="flex items-center gap-2 mb-6 text-sm font-black uppercase tracking-widest text-zinc-500 bg-zinc-50 dark:bg-zinc-800 p-3 rounded-xl justify-center">
-                          <Users className="w-5 h-5 text-[#39FF14]" />
-                          {challengeParticipants} participants
-                      </div>
-
                       {isParticipating ? (
                           <div className="space-y-3">
-                              <div className="w-full bg-[#39FF14]/10 text-green-700 dark:text-[#39FF14] border border-[#39FF14]/30 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-                                  <CheckCircle size={18} className="text-[#39FF14]" /> Participation validée
-                              </div>
-                              <button onClick={async () => {
-                                  if (!activeChallenge || !clientProfile) return;
-                                  setIsSaving(true);
-                                  try {
-                                      await supabase.from('nutrition_challenge_participants').delete().eq('challenge_id', activeChallenge.id).eq('client_id', clientProfile.id);
-                                      setIsParticipating(false);
-                                      setChallengeParticipants(prev => Math.max(0, prev - 1));
-                                  } catch(e) { console.error(e); }
-                                  setIsSaving(false);
-                              }} disabled={isSaving} className="w-full text-zinc-400 hover:text-red-500 font-bold text-xs uppercase tracking-widest transition-colors py-2 flex items-center justify-center gap-2">
-                                  {isSaving ? <Activity className="animate-spin w-4 h-4"/> : "Se désinscrire"}
+                              <button disabled className="w-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                                  <CheckCircle size={18} className="text-[#39FF14]" /> Déjà Inscrit
                               </button>
                           </div>
                       ) : (
