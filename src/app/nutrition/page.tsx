@@ -669,7 +669,8 @@ export default function NutritionDashboard() {
   const {
     shopCart, addToCart: storeAddToCart,
     savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
-    setSavedShopProducts
+    setSavedShopProducts, updateQuantity, deliveryCost, setDeliveryAddress, deliveryAddress,
+    clearCart, setShopPromoCode, removeFromCart
   } = useCartStore();
 
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
@@ -5165,7 +5166,7 @@ const currentHour = new Date().getHours();
                     <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Lek Gu Set</h2>
                     <p className="text-zinc-500 font-bold text-sm mt-1">L'épicerie saine de vos objectifs</p>
                  </div>
-                 <button onClick={() => { handleTabChange('orders'); document.documentElement.scrollTop = 0; }} className="bg-black text-[#39FF14] border border-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform flex items-center gap-2 animate-pulse shrink-0">
+                 <button onClick={() => { handleTabChange('orders'); document.documentElement.scrollTop = 0; }} className="bg-zinc-800 hover:bg-black text-[#39FF14] border border-[#39FF14]/50 px-6 py-3 ml-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2 shrink-0">
                      <Package size={14}/> Suivi des commandes
                  </button>
               </div>
@@ -5325,7 +5326,7 @@ const currentHour = new Date().getHours();
                                     );
                                 }
                                 return (
-                                    <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                    <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
                                         <Plus size={14}/> Ajouter
                                     </button>
                                 );
@@ -5442,7 +5443,7 @@ const currentHour = new Date().getHours();
                                            );
                                        }
                                        return (
-                                           <button onClick={() => { addToCart(selectedProduct); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
+                                           <button onClick={(e) => { e.stopPropagation(); addToCart(selectedProduct); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
                                        );
                                    })()}
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
