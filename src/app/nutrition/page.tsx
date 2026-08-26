@@ -409,7 +409,7 @@ export default function NutritionDashboard() {
   const [theme, setTheme] = useState<'light'|'dark'>('light');
 
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<any>('dashboard');
+  const [activeTab, setActiveTab] = useState<any>('week');
   const [blogCategory, setBlogCategory] = useState('Tous');
   const [blogSearch, setBlogSearch] = useState('');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
@@ -3779,6 +3779,10 @@ const currentHour = new Date().getHours();
                 </div>
             </div>
 
+            {/* Theme Toggle */}
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 text-zinc-700 hover:text-black hover:bg-zinc-100 rounded-full transition-colors hidden md:flex">
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             {/* Mobile Menu Toggle */}
             <button onClick={() => setShowMobileHub(true)} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
         </div>
@@ -4021,7 +4025,7 @@ const currentHour = new Date().getHours();
                                           <div className="text-right shrink-0 flex flex-col items-end gap-1">
 
                                              <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.kcal || recipe.energy || "—"} kcal</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
@@ -4250,7 +4254,7 @@ const currentHour = new Date().getHours();
 
                                           {isExpertMode ? (
                                              <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.kcal || recipe.energy || "—"} kcal</span>
+                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
@@ -4265,7 +4269,7 @@ const currentHour = new Date().getHours();
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
-                                             {isConsumed && isToday && (
+                                             {isConsumed && (
                                                 <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-3 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️ Supprimer</button>
                                              )}
                                              {!isConsumed && !isToday && (
