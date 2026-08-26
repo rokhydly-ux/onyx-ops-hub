@@ -620,6 +620,9 @@ export default function NutritionDashboard() {
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
+  const [postComments, setPostComments] = useState<any[]>([]);
+  const [newCommentText, setNewCommentText] = useState("");
   const [isSharingPDF, setIsSharingPDF] = useState(false);
 
   const [xpAnimation, setXpAnimation] = useState<{ amount: number; reason: string; id: number } | null>(null);
@@ -669,8 +672,7 @@ export default function NutritionDashboard() {
   const {
     shopCart, addToCart: storeAddToCart,
     savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
-    setSavedShopProducts, updateQuantity, deliveryCost, setDeliveryAddress, deliveryAddress,
-    clearCart, setShopPromoCode, removeFromCart
+    setSavedShopProducts
   } = useCartStore();
 
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
@@ -6416,7 +6418,7 @@ const currentHour = new Date().getHours();
                                {postMode === 'normal' && (
                                    <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 object-cover mt-1" alt="Moi" />
                                )}
-                               <div className={`flex-1 relative transition-all ${postMode === 'text_only' ? `h-64 rounded-2xl ${TEXT_BACKGROUNDS[textBgIndex]} bg-cover bg-center p-6 flex flex-col justify-center items-center` : ''}`}>
+                               <div className={`flex-1 relative transition-all ${postMode === 'text_only' ? `h-64 rounded-2xl ${TEXT_BACKGROUNDS[textBgIndex].startsWith("url") ? "" : TEXT_BACKGROUNDS[textBgIndex]} bg-cover bg-center p-6 flex flex-col justify-center items-center` : ''}`} style={postMode === 'text_only' ? { backgroundImage: TEXT_BACKGROUNDS[textBgIndex].startsWith("url") ? TEXT_BACKGROUNDS[textBgIndex] : "none", backgroundSize: "cover", backgroundPosition: "center" } : {}}>
                                    <textarea
                                        value={newPostText}
                                        onChange={e => {
@@ -6585,7 +6587,7 @@ const currentHour = new Date().getHours();
                                  )}
 
                                  {post.media_type === 'text_only' ? (
-                                     <div className={`w-full h-64 rounded-2xl ${TEXT_BACKGROUNDS[post.text_bg_index || 0]} bg-cover bg-center p-6 flex flex-col justify-center items-center relative mb-4`}>
+                                     <div className={`w-full h-64 rounded-2xl ${TEXT_BACKGROUNDS[post.text_bg_index || 0].startsWith("url") ? "" : TEXT_BACKGROUNDS[post.text_bg_index || 0]} bg-cover bg-center p-6 flex flex-col justify-center items-center relative mb-4`} style={{ backgroundImage: TEXT_BACKGROUNDS[post.text_bg_index || 0].startsWith("url") ? TEXT_BACKGROUNDS[post.text_bg_index || 0] : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
                                          <p className="text-center text-white text-2xl font-black">{post.content || post.texte}</p>
                                          <div className="absolute bottom-4 right-4 text-white/50 text-xs font-black tracking-widest">NXA</div>
                                      </div>
@@ -6611,12 +6613,12 @@ const currentHour = new Date().getHours();
                                      <div className="flex items-center gap-6">
                                          <div className="relative" onMouseEnter={() => setActiveReactionPostId(post.id)} onMouseLeave={() => setActiveReactionPostId(null)}>
                                              {activeReactionPostId === post.id && (
-                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-20 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in">
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform" title="Like">👍</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform" title="Amour">❤️</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform" title="Contane">😄</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform" title="Faché">😡</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform" title="Fier">🔥</button>
+                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-50 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in">
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Like">👍</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Amour">❤️</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Contane">😄</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Faché">😡</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Fier">🔥</button>
                                                  </div>
                                              )}
                                              <button onClick={() => handleLikePost(post.id, 'Like')} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors ${post._likedByMe ? (post._myReaction?.color || 'text-blue-500') : 'text-zinc-400 hover:text-blue-500'}`}>
@@ -6641,6 +6643,42 @@ const currentHour = new Date().getHours();
                                          </button>
                                      </div>
                                  </div>
+
+                                 {/* Commentaires Dropdown */}
+                                 {showCommentsPostId === post.id && (
+                                     <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
+                                         <div className="space-y-4 mb-4 max-h-64 overflow-y-auto pr-2 scrollbar-thin">
+                                             {postComments.length === 0 ? (
+                                                 <p className="text-xs text-zinc-400 text-center py-4">Aucun commentaire pour l'instant. Soyez le premier !</p>
+                                             ) : (
+                                                 postComments.map((c: any, idx: number) => (
+                                                     <div key={idx} className="flex gap-3">
+                                                         <img src={c.clients?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.clients?.full_name || 'Utilisateur')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Avatar"/>
+                                                         <div className="flex-1">
+                                                             <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl rounded-tl-none">
+                                                                 <div className="flex justify-between items-start mb-1">
+                                                                     <span className="text-xs font-bold text-black dark:text-white">{c.clients?.full_name || 'Membre NXA'}</span>
+                                                                     <span className="text-[10px] text-zinc-400">{new Date(c.created_at).toLocaleDateString()}</span>
+                                                                 </div>
+                                                                 <p className="text-sm text-zinc-700 dark:text-zinc-300">{c.content}</p>
+                                                             </div>
+                                                             <div className="flex items-center gap-4 mt-2 px-2 text-[10px] font-black uppercase text-zinc-400">
+                                                                 <button onClick={() => handleLikeComment(c.id, 'like')} className="hover:text-black transition-colors flex items-center gap-1">👍 {c.likes_count || 0}</button>
+                                                                 <button onClick={() => handleLikeComment(c.id, 'dislike')} className="hover:text-black transition-colors flex items-center gap-1">👎 {c.dislikes_count || 0}</button>
+                                                                 <button onClick={() => setNewCommentText(`@${c.clients?.full_name?.split(' ')[0]} `)} className="hover:text-black transition-colors">Répondre</button>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 ))
+                                             )}
+                                         </div>
+                                         <div className="flex items-center gap-3">
+                                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Moi')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Moi"/>
+                                             <input type="text" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} placeholder="Écrire un commentaire..." className="flex-1 bg-zinc-50 dark:bg-zinc-800 border-none rounded-full px-4 py-2 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-[#39FF14] transition-shadow placeholder:text-zinc-400" onKeyDown={e => e.key === 'Enter' && handlePostComment(post.id)} />
+                                             <button onClick={() => handlePostComment(post.id)} disabled={!newCommentText.trim() || isSaving} className="p-2 bg-black text-[#39FF14] rounded-full hover:scale-105 transition-transform disabled:opacity-50"><Send size={16}/></button>
+                                         </div>
+                                     </div>
+                                 )}
                               </div>
                            )) : (
                                <div className="text-center py-16 px-6 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-[2rem] bg-white">
