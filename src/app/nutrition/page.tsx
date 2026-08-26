@@ -4419,7 +4419,7 @@ const currentHour = new Date().getHours();
                          <div>
                             <div className="flex items-center gap-3 mb-2">
                                <span className="text-xs font-black text-zinc-500 uppercase">#{String(order.id).substring(0,8)}</span>
-                               <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${order.status === 'Nouveau' ? 'bg-blue-100 text-blue-700' : order.status === 'Livré' ? 'bg-green-100 text-green-700' : order.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                               <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${order.status === 'NOUVEAU' ? 'bg-blue-100 text-blue-700' : order.status === 'EN PREPARATION' ? 'bg-orange-100 text-orange-700' : order.status === 'EXPEDIE' ? 'bg-purple-100 text-purple-700' : order.status === 'LIVRE' ? 'bg-green-100 text-green-700' : order.status === 'ANNULE' ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'}`}>
                                   {order.status}
                                </span>
                             </div>
@@ -4940,7 +4940,7 @@ const currentHour = new Date().getHours();
                             </div>
                             <div className="flex flex-col items-start md:items-end gap-3 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0 border-zinc-100">
                                <div className="flex items-center gap-4 w-full justify-between md:justify-end">
-                                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'Livré' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-orange-100 text-orange-600'}`}>
+                                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'LIVRE' ? 'bg-[#39FF14]/20 text-[#39FF14]' : order.status === 'NOUVEAU' ? 'bg-blue-100 text-blue-700' : order.status === 'EN PREPARATION' ? 'bg-orange-100 text-orange-600' : order.status === 'EXPEDIE' ? 'bg-purple-100 text-purple-700' : order.status === 'ANNULE' ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'}`}>
                                        {order.status}
                                    </span>
                                    <span className="font-black text-xl text-black">{order.total_amount.toLocaleString()} F</span>

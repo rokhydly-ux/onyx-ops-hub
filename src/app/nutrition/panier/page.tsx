@@ -57,7 +57,7 @@ export default function CartPage() {
                 phone: clientProfile.phone || '',
                 items: shopCart.map(p => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                 total: total,
-                status: 'Nouveau',
+                status: 'NOUVEAU',
                 promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
                 discount_amount: discountAmount,
                 address: deliveryAddress
