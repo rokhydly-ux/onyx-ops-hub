@@ -1277,7 +1277,9 @@ export default function NutritionDashboard() {
           setRokhyMessage({ title: "Nouveau Badge Débloqué ! ", text: "Félicitations ! Tu viens de débloquer le badge Adhérente ! Continue comme ça, tes efforts paient !", type: 'success' });
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 8000);
-          try { const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"); audio.volume = 0.5; audio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.5;
+          audio.play().catch(()=>{});
           setShowFirstBadgeModal(true);
 
           setShowSecondBadgeModal(true);
@@ -1291,7 +1293,9 @@ export default function NutritionDashboard() {
 
       // Effet sonore de gain d'XP (sauf si on vient de level up pour ne pas superposer les sons)
       if (!leveledUp) {
-          try { const xpAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"); xpAudio.volume = 0.4; xpAudio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+          const xpAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3");
+          xpAudio.volume = 0.4;
+          xpAudio.play().catch(()=>{});
       }
   };
 
@@ -2535,7 +2539,9 @@ export default function NutritionDashboard() {
           setShowConfetti('weight');
           setTimeout(() => setShowConfetti(false), 8000);
           setWeightCoachMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
-          try { const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"); audio.volume = 0.5; audio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.5;
+          audio.play().catch(()=>{});
       }
 
       const newLog = { log_date: todayStr, weight: newWeightVal };
@@ -2664,11 +2670,7 @@ export default function NutritionDashboard() {
       "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg')",
       "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg')",
       "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444564/A_cute__highly_detailed_3D_202606141342_yn2v23.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_African_pattern_neon_lines_202607191030_dzkpqx.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_luxury_kitchen_countertop_s__202607191030_knxbcx.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Woven_fabric_texture_charcoal_green_202607191031_hrc1bw.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Baobab_leaves__hibiscus_flowers__2K_202607191031_gfkclt.jpg')"
+      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444564/A_cute__highly_detailed_3D_202606141342_yn2v23.jpg')"
   ];
 
   const handlePostCommunity = async () => {
@@ -2994,7 +2996,9 @@ export default function NutritionDashboard() {
 
        alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
        // Effet sonore de succès (Level Up)
-       try { const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"); audio.volume = 0.5; audio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+       const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3");
+       audio.volume = 0.5;
+       audio.play().catch(()=>{});
        setShowDailyReport(false);
        const updatedLog = { client_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== selectedReportDate), updatedLog]);
@@ -3279,7 +3283,9 @@ const currentHour = new Date().getHours();
     setTimeout(() => setToastMessage(null), 3000);
 
     // Effet sonore (Pop)
-    try { const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3"); audio.volume = 0.5; audio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3");
+    audio.volume = 0.5;
+    audio.play().catch(()=>{});
   };
 
   const updateCartQuantity = (productId: string, delta: number) => {
@@ -5201,7 +5207,9 @@ const currentHour = new Date().getHours();
                                     setScratchedBlocks(prev => {
                                        const next = [...prev, i];
                                        if (next.length === 17) {
-                                          try { const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3"); audio.volume = 0.6; audio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+                                          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3");
+                                          audio.volume = 0.6;
+                                          audio.play().catch(()=>{});
                                        }
                                        return next;
                                     });
@@ -5212,7 +5220,9 @@ const currentHour = new Date().getHours();
                                     setScratchedBlocks(prev => {
                                        const next = [...prev, i];
                                        if (next.length === 17) {
-                                          try { const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3"); audio.volume = 0.6; audio.play().catch(()=>{}); } catch(e) { console.error("Audio error", e); }
+                                          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3");
+                                          audio.volume = 0.6;
+                                          audio.play().catch(()=>{});
                                        }
                                        return next;
                                     });
