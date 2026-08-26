@@ -620,6 +620,9 @@ export default function NutritionDashboard() {
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
+  const [postComments, setPostComments] = useState<any[]>([]);
+  const [newCommentText, setNewCommentText] = useState("");
   const [isSharingPDF, setIsSharingPDF] = useState(false);
 
   const [xpAnimation, setXpAnimation] = useState<{ amount: number; reason: string; id: number } | null>(null);
@@ -669,8 +672,7 @@ export default function NutritionDashboard() {
   const {
     shopCart, addToCart: storeAddToCart,
     savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
-    setSavedShopProducts, updateQuantity, deliveryCost, setDeliveryAddress, deliveryAddress,
-    clearCart, setShopPromoCode, removeFromCart
+    setSavedShopProducts
   } = useCartStore();
 
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
@@ -6219,7 +6221,7 @@ const currentHour = new Date().getHours();
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783098237/8_v1l6ms.png" className="w-10 h-10 object-contain drop-shadow-md" alt="Club Lekkologues"/> Club des Lekkologues</h2>
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Heart className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Club des Lekkologues</h2>
                      <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex items-center bg-white border border-zinc-200 rounded-full px-4 py-2 flex-1 md:w-64 shadow-sm">
                             <Search size={16} className="text-zinc-400" />
@@ -6416,7 +6418,7 @@ const currentHour = new Date().getHours();
                                {postMode === 'normal' && (
                                    <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200 object-cover mt-1" alt="Moi" />
                                )}
-                               <div className={`flex-1 relative transition-all ${postMode === 'text_only' ? `h-64 rounded-2xl ${TEXT_BACKGROUNDS[textBgIndex]} bg-cover bg-center p-6 flex flex-col justify-center items-center` : ''}`}>
+                               <div className={`flex-1 relative transition-all ${postMode === 'text_only' ? `h-64 rounded-2xl ${TEXT_BACKGROUNDS[textBgIndex].startsWith("url") ? "" : TEXT_BACKGROUNDS[textBgIndex]} bg-cover bg-center p-6 flex flex-col justify-center items-center` : ''}`} style={postMode === 'text_only' ? { backgroundImage: TEXT_BACKGROUNDS[textBgIndex].startsWith("url") ? TEXT_BACKGROUNDS[textBgIndex] : "none", backgroundSize: "cover", backgroundPosition: "center" } : {}}>
                                    <textarea
                                        value={newPostText}
                                        onChange={e => {
@@ -6489,12 +6491,12 @@ const currentHour = new Date().getHours();
                                           </button>
                                       </>
                                   ) : (
-                                      <div className="flex gap-2 overflow-x-auto max-w-[300px] scrollbar-none pb-2 items-center">
+                                      <div className="flex gap-2 overflow-x-auto max-w-[200px] scrollbar-none">
                                           <button onClick={() => setPostMode('normal')} className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500 shrink-0 hover:bg-zinc-300"><X size={14}/></button>
                                           {[...TEXT_BACKGROUNDS].reverse().map((bg, idx) => {
                                               const originalIdx = TEXT_BACKGROUNDS.length - 1 - idx;
                                               return (
-                                                  <button key={originalIdx} onClick={() => setTextBgIndex(originalIdx)} className={`w-8 h-8 rounded-full shrink-0 ${bg} bg-cover border-2 ${textBgIndex === originalIdx ? 'border-[#39FF14] scale-110' : 'border-transparent'}`}></button>
+                                                  <button key={originalIdx} onClick={() => setTextBgIndex(originalIdx)} className={`w-8 h-8 rounded-full shrink-0 ${bg.startsWith("url") ? "" : bg} bg-cover border-2 ${textBgIndex === originalIdx ? 'border-black' : 'border-transparent'}`} style={{ backgroundImage: bg.startsWith("url") ? bg : "none", backgroundSize: "cover", backgroundPosition: "center" }}></button>
                                               );
                                           })}
                                       </div>
@@ -6588,7 +6590,7 @@ const currentHour = new Date().getHours();
                                  )}
 
                                  {post.media_type === 'text_only' ? (
-                                     <div className={`w-full h-64 rounded-2xl ${TEXT_BACKGROUNDS[post.text_bg_index || 0]} bg-cover bg-center p-6 flex flex-col justify-center items-center relative mb-4`}>
+                                     <div className={`w-full h-64 rounded-2xl ${TEXT_BACKGROUNDS[post.text_bg_index || 0].startsWith("url") ? "" : TEXT_BACKGROUNDS[post.text_bg_index || 0]} bg-cover bg-center p-6 flex flex-col justify-center items-center relative mb-4`} style={{ backgroundImage: TEXT_BACKGROUNDS[post.text_bg_index || 0].startsWith("url") ? TEXT_BACKGROUNDS[post.text_bg_index || 0] : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
                                          <p className="text-center text-white text-2xl font-black">{post.content || post.texte}</p>
                                          <div className="absolute bottom-4 right-4 text-white/50 text-xs font-black tracking-widest">NXA</div>
                                      </div>
@@ -6614,12 +6616,12 @@ const currentHour = new Date().getHours();
                                      <div className="flex items-center gap-6">
                                          <div className="relative" onMouseEnter={() => setActiveReactionPostId(post.id)} onMouseLeave={() => setActiveReactionPostId(null)}>
                                              {activeReactionPostId === post.id && (
-                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-20 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in">
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform" title="Like">👍</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform" title="Amour">❤️</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform" title="Contane">😄</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform" title="Faché">😡</button>
-                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform" title="Fier">🔥</button>
+                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-50 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in">
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Like">👍</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Amour">❤️</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Contane">😄</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Faché">😡</button>
+                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Fier">🔥</button>
                                                  </div>
                                              )}
                                              <button onClick={() => handleLikePost(post.id, 'Like')} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors ${post._likedByMe ? (post._myReaction?.color || 'text-blue-500') : 'text-zinc-400 hover:text-blue-500'}`}>
@@ -6631,7 +6633,7 @@ const currentHour = new Date().getHours();
                                                  {post.likes_count || post.reactions?.top || post.reactions?.length || 0}
                                              </button>
                                          </div>
-                                         <button onClick={() => alert("La section commentaires sera bientôt disponible !")} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+                                         <button onClick={() => handleToggleComments(post.id)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
                                              <MessageSquare size={16}/> {post.comments_count || post.comments?.length || 0} Réponses
                                          </button>
                                      </div>
@@ -6644,6 +6646,42 @@ const currentHour = new Date().getHours();
                                          </button>
                                      </div>
                                  </div>
+
+                                 {/* Commentaires Dropdown */}
+                                 {showCommentsPostId === post.id && (
+                                     <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
+                                         <div className="space-y-4 mb-4 max-h-64 overflow-y-auto pr-2 scrollbar-thin">
+                                             {postComments.length === 0 ? (
+                                                 <p className="text-xs text-zinc-400 text-center py-4">Aucun commentaire pour l'instant. Soyez le premier !</p>
+                                             ) : (
+                                                 postComments.map((c: any, idx: number) => (
+                                                     <div key={idx} className="flex gap-3">
+                                                         <img src={c.clients?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.clients?.full_name || 'Utilisateur')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Avatar"/>
+                                                         <div className="flex-1">
+                                                             <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl rounded-tl-none">
+                                                                 <div className="flex justify-between items-start mb-1">
+                                                                     <span className="text-xs font-bold text-black dark:text-white">{c.clients?.full_name || 'Membre NXA'}</span>
+                                                                     <span className="text-[10px] text-zinc-400">{new Date(c.created_at).toLocaleDateString()}</span>
+                                                                 </div>
+                                                                 <p className="text-sm text-zinc-700 dark:text-zinc-300">{c.content}</p>
+                                                             </div>
+                                                             <div className="flex items-center gap-4 mt-2 px-2 text-[10px] font-black uppercase text-zinc-400">
+                                                                 <button onClick={() => handleLikeComment(c.id, 'like')} className="hover:text-black transition-colors flex items-center gap-1">👍 {c.likes_count || 0}</button>
+                                                                 <button onClick={() => handleLikeComment(c.id, 'dislike')} className="hover:text-black transition-colors flex items-center gap-1">👎 {c.dislikes_count || 0}</button>
+                                                                 <button onClick={() => setNewCommentText(`@${c.clients?.full_name?.split(' ')[0]} `)} className="hover:text-black transition-colors">Répondre</button>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 ))
+                                             )}
+                                         </div>
+                                         <div className="flex items-center gap-3">
+                                             <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Moi')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Moi"/>
+                                             <input type="text" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} placeholder="Écrire un commentaire..." className="flex-1 bg-zinc-50 dark:bg-zinc-800 border-none rounded-full px-4 py-2 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-[#39FF14] transition-shadow placeholder:text-zinc-400" onKeyDown={e => e.key === 'Enter' && handlePostComment(post.id)} />
+                                             <button onClick={() => handlePostComment(post.id)} disabled={!newCommentText.trim() || isSaving} className="p-2 bg-black text-[#39FF14] rounded-full hover:scale-105 transition-transform disabled:opacity-50"><Send size={16}/></button>
+                                         </div>
+                                     </div>
+                                 )}
                               </div>
                            )) : (
                                <div className="text-center py-16 px-6 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-[2rem] bg-white">
@@ -6659,34 +6697,21 @@ const currentHour = new Date().getHours();
 
                          {/* CHALENGES TENDANCE WIDGET */}
                          {activeChallenge && (
-                             <div onClick={() => setShowChallengeModal(true)} className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-0 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
-                                 <div className="h-40 relative bg-black">
-                                     {activeChallenge.cover_url?.includes('.mp4') ? (
-                                         <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                                     ) : (
-                                         <img src={activeChallenge.cover_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg"} className="w-full h-full object-cover" />
-                                     )}
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                                     <div className="absolute top-4 left-4">
-                                         <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">En cours</span>
+                             <div onClick={() => setShowChallengeModal(true)} className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/5 rounded-full blur-3xl group-hover:bg-[#39FF14]/10 transition-colors"></div>
+                                 <div className="flex justify-between items-start mb-4 relative z-10">
+                                     <div>
+                                         <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">En cours</span>
+                                         <h3 className="font-poppins-black text-black dark:text-white leading-tight">{activeChallenge.title}</h3>
                                      </div>
-                                     <div className="absolute bottom-4 left-4 right-4">
-                                         <h3 className="font-poppins-black text-white text-lg leading-tight line-clamp-2">{activeChallenge.title}</h3>
+                                     <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center shrink-0">
+                                         <Trophy className="text-orange-500 w-5 h-5"/>
                                      </div>
                                  </div>
-                                 <div className="p-5">
-                                     <p className="text-xs text-zinc-500 font-poppins mb-4 line-clamp-2">{activeChallenge.description}</p>
-                                     <div className="flex items-center gap-2 mb-4 text-xs font-black uppercase tracking-widest text-zinc-500">
-                                         <Users className="w-4 h-4 text-zinc-400" />
-                                         {challengeParticipants} participants
-                                     </div>
-                                     <div className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl">
-                                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-500 animate-pulse">
-                                             <Clock className="w-4 h-4" />
-                                             {activeChallenge.end_date ? Math.ceil((new Date(activeChallenge.end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : 0} jours restants
-                                         </div>
-                                         <button className="text-[10px] font-black uppercase tracking-widest text-black bg-[#39FF14] px-4 py-2 rounded-xl group-hover:scale-105 transition-transform shadow-sm">Voir le défi</button>
-                                     </div>
+                                 <p className="text-xs text-zinc-500 font-poppins mb-4 relative z-10 line-clamp-2">{activeChallenge.description}</p>
+                                 <div className="flex justify-between items-center relative z-10">
+                                     <span className="text-[10px] font-black uppercase text-zinc-400">{activeChallenge.end_date ? new Date(activeChallenge.end_date).toLocaleDateString('fr-FR') : ''}</span>
+                                     <button className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2 rounded-xl group-hover:scale-105 transition-transform">Voir le défi</button>
                                  </div>
                              </div>
                          )}
@@ -7829,10 +7854,7 @@ const currentHour = new Date().getHours();
                               <Clock className="text-orange-500 w-5 h-5"/>
                               <div>
                                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps restant</p>
-                                  <p className="text-sm font-bold text-black dark:text-white flex items-center gap-2">
-                                      <span className="animate-pulse text-orange-500">{Math.ceil((new Date(activeChallenge.end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} jours</span>
-                                      <span className="text-zinc-400 text-xs">(Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')})</span>
-                                  </p>
+                                  <p className="text-sm font-bold text-black dark:text-white">Se termine le {new Date(activeChallenge.end_date).toLocaleDateString('fr-FR')}</p>
                               </div>
                           </div>
                       )}
@@ -7845,27 +7867,10 @@ const currentHour = new Date().getHours();
                           <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784493020/MAITRE_DU_FONIO_emczhf.png" className="w-14 h-14 object-contain drop-shadow-md" />
                       </div>
 
-                      <div className="flex items-center gap-2 mb-6 text-sm font-black uppercase tracking-widest text-zinc-500 bg-zinc-50 dark:bg-zinc-800 p-3 rounded-xl justify-center">
-                          <Users className="w-5 h-5 text-[#39FF14]" />
-                          {challengeParticipants} participants
-                      </div>
-
                       {isParticipating ? (
                           <div className="space-y-3">
-                              <div className="w-full bg-[#39FF14]/10 text-green-700 dark:text-[#39FF14] border border-[#39FF14]/30 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-                                  <CheckCircle size={18} className="text-[#39FF14]" /> Participation validée
-                              </div>
-                              <button onClick={async () => {
-                                  if (!activeChallenge || !clientProfile) return;
-                                  setIsSaving(true);
-                                  try {
-                                      await supabase.from('nutrition_challenge_participants').delete().eq('challenge_id', activeChallenge.id).eq('client_id', clientProfile.id);
-                                      setIsParticipating(false);
-                                      setChallengeParticipants(prev => Math.max(0, prev - 1));
-                                  } catch(e) { console.error(e); }
-                                  setIsSaving(false);
-                              }} disabled={isSaving} className="w-full text-zinc-400 hover:text-red-500 font-bold text-xs uppercase tracking-widest transition-colors py-2 flex items-center justify-center gap-2">
-                                  {isSaving ? <Activity className="animate-spin w-4 h-4"/> : "Se désinscrire"}
+                              <button disabled className="w-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                                  <CheckCircle size={18} className="text-[#39FF14]" /> Déjà Inscrit
                               </button>
                           </div>
                       ) : (
