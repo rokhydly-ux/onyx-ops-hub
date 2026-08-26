@@ -5,6 +5,8 @@ import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 import { useCartStore } from '@/store/useCartStore';
 
 import React, { useState, useEffect, useRef } from "react";
+import Confetti from 'react-confetti';
+
 import { useRouter, useSearchParams } from "next/navigation";
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
@@ -1194,6 +1196,14 @@ export default function NutritionDashboard() {
       alert("Félicitations et bienvenue ! Votre espace personnel est prêt.");
       // Nettoyer l'URL
       router.replace('/nutrition');
+    }
+
+    // Gérer la redirection depuis le panier vide
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+        setActiveTab(tabParam);
+        // Nettoyer l'URL pour ne pas rester bloqué sur l'onglet
+        router.replace('/nutrition');
     }
 
   }, [router, searchParams]);
@@ -3327,7 +3337,7 @@ const currentHour = new Date().getHours();
         storeAddToCart({ ...fullProduct, finalPrice: item.finalPrice || item.price || fullProduct.prix_standard }, item.quantity || 1);
      });
 
-     router.push('/nutrition/panier');
+     handleTabChange('cart');
      setToastMessage("Commande ajoutée au panier !");
      setTimeout(() => setToastMessage(null), 3000);
   };
@@ -3747,7 +3757,7 @@ const currentHour = new Date().getHours();
             </button>
 
             {/* Cart */}
-            <button onClick={() => router.push('/nutrition/panier')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
+            <button onClick={() => handleTabChange('cart')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
                 <ShoppingCart size={16} />
                 {shopCart.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
@@ -4387,65 +4397,254 @@ const currentHour = new Date().getHours();
           </div>
         )}
 
+
+        {activeTab === 'cart' && (
+           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
+              <button onClick={() => handleTabChange('shop')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à la boutique</button>
+
+              <div className="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-zinc-200">
+                  <h2 className="text-3xl font-black uppercase tracking-tighter text-black mb-8">Mon Panier</h2>
+
+                  {shopCart.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-20 text-center">
+                          <div className="w-24 h-24 bg-zinc-100 rounded-full flex items-center justify-center mb-6 text-zinc-400">
+                              <ShoppingBag size={48} />
+                          </div>
+                          <h2 className="text-2xl font-black uppercase text-black mb-2">Votre panier est vide</h2>
+                          <p className="text-zinc-500 font-bold mb-8">Découvrez nos produits nutritionnels pour atteindre vos objectifs.</p>
+                          <button onClick={() => handleTabChange('shop')} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-sm tracking-widest shadow-lg hover:scale-105 transition-transform">
+                              Aller à la boutique
+                          </button>
+                      </div>
+                  ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                          <div className="lg:col-span-8 flex flex-col gap-6">
+                              {shopCart.map((item: any) => (
+                                  <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm">
+                                      <button onClick={() => removeFromCart(item.id)} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
+                                      <div className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
+                                          {item.image_url ? <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover"/> : <Box size={32} className="text-zinc-300"/>}
+                                      </div>
+                                      <div className="flex-1 flex flex-col justify-between py-1 pr-8">
+                                          <div>
+                                              <h3 className="font-bold text-sm text-black mb-1 line-clamp-1">{item.nom}</h3>
+                                              <p className="text-xs text-zinc-500 font-medium">Prix unitaire: {(item.finalPrice || item.prix_premium || item.prix_standard || 0).toLocaleString()} F</p>
+                                          </div>
+                                          <div className="flex items-center justify-between mt-2">
+                                              <p className="font-black text-lg text-[#39FF14]">
+                                                  {((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F
+                                              </p>
+                                              <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200">
+                                                  <button onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
+                                                  <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
+                                                  <button onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+
+                          {/* CHECKOUT SIDEBAR */}
+                          <div className="lg:col-span-4">
+                              <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200 sticky top-24">
+                                  <h3 className="font-black text-lg uppercase mb-6 flex items-center gap-2"><ShoppingCart size={20} className="text-[#39FF14]"/> Récapitulatif</h3>
+
+                                  {(() => {
+                                      const subTotal = shopCart.reduce((acc, item: any) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
+                                      // Jauge de livraison
+                                      const progress = Math.min(100, (subTotal / 30000) * 100);
+                                      const remaining = Math.max(0, 30000 - subTotal);
+                                      const isFreeDelivery = subTotal >= 30000;
+
+                                      // Base delivery
+                                      const dCost = deliveryCost || 1500;
+                                      const finalDeliveryCost = isFreeDelivery ? Math.max(0, dCost - 1500) : dCost;
+                                      const total = subTotal + finalDeliveryCost;
+
+                                      return (
+                                        <div className="flex flex-col gap-4">
+                                            {/* Delivery Progress Bar */}
+                                            <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
+                                                <div className="flex justify-between items-end mb-2">
+                                                    <p className="text-[10px] font-black uppercase text-zinc-500">Subvention Livraison</p>
+                                                    <p className="text-xs font-bold text-black">{isFreeDelivery ? 'Acquise ✅' : `Encore ${remaining.toLocaleString()} F`}</p>
+                                                </div>
+                                                <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-[#39FF14] transition-all duration-500" style={{width: `${progress}%`}}></div>
+                                                </div>
+                                                {!isFreeDelivery && <p className="text-[9px] text-zinc-400 mt-2">Atteignez 30 000 F pour obtenir -1500F sur la livraison.</p>}
+                                            </div>
+
+                                            <div className="flex justify-between text-sm font-bold text-zinc-600 mt-4">
+                                                <span>Sous-total</span>
+                                                <span>{subTotal.toLocaleString()} F</span>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between text-sm font-bold text-zinc-600">
+                                                    <span>Livraison</span>
+                                                    <span className={isFreeDelivery ? 'text-[#39FF14]' : ''}>{finalDeliveryCost === 0 ? 'Offerte' : `+ ${finalDeliveryCost.toLocaleString()} F`}</span>
+                                                </div>
+                                                <input type="text" placeholder="Adresse complète" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
+                                            </div>
+
+                                            <div className="h-px bg-zinc-200 my-2"></div>
+
+                                            <div className="flex justify-between items-center mb-6">
+                                                <span className="font-black text-lg uppercase">Total</span>
+                                                <span className="text-3xl font-black text-[#39FF14]">{total.toLocaleString()} F</span>
+                                            </div>
+
+                                            <button onClick={async () => {
+                                                if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+
+                                                try {
+                                                    const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+                                                    const { data, error } = await supabase.from('nutrition_orders').insert({
+                                                        client_id: clientProfile?.id || user?.id,
+                                                        client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                        phone: clientProfile?.phone || '',
+                                                        items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                        total: total,
+                                                        status: 'Nouveau',
+                                                        address: deliveryAddress
+                                                    }).select();
+
+                                                    if (error) throw error;
+
+                                                    clearCart();
+                                                    setShopPromoCode('');
+                                                    alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
+                                                    handleTabChange('orders');
+
+                                                } catch (err: any) {
+                                                    alert("Erreur: " + err.message);
+                                                }
+                                            }} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-xl shadow-black/20">
+                                                COMMANDE CLASSIQUE
+                                            </button>
+
+                                            <button onClick={async () => {
+                                                if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+
+                                                try {
+                                                    const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+                                                    const { data, error } = await supabase.from('nutrition_orders').insert({
+                                                        client_id: clientProfile?.id || user?.id,
+                                                        client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                        phone: clientProfile?.phone || '',
+                                                        items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                        total: total,
+                                                        status: 'Nouveau',
+                                                        address: deliveryAddress
+                                                    }).select();
+
+                                                    if (error) throw error;
+
+                                                    const cartText = shopCart.map((item: any) => `- ${item.quantity}x ${item.nom}`).join('\n');
+                                                    const orderId = data[0].id;
+                                                    clearCart();
+
+                                                    const msg = `🛍️ NOUVELLE COMMANDE\nN°${orderIdStr}\nTotal: ${total.toLocaleString()} FCFA\nAdmin: https://nutriafro.app/admin/orders/${orderId}`;
+                                                    window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
+
+                                                    handleTabChange('orders');
+
+                                                } catch (err: any) {
+                                                    alert("Erreur: " + err.message);
+                                                }
+                                            }} className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-xl shadow-[#25D366]/20 mt-2">
+                                                COMMANDER VIA WHATSAPP
+                                            </button>
+                                        </div>
+                                      );
+                                  })()}
+                              </div>
+                          </div>
+                      </div>
+                  )}
+
+                  {/* Cross-selling (Récemment vus) */}
+                  <div className="mt-16 pt-8 border-t border-zinc-200">
+                      <h3 className="font-black text-xl uppercase mb-6 flex items-center gap-2 text-black"><Eye size={20} className="text-black"/> Récemment vus</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {savedShopProducts.slice(0, 4).map((p: any) => (
+                             <div key={p.id} onClick={() => { handleTabChange('shop'); }} className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-black transition-colors">
+                                 <div className="w-20 h-20 rounded-xl overflow-hidden mb-3 bg-white flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                                     {p.image_url ? <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover"/> : <Box size={24} className="text-zinc-300"/>}
+                                 </div>
+                                 <h3 className="font-bold text-xs text-black mb-1 line-clamp-1">{p.nom}</h3>
+                                 <p className="text-[#39FF14] font-black text-xs mb-2">{(p.prix_standard || 0).toLocaleString()} F</p>
+                             </div>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+           </div>
+        )}
+
         {activeTab === 'orders' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
-            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à l&apos;accueil</button>
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Package className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Mes Commandes</h2>
+           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full max-w-4xl mx-auto">
+              <button onClick={() => handleTabChange('shop')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à la boutique</button>
 
-                <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl mb-8">
-                   <h3 className="font-black text-sm uppercase mb-4">Mes Coordonnées de livraison</h3>
-                   <div className="flex flex-col sm:flex-row items-end gap-4">
-                      <div className="flex-1 w-full">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Adresse complète</label>
-                         <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-[#39FF14] transition" placeholder="Ex: Dakar, Sicap Amitié 2..." />
-                      </div>
-                      <button onClick={async () => {
-                         if (clientProfile) {
-                            setIsSaving(true);
-                            await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
-                            setIsSaving(false);
-                            alert("Adresse de facturation mise à jour !");
-                         }
-                      }} disabled={isSaving} className="w-full sm:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black text-xs uppercase hover:scale-105 transition shadow-md h-[46px] flex items-center justify-center">
-                         {isSaving ? "En cours..." : "Sauvegarder"}
-                      </button>
-                   </div>
-                </div>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                  <div>
+                      <h2 className="text-3xl font-black uppercase tracking-tighter text-black">Suivi des commandes</h2>
+                      <p className="text-zinc-500 font-bold text-sm">Gérez et suivez l'état de vos livraisons.</p>
+                  </div>
+              </div>
 
-                <div className="space-y-4">
-                   {clientOrders.map(order => (
-                      <div key={order.id} className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-black transition-colors">
-                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                               <span className="text-xs font-black text-zinc-500 uppercase">#{String(order.id).substring(0,8)}</span>
-                               <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${order.status === 'Nouveau' ? 'bg-blue-100 text-blue-700' : order.status === 'Livré' ? 'bg-green-100 text-green-700' : order.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                                  {order.status}
-                               </span>
-                            </div>
-                            <p className="text-sm font-bold text-black mb-1">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                            <p className="text-xs font-medium text-zinc-500">
-                               {order.items?.length || 0} article(s) • Livré à : {order.address || 'Non spécifié'}
-                            </p>
-                         </div>
-                         <div className="text-left md:text-right flex flex-col items-start md:items-end">
-                            <p className="text-2xl font-black text-[#39FF14]">{order.total?.toLocaleString()} F</p>
-                            {order.promo_code && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Code : {order.promo_code}</p>}
-                            <button onClick={() => handleReorder(order)} className="mt-3 bg-zinc-100 text-black px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] transition-colors flex items-center justify-center gap-1 shadow-sm w-full md:w-auto">
-                               <RefreshCcw size={12}/> Recommander
-                            </button>
-                         </div>
+              {clientOrders.length === 0 ? (
+                  <div className="bg-white rounded-[2rem] p-12 text-center shadow-sm border border-zinc-200">
+                      <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6 text-zinc-400">
+                          <Package size={40} />
                       </div>
-                   ))}
-                   {clientOrders.length === 0 && (
-                      <div className="text-center py-12 border-2 border-dashed border-zinc-200 rounded-3xl bg-zinc-50">
-                         <Package size={40} className="mx-auto text-zinc-300 mb-4"/>
-                         <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Vous n'avez pas encore passé de commande.</p>
-                      </div>
-                   )}
-                </div>
-             </div>
-          </div>
+                      <h3 className="text-xl font-black uppercase text-black mb-2">Aucune commande</h3>
+                      <p className="text-zinc-500 font-bold mb-6">Vous n'avez pas encore passé de commande.</p>
+                      <button onClick={() => handleTabChange('shop')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform">Explorer la boutique</button>
+                  </div>
+              ) : (
+                  <div className="flex flex-col gap-4">
+                      {clientOrders.map((order: any) => (
+                          <div key={order.id} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative overflow-hidden group">
+                              <div className="absolute top-0 left-0 w-2 h-full bg-black group-hover:bg-[#39FF14] transition-colors"></div>
+                              <div className="flex-1 pl-4">
+                                  <div className="flex items-center gap-3 mb-2">
+                                      <span className="bg-zinc-100 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">#{order.id.substring(0,8).toUpperCase()}</span>
+                                      <span className="text-xs font-bold text-zinc-500">{new Date(order.created_at).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}</span>
+                                  </div>
+                                  <p className="font-bold text-sm text-black mb-1 line-clamp-1">
+                                      {(order.items || []).map((i: any) => `${i.quantity}x ${i.nom}`).join(', ')}
+                                  </p>
+                                  <p className="font-black text-lg text-[#39FF14]">{order.total?.toLocaleString() || 0} F</p>
+                              </div>
+                              <div className="flex items-center gap-4 shrink-0 pl-4 sm:pl-0 border-t sm:border-t-0 sm:border-l border-zinc-100 pt-4 sm:pt-0">
+                                  <div className="flex flex-col items-start sm:items-end gap-1">
+                                      <span className="text-[9px] font-black uppercase text-zinc-400">Statut</span>
+                                      {order.status === 'Nouveau' || order.status === 'En attente' ? (
+                                          <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={12}/> En attente</span>
+                                      ) : order.status === 'En cours' ? (
+                                          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Package size={12}/> En cours</span>
+                                      ) : order.status === 'Livrée' ? (
+                                          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><CheckCircle size={12}/> Livrée</span>
+                                      ) : (
+                                          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><X size={12}/> Annulée</span>
+                                      )}
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              )}
+
+              {/* Support flottant WhatsApp */}
+              <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="fixed bottom-24 sm:bottom-8 right-4 sm:right-8 bg-[#25D366] text-white p-4 rounded-full shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform z-50 flex items-center justify-center">
+                  <MessageCircle size={28}/>
+              </button>
+           </div>
         )}
 
         {activeTab === 'profile' && (
@@ -4962,10 +5161,13 @@ const currentHour = new Date().getHours();
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
               <div className="flex items-center gap-4 mb-8">
                  <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
-                 <div>
-                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Onyx</h2>
-                    <p className="text-zinc-500 font-bold text-sm mt-1">Super-aliments & Équipements</p>
+                 <div className="flex-1">
+                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Lek Gu Set</h2>
+                    <p className="text-zinc-500 font-bold text-sm mt-1">L'épicerie saine de vos objectifs</p>
                  </div>
+                 <button onClick={() => { handleTabChange('orders'); document.documentElement.scrollTop = 0; }} className="bg-black text-[#39FF14] border border-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform flex items-center gap-2 animate-pulse shrink-0">
+                     <Package size={14}/> Suivi des commandes
+                 </button>
               </div>
 
               <div className="w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden mb-12 shadow-xl relative border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
@@ -4976,7 +5178,7 @@ const currentHour = new Date().getHours();
                  </div>
                  {shopCart.length > 0 && (
                      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-end gap-3 z-10 bg-black/60 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                        <button onClick={() => router.push('/nutrition/panier')} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
+                        <button onClick={() => handleTabChange('cart')} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
                            <ShoppingCart size={20}/> Voir mon Panier ({shopCart.length})
                         </button>
                      </div>
@@ -5111,9 +5313,23 @@ const currentHour = new Date().getHours();
                              <p className="text-sm sm:text-lg font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg w-max italic">{product.prix_premium.toLocaleString()} F</p>
                           </div>
                           <div className="flex gap-2">
-                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                                <Plus size={14}/> Ajouter
-                             </button>
+                             {(() => {
+                                const cartItem = shopCart.find((item: any) => item.id === product.id);
+                                if (cartItem) {
+                                    return (
+                                        <div className="flex-1 bg-zinc-100 border border-[#39FF14] rounded-xl flex items-center justify-between overflow-hidden shadow-sm h-full">
+                                            <button onClick={(e) => { e.stopPropagation(); updateQuantity(product.id, cartItem.quantity - 1); }} className="w-10 h-full flex items-center justify-center text-black hover:bg-zinc-200 transition-colors"><Minus size={14}/></button>
+                                            <span className="font-black text-sm text-black">{cartItem.quantity}</span>
+                                            <button onClick={(e) => { e.stopPropagation(); updateQuantity(product.id, cartItem.quantity + 1); }} className="w-10 h-full flex items-center justify-center bg-[#39FF14] text-black hover:brightness-110 transition-colors"><Plus size={14}/></button>
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                        <Plus size={14}/> Ajouter
+                                    </button>
+                                );
+                             })()}
                              <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
                                 <Heart size={16} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
                              </button>
@@ -5219,9 +5435,9 @@ const currentHour = new Date().getHours();
                                        if (inCart) {
                                            return (
                                                <div className="flex-1 flex items-center justify-between bg-zinc-100 rounded-2xl p-2 px-4 shadow-inner">
-                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity - 1)} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
+                                                   <button onClick={(e) => { e.stopPropagation(); updateQuantity(inCart.id, inCart.quantity - 1); }} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
                                                    <span className="font-black text-xl text-black px-6">{inCart.quantity}</span>
-                                                   <button onClick={() => updateQuantity(inCart.id, inCart.quantity + 1)} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
+                                                   <button onClick={(e) => { e.stopPropagation(); updateQuantity(inCart.id, inCart.quantity + 1); }} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
                                                </div>
                                            );
                                        }
@@ -5232,7 +5448,7 @@ const currentHour = new Date().getHours();
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
                                  </div>
                                  <div className="flex gap-2">
-                                    <button onClick={() => { router.push('/nutrition/panier'); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
+                                    <button onClick={() => { handleTabChange('cart'); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
                                     <button onClick={() => setSelectedProduct(null)} className="flex-1 bg-zinc-100 text-black px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-zinc-200 transition-colors flex items-center justify-center">Continuer</button>
                                  </div>
                               </div>
