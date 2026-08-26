@@ -6259,11 +6259,14 @@ const currentHour = new Date().getHours();
                                           </button>
                                       </>
                                   ) : (
-                                      <div className="flex gap-2 overflow-x-auto max-w-[200px] scrollbar-none">
+                                      <div className="flex gap-2 overflow-x-auto max-w-[300px] scrollbar-none pb-2 items-center">
                                           <button onClick={() => setPostMode('normal')} className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500 shrink-0 hover:bg-zinc-300"><X size={14}/></button>
-                                          {TEXT_BACKGROUNDS.map((bg, idx) => (
-                                              <button key={idx} onClick={() => setTextBgIndex(idx)} className={`w-8 h-8 rounded-full shrink-0 ${bg} bg-cover border-2 ${textBgIndex === idx ? 'border-black' : 'border-transparent'}`}></button>
-                                          ))}
+                                          {[...TEXT_BACKGROUNDS].reverse().map((bg, idx) => {
+                                              const originalIdx = TEXT_BACKGROUNDS.length - 1 - idx;
+                                              return (
+                                                  <button key={originalIdx} onClick={() => setTextBgIndex(originalIdx)} className={`w-8 h-8 rounded-full shrink-0 ${bg} bg-cover border-2 ${textBgIndex === originalIdx ? 'border-[#39FF14] scale-110' : 'border-transparent'}`}></button>
+                                              );
+                                          })}
                                       </div>
                                   )}
                               </div>
