@@ -7,6 +7,8 @@ import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 // @ts-nocheck
 export default function CommunityTab({ ...tabProps }: any) {
+  const [activeFeedFilter, setActiveFeedFilter] = React.useState("all");
+
   const { today, todayStr, router, searchParams, photoInputRef, mealPhotoInputRef, thiernoChatEndRef, thiernoVoiceRef, sidebarTimeoutRef, toggleThiernoVoice, speakText, processThiernoReply, sendWaterReminderPush, storyInputRef, handleArticleClick, togglePushNotifications, imcValue, user, setUser, clientProfile, setClientProfile, loading, setLoading, daysLeft, setDaysLeft, theme, setTheme, activeTab, setActiveTab, blogCategory, setBlogCategory, blogSearch, setBlogSearch, trackingMode, setTrackingMode, dailyLogs, setDailyLogs, showRedoDiagModal, setShowRedoDiagModal, redoReason, setRedoReason, showPaymentModal, setShowPaymentModal, isScanning, setIsScanning, barcodeInput, setBarcodeInput, toastMessage, setToastMessage, isPhotoScanning, setIsPhotoScanning, calories, setCalories, waterGlasses, setWaterGlasses, bmr, setBmr, proteins, setProteins, carbs, setCarbs, fats, setFats, showDailyReport, setShowDailyReport, selectedReportDate, setSelectedReportDate, showExitIntentModal, setShowExitIntentModal, intendedTab, setIntendedTab, reportData, setReportData, isSubmittingReport, setIsSubmittingReport, consumedMeals, setConsumedMeals, moods, setMoods, moodNotes, setMoodNotes, selectedMealModal, setSelectedMealModal, selectedMealPhoto, setSelectedMealPhoto, foodSearchQuery, setFoodSearchQuery, offResults, setOffResults, isSearchingOFF, setIsSearchingOFF, selectedFoodDB, setSelectedFoodDB, foodQuantity, setFoodQuantity, foodDatabaseDB, setFoodDatabaseDB, foodUnit, setFoodUnit, allRecipesDB, setAllRecipesDB, recipeFilter, setRecipeFilter, selectedRecipeDetail, setSelectedRecipeDetail, recipeDetailTab, setRecipeDetailTab, recipeReviews, setRecipeReviews, userRating, setUserRating, userComment, setUserComment, isSubmittingReview, setIsSubmittingReview, hasUserReviewed, setHasUserReviewed, rokhyMessage, setRokhyMessage, isThiernoChatOpen, setIsThiernoChatOpen, isThiernoDismissed, setIsThiernoDismissed, thiernoUserReply, setThiernoUserReply, coachingChatStep, setCoachingChatStep, thiernoMessages, setThiernoMessages, isThiernoVoiceEnabled, setIsThiernoVoiceEnabled, diagStep, setDiagStep, isSubmittingDiag, setIsSubmittingDiag, diagData, setDiagData, forceTarget, setForceTarget, jongomaXP, setJongomaXP, weightLogs, setWeightLogs, newWeight, setNewWeight, showWeightModal, setShowWeightModal, currentWeightInput, setCurrentWeightInput, showConfetti, setShowConfetti, weightCoachMessage, setWeightCoachMessage, coachFeedback, setCoachFeedback, newPostText, setNewPostText, showLeaderboard, setShowLeaderboard, leaderboardData, setLeaderboardData, newPostImage, setNewPostImage, newPostVideo, setNewPostVideo, postMode, setPostMode, textBgIndex, setTextBgIndex, locationName, setLocationName, taggedFriends, setTaggedFriends, uploadingImage, setUploadingImage, communityPosts, setCommunityPosts, stories, setStories, groupedStories, setGroupedStories, isUploadingStory, setIsUploadingStory, storyPreviewFile, setStoryPreviewFile, storyPreviewUrl, setStoryPreviewUrl, storyCaption, setStoryCaption, viewerActiveGroupIndex, setViewerActiveGroupIndex, viewerActiveStoryIndex, setViewerActiveStoryIndex, isViewerPaused, setIsViewerPaused, isVideoMuted, setIsVideoMuted, viewerProgress, setViewerProgress, favoriteMeals, setFavoriteMeals, favoriteSearchQuery, setFavoriteSearchQuery, activeReactionPostId, setActiveReactionPostId, followedUsers, setFollowedUsers, isSaving, setIsSaving, activeChallenge, setActiveChallenge, showChallengeModal, setShowChallengeModal, isParticipating, setIsParticipating, challengeParticipants, setChallengeParticipants, earnedBadges, setEarnedBadges, notifications, setNotifications, pdfHistory, setPdfHistory, activeMenuPostId, setActiveMenuPostId, showSavedOnly, setShowSavedOnly, showCommentsPostId, setShowCommentsPostId, postComments, setPostComments, newCommentText, setNewCommentText, isSharingPDF, setIsSharingPDF, xpAnimation, setXpAnimation, showFirstBadgeModal, setShowFirstBadgeModal, showSecondBadgeModal, setShowSecondBadgeModal, calorieGoal, setCalorieGoal, proteinGoal, setProteinGoal, carbsGoal, setCarbsGoal, fatsGoal, setFatsGoal, isFastingMode, setIsFastingMode, isExpertMode, setIsExpertMode, weeklyGeneratedMenu, setWeeklyGeneratedMenu, showGroceryList, setShowGroceryList, excludedIngredients, setExcludedIngredients, profileForm, setProfileForm, showReminder, setShowReminder, welcomeMessage, setWelcomeMessage, isSidebarOpen, setIsSidebarOpen, isMobileMenuOpen, setIsMobileMenuOpen, showMobileHub, setShowMobileHub, myFollowersCount, setMyFollowersCount, selectedShopGoal, setSelectedShopGoal, selectedProduct, setSelectedProduct, shopDataDB, setShopDataDB, showOrderSuccessModal, setShowOrderSuccessModal, createdOrderRef, setCreatedOrderRef, userOrders, setUserOrders, shopPromoCodesDB, setShopPromoCodesDB, productMediaView, setProductMediaView, productActiveImage, setProductActiveImage, showZoneSuggestions, setShowZoneSuggestions, clientOrders, setClientOrders, hasTriggeredCartExit, setHasTriggeredCartExit, isCartBouncing, setIsCartBouncing, scratchedBlocks, setScratchedBlocks, shopBannerUrl, setShopBannerUrl, shopSearchQuery, setShopSearchQuery, shopMinPrice, setShopMinPrice, shopMaxPrice, setShopMaxPrice, articles, setArticles, pushEnabled, setPushEnabled, isOffline, setIsOffline, shopCart, addToCart, savedShopProducts, setGlobalShopProducts, setSavedShopProducts, handleLogout, generateWeeklyMenu, handleDailyReportSubmit, handleRefreshMeal, calculateWaterGoal, calculateProgress, calculateMacroPercentage, getMenuForDay, formatPrice, handleOrder, addToCartCustom, handleCheckout, handleApplyPromoCode, handleProductClick, handleStoryClick, handleCloseViewer, handleNextStory, handlePrevStory, pauseStory, resumeStory, handleStoryMediaClick, handleLikePost, handlePostSubmit, handleCommentSubmit, handleDeletePost, handleFollowUser, fetchLeaderboard, handleStoryUpload, closeStoryPreview, publishStory, openMealModal, handleCloseMealModal, handleSearchFood, handleAddFood, handleMealPhotoUpload, analyzeMealPhoto, handleWeightSubmit, generatePDFMenu, handleSaveChallenge, handleJoinChallenge, handleOpenRecipe, handleCloseRecipe, handleRecipeReviewSubmit, addThiernoMessage, simulateThiernoResponse, handleThiernoVoiceInput, handleThiernoDismiss, handleClearHistory, handleRedoDiagnostic, handleOfflineStatus, fetchPosts, fetchStories, handleTabChange, greetingText, greetingSubtext, lvlInfo, openLeaderboard, handleUpdateWater, todayPlan, deleteMealLog, spaceGrotesk, toggleFavorite, CALS_ICON, PROTEINS_ICON, MENU_ICONS, downloadHistoryPDF, WATER_ICON, handleChangeAvatar, handleSaveProfile, emblaNewArrivalsRef, openProductModal, SHOP_GOALS, toggleSaveProduct, handleTrackingModeChange, remainingCalories, targetCalories, CARBS_ICON, FATS_ICON, formattedCurrentDay, confirmMealLog, handleSwapMeal, crossSellProducts, downloadGroceryListPDF, guessVisualPortion, getGroceryList, weeklyMenus, handleDeleteWeight, handleSaveWeight, clearCart, setShopPromoCode, setSelectedArticle, selectedArticle, emblaBlogRef, TEXT_BACKGROUNDS, handleImageUpload, handlePostCommunity, handleRepost, handleBookmarkPost, supabase, updateCartQuantity, handleMealClick, removeFromCart, deliveryCost, deliveryAddress, setDeliveryAddress, handleToggleComments, handleLikeComment, handlePostComment } = tabProps;
 
   return (
@@ -32,9 +34,9 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                     {/* 1. Bouton Le Mur */}
                     <button
-                      onClick={() => handleTabChange('community')}
+                      onClick={(e) => { e.preventDefault(); handleTabChange('community'); setActiveFeedFilter('all'); }}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
-                        activeTab === 'community'
+                        activeTab === 'community' && activeFeedFilter === 'all'
                           ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
@@ -45,9 +47,9 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                     {/* 2. Bouton Recettes & Menus */}
                     <button
-                      onClick={() => handleTabChange('samaMenu')}
+                      onClick={(e) => { e.preventDefault(); setActiveFeedFilter('recipes'); }}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
-                        activeTab === 'samaMenu'
+                        activeFeedFilter === 'recipes'
                           ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
@@ -58,8 +60,8 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                     {/* 3. Bouton Challenges Tendance */}
                     <button
-                      onClick={() => {
-                        window.scrollTo(0, document.body.scrollHeight);
+                      onClick={(e) => {
+                        e.preventDefault(); document.getElementById('challenges-section')?.scrollIntoView({ behavior: 'smooth' });
                         // Future action to explicitly pop up the challenge modal if implemented.
                         // We scroll to it for now since it is part of the right column.
                       }}
@@ -71,7 +73,7 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                     {/* 4. Bouton Mon Profil */}
                     <button
-                      onClick={() => handleTabChange('profile')}
+                      onClick={(e) => { e.preventDefault(); handleTabChange('profile'); }}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
                         activeTab === 'profile'
                           ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
@@ -105,7 +107,7 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                      {/* Les cercles des autres membres */}
                      {groupedStories.map((group, idx) => (
-                         <div key={group.client.id} className="flex flex-col items-center gap-1 cursor-pointer shrink-0" onClick={() => {
+                         <div key={group.client.id} className="flex flex-col items-center gap-1 cursor-pointer shrink-0" onClick={(e) => {
                              if (!group.stories || group.stories.length === 0) return;
                              setViewerActiveGroupIndex(idx);
                              setViewerActiveStoryIndex(0);
@@ -122,7 +124,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
                      {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
-                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+                     <div id="challenges-section" className="hidden lg:flex lg:col-span-3 flex-col gap-6">
 
                          {/* Mini Profile Card */}
                          <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative mb-6">
@@ -203,7 +205,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                   ) : (
                                       <img src={newPostImage || ''} className="w-full h-full object-contain" />
                                   )}
-                                  <button onClick={() => { setNewPostImage(null); setNewPostVideo(null); }} className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 z-10"><X size={14}/></button>
+                                  <button onClick={(e) => { setNewPostImage(null); setNewPostVideo(null); }} className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 z-10"><X size={14}/></button>
                                </div>
                            )}
 
@@ -270,14 +272,14 @@ export default function CommunityTab({ ...tabProps }: any) {
                                               <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">Texte</span>
                                           </button>
 
-                                          <button onClick={() => {
+                                          <button onClick={(e) => {
                                               const loc = prompt("📍 Où êtes-vous ? (Ex: Dakar, Sénégal)");
                                               if (loc) setLocationName(loc);
                                           }} className="text-zinc-500 hover:text-black dark:hover:text-white transition-colors p-2 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 rounded-xl flex items-center gap-2">
                                               <span className="text-base leading-none">📍</span>
                                           </button>
 
-                                          <button onClick={() => {
+                                          <button onClick={(e) => {
                                               const friend = prompt("@ Mentionnez un ami :");
                                               if (friend) setTaggedFriends([...taggedFriends, friend]);
                                           }} className="text-zinc-500 hover:text-black dark:hover:text-white transition-colors p-2 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 rounded-xl flex items-center gap-2 font-black">
@@ -310,7 +312,7 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                         {/* Le Feed */}
                         <div className="space-y-6">
-                           {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.filter(p => showSavedOnly ? p._bookmarkedByMe : true).map((post, idx) => (
+                           {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.filter(p => showSavedOnly ? p._bookmarkedByMe : true).filter(p => activeFeedFilter === 'recipes' ? (p.tags?.includes('recette') || p.tags?.includes('menu') || p.content?.toLowerCase().includes('recette') || p.content?.toLowerCase().includes('plat') || p.image_url) : true).map((post, idx) => (
                               <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex flex-col group">
                                  <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-3">
@@ -487,12 +489,12 @@ export default function CommunityTab({ ...tabProps }: any) {
                      </div>
 
                      {/* Colonne Droite : Mini Profil & Notifications (3 cols) */}
-                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+                     <div id="challenges-section" className="hidden lg:flex lg:col-span-3 flex-col gap-6">
 
                          {/* CHALENGES TENDANCE WIDGET */}
                          {activeChallenge && (
                              <div className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-0 shadow-sm relative overflow-hidden group transition-all">
-                                 <div className="h-40 relative bg-black cursor-pointer" onClick={() => setShowChallengeModal(true)}>
+                                 <div className="h-40 relative bg-black cursor-pointer" onClick={(e) => { e.preventDefault(); setActiveChallenge(activeChallenge); setShowChallengeModal(true); }}>
                                      {activeChallenge.cover_url?.includes('.mp4') ? (
                                          <video src={activeChallenge.cover_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                                      ) : (
@@ -520,7 +522,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                          <span className="text-[10px] font-bold text-zinc-400">{activeChallenge.end_date ? new Date(activeChallenge.end_date).toLocaleDateString('fr-FR') : ''}</span>
                                      </div>
                                      <div className="flex gap-2">
-                                         <button onClick={() => setShowChallengeModal(true)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-black bg-[#39FF14] px-4 py-3 rounded-xl hover:scale-105 transition-transform shadow-sm">Détails</button>
+                                         <button onClick={(e) => { e.preventDefault(); setActiveChallenge(activeChallenge); setShowChallengeModal(true); }} className="flex-1 text-[10px] font-black uppercase tracking-widest text-black bg-[#39FF14] px-4 py-3 rounded-xl hover:scale-105 transition-transform shadow-sm">Détails</button>
                                          {isParticipating && (
                                              <button onClick={async () => {
                                                  if (!activeChallenge || !clientProfile) return;
