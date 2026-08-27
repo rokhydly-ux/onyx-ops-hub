@@ -124,7 +124,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
                      {/* Colonne Gauche : Favoris & Communauté (3 cols) */}
-                     <div id="challenges-section" className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+                     <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
 
                          {/* Mini Profile Card */}
                          <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative mb-6">
