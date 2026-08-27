@@ -417,6 +417,8 @@ export default function NutritionDashboard() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
+
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
@@ -3506,415 +3508,7 @@ const currentHour = new Date().getHours();
 
   const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
-  return (
-    <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
-
-      {/* IMMERSIVE RECIPE MODAL */}
-      <AnimatePresence>
-        {selectedRecipeDetail && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center sm:p-6"
-          >
-            <div className="w-full sm:max-w-2xl bg-white dark:bg-zinc-950 h-[90vh] sm:h-[85vh] sm:rounded-[3rem] rounded-t-[3rem] overflow-hidden flex flex-col relative shadow-2xl">
-              {/* Image Hero Section */}
-              <div className="relative w-full h-1/3 sm:h-2/5 shrink-0">
-                <img src={selectedRecipeDetail.image_url || 'https://placehold.co/800x600/111/39FF14?text=Recette'} alt={selectedRecipeDetail.nom} className="absolute inset-0 w-full h-full object-cover" />
-
-                <button onClick={() => {
-                    const shareText = `Je viens de découvrir la recette de ${selectedRecipeDetail.nom} sur l'app NutriAfro ! 🔥 Télécharge l'app pour voir les ingrédients et cuisiner avec moi : https://nutriafro.app`;
-                    if (navigator.share) {
-                        navigator.share({ title: selectedRecipeDetail.nom, text: shareText, url: 'https://nutriafro.app' }).catch(console.error);
-                    } else {
-                        navigator.clipboard.writeText(shareText);
-                        alert("Lien de partage copié !");
-                    }
-                }} className="absolute top-6 right-20 bg-white/20 hover:bg-white text-white hover:text-black p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg border border-white/50">
-                  <Share2 size={20} />
-                </button>
-
-                <button onClick={() => setSelectedRecipeDetail(null)} className="absolute top-6 right-6 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg">
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Glassmorphism Container over Image */}
-              <div className="flex-1 overflow-y-auto bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md rounded-t-[40px] -mt-10 relative z-10 p-8 flex flex-col custom-scrollbar pb-32 border-t border-white/20">
-                <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-6 shrink-0"></div>
-
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-none`}>{selectedRecipeDetail.nom}</h2>
-                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500 mb-6">
-                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.preparation_time || 15} min</span>
-                    <span className="flex items-center gap-1.5"><Eye size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.views || 0} vues</span>
-                </div>
-
-                {/* Macro Pills */}
-                <div className="flex flex-wrap gap-3 mb-8">
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CALS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.calories} kcal</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={PROTEINS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.proteins}g Prot</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CARBS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.carbs || 0}g Gluc</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={FATS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.fats || 0}g Lip</span>
-                </div>
-
-                {/* Navigation Pills */}
-                <div className="flex gap-2 mb-6 bg-zinc-100/50 dark:bg-zinc-900/50 p-1.5 rounded-2xl">
-                    {['apercu', 'ingredients', 'preparation', 'avis'].map((tab) => (
-                        <button key={tab} onClick={() => setRecipeDetailTab(tab as any)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${recipeDetailTab === tab ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>
-                            {tab === 'apercu' ? 'Aperçu' : tab === 'ingredients' ? 'Ingrédients' : tab === 'preparation' ? 'Préparation' : 'Avis'}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Content Area */}
-                <div className="flex-1 animate-in fade-in">
-                    {recipeDetailTab === 'apercu' && (
-                        <div className="space-y-4">
-                            <p className="text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
-                                {selectedRecipeDetail.description_courte || "Une recette délicieuse et saine, parfaitement équilibrée pour vous aider à atteindre vos objectifs nutritionnels."}
-                            </p>
-                        </div>
-                    )}
-
-                    {recipeDetailTab === 'ingredients' && (
-                        <div className="space-y-3">
-                            {selectedRecipeDetail.ingredients && selectedRecipeDetail.ingredients.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {selectedRecipeDetail.ingredients.map((ing: any, idx: number) => (
-                                        <li key={idx} className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-xl">
-                                            <div className="w-2 h-2 bg-[#39FF14] rounded-full shrink-0"></div>
-                                            <span className="text-sm font-bold text-black dark:text-white">{ing.nom || ing}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-zinc-500 italic text-sm">Liste détaillée des ingrédients à venir.</p>
-                            )}
-                        </div>
-                    )}
-
-                    {recipeDetailTab === 'preparation' && (
-                        <div className="space-y-4">
-                            {selectedRecipeDetail.instructions ? (
-                                <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400 leading-loose whitespace-pre-line bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[2rem]">
-                                    {selectedRecipeDetail.instructions}
-                                </div>
-                            ) : (
-                                <p className="text-zinc-500 italic text-sm">Instructions de préparation à venir.</p>
-                            )}
-                        </div>
-                    )}
-
-                    {recipeDetailTab === 'avis' && (
-                        <div className="space-y-6">
-                            {/* Nouveau Avis */}
-                            <div className="bg-zinc-50 p-4 rounded-2xl">
-                                <h4 className="font-bold text-sm mb-3">Laisser un avis</h4>
-                                <div className="flex items-center gap-2 mb-3">
-                                    {[1,2,3,4,5].map(star => (
-                                        <button key={star} onClick={() => setUserRating(star)} className="focus:outline-none">
-                                            <Star className={`w-6 h-6 ${userRating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300'}`} />
-                                        </button>
-                                    ))}
-                                </div>
-                                <textarea
-                                    value={userComment}
-                                    onChange={e => setUserComment(e.target.value)}
-                                    placeholder="Partagez votre avis sur cette recette..."
-                                    className="w-full bg-white border-0 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#39FF14]"
-                                    rows={3}
-                                />
-                                <button onClick={() => submitReview(selectedRecipeDetail.id)} disabled={isSubmittingReview} className="mt-3 w-full bg-black text-[#39FF14] font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                                    {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Publier mon avis'}
-                                </button>
-                            </div>
-
-                            {/* Liste Avis */}
-                            <div className="space-y-4">
-                                <h4 className="font-bold text-sm flex items-center justify-between">
-                                    Avis de la communauté
-                                    <span className="text-zinc-500 font-normal">{recipeReviews.length} avis</span>
-                                </h4>
-                                {recipeReviews.length === 0 ? (
-                                    <p className="text-zinc-500 text-sm italic">Soyez le premier à donner votre avis !</p>
-                                ) : (
-                                    recipeReviews.map(review => (
-                                        <div key={review.id} className="border-b border-zinc-100 pb-4 last:border-0">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-zinc-200 overflow-hidden">
-                                                        <img src={review.clients?.avatar_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt={review.clients?.prenom} className="w-full h-full object-cover" />
-                                                    </div>
-                                                    <span className="font-bold text-sm">{review.clients?.prenom || 'Utilisateur'}</span>
-                                                </div>
-                                                <div className="flex">
-                                                    {[1,2,3,4,5].map(star => (
-                                                        <Star key={star} className={`w-3 h-3 ${review.rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300'}`} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            {review.comment && <p className="text-sm text-zinc-600 pl-10">{review.comment}</p>}
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-              </div>
-
-              {/* Fixed Action Footer */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
-                  <button onClick={() => {
-                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories || selectedRecipeDetail.cals || selectedRecipeDetail.kcal || 0, selectedRecipeDetail.proteins || selectedRecipeDetail.prots || 0, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
-                      alert("Ajouté au tracker du jour !");
-                      setSelectedRecipeDetail(null);
-                  }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
-                      <PlusCircle size={20}/> Ajouter au repas
-                  </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes gentle-pulse {
-          0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
-          50% { opacity: 0.85; filter: drop-shadow(0 0 25px rgba(57,255,20,0.4)); transform: scale(1.02); }
-        }
-        .animate-gentle-pulse {
-          animation: gentle-pulse 4s ease-in-out infinite;
-        }
-      `}} />
-
-      {/* ANIMATION LUDIQUE DE CONFETTIS */}
-      {showConfetti && (
-        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
-          {[...Array(60)].map((_, i) => {
-            const emojis = showConfetti === 'weight'
-              ? ['🎉', '⚖️', '💪', '🔥', '🏆', '✨']
-              : ['🎉', '✨', '🏆', '🥬', '🎯', '🥑'];
-            return (
-              <div
-                key={i}
-                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
-                  animationDelay: `${Math.random() * 0.5}s`,
-                }}
-              >
-                {emojis[i % emojis.length]}
-              </div>
-            );
-          })}
-          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
-        </div>
-      )}
-
-      {/* SIDEBAR VERTICAL */}
-
-
-      {/* NOUVEAU HEADER GLASSMORPHISM */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => handleTabChange('dashboard')} />
-        </div>
-
-        {/* MÉGA-MENU (Desktop) */}
-        <div className="hidden lg:flex items-center gap-2">
-            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Accueil</button>
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Mon Jour</button>
-                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Historique</button>
-                    <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
-                </div>
-            </div>
-
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Sama Menu</button>
-                    <button onClick={() => handleTabChange('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
-                </div>
-            </div>
-
-            <div className="relative group">
-                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
-                    <MessageSquare size={14}/> Réseau <ChevronDown size={12}/>
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
-                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Coaching</button>
-                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Doc & Astuces</button>
-                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Fitness</button>
-                    <button onClick={() => handleTabChange('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
-
-                </div>
-            </div>
-
-<button onClick={() => handleTabChange('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
-                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Boutique
-                </button>
-        </div>
-
-        {/* Actions Droite */}
-        <div className="flex items-center gap-3">
-            {/* Search Bar */}
-            <div className="hidden md:flex items-center bg-white border border-zinc-200 rounded-full px-3 py-1.5 shadow-sm">
-                <Search size={14} className="text-zinc-400" />
-                <input type="text" placeholder="Chercher une recette, un membre..." className="bg-transparent border-none text-xs text-zinc-700 outline-none w-48 focus:w-64 transition-all ml-2 placeholder:text-zinc-400" />
-            </div>
-
-            {/* Toggles */}
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-yellow-500 transition-colors shadow-sm" title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}>
-                {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
-            </button>
-
-            <button onClick={() => { setIsExpertMode(!isExpertMode); handleExpertModeChange(!isExpertMode); }} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title={isExpertMode ? "Mode Expert Actif" : "Mode Simple"}>
-                {isExpertMode ? <Eye size={16}/> : <EyeOff size={16}/>}
-            </button>
-
-            {/* Cart */}
-            <button onClick={() => handleTabChange('cart')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
-                <ShoppingCart size={16} />
-                {shopCart.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
-                        {shopCart.length}
-                    </span>
-                )}
-            </button>
-
-            {/* Avatar Dropdown */}
-            <div className="relative group ml-2">
-                <button className="flex items-center gap-2 focus:outline-none">
-                    <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-9 h-9 rounded-full border-2 border-[#39FF14]/50 object-cover shadow-sm" />
-                </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
-                    <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
-                    <div className="h-px w-full bg-zinc-100"></div>
-                    <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-50 flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
-                </div>
-            </div>
-
-            {/* Theme Toggle */}
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 text-zinc-700 hover:text-black hover:bg-zinc-100 rounded-full transition-colors hidden md:flex">
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            {/* Mobile Menu Toggle */}
-            <button onClick={() => setShowMobileHub(true)} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5`}>
-
-                {activeTab === 'minute-doc' && (<MinuteDocTab {...tabProps} />)}
-                {activeTab === 'dashboard' && (<DashboardTab1 {...tabProps} />)}
-                {activeTab === 'dashboard' && (<DashboardTab2 {...tabProps} />)}
-                {activeTab === 'today' && (<TodayTab {...tabProps} />)}
-                {activeTab === 'week' && (<WeekTab {...tabProps} />)}
-                {activeTab === 'cart' && (<CartTab {...tabProps} />)}
-                {activeTab === 'orders' && (<OrdersTab1 {...tabProps} />)}
-                {activeTab === 'profile' && (<ProfileTab {...tabProps} />)}
-                {activeTab === 'favorites' && (<FavoritesTab {...tabProps} />)}
-                {activeTab === 'orders' && (<OrdersTab2 {...tabProps} />)}
-                {activeTab === 'shop' && (<ShopTab {...tabProps} />)}
-                {activeTab === 'history' && (<HistoryTab {...tabProps} />)}
-                {activeTab === 'blog' && selectedArticle && (<BlogArticleTab {...tabProps} />)}
-                {activeTab === 'blog' && !selectedArticle && (<BlogListTab {...tabProps} />)}
-                {activeTab === 'coaching' && (<CoachingTab {...tabProps} />)}
-                {activeTab === 'weight' && (<WeightTab {...tabProps} />)}
-                {activeTab === 'fitness' && (<FitnessTab {...tabProps} />)}
-                {activeTab === 'community' && (<CommunityTab {...tabProps} />)}
-
-</main>
-
-      {/* BOT THIERNO (COACH MÉDECIN) */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
-        {isThiernoChatOpen && (
-          <div className={`rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[450px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden ${theme === 'dark' ? 'bg-zinc-950' : 'bg-white'}`}>
-             <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
-                <div className="flex items-center gap-3">
-                   <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl overflow-hidden"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" /></div>
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
-                   </div>
-                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Dr. Thierno</p><p className="text-zinc-400 text-[9px] uppercase font-bold tracking-widest">Coach Nutrition</p></div>
-                </div>
-                <div className="flex items-center gap-3">
-                   <button onClick={toggleThiernoVoice} className={`p-2 rounded-full transition ${isThiernoVoiceEnabled ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-zinc-800 text-zinc-500 hover:text-white'}`} title="Activer/Désactiver la voix">{isThiernoVoiceEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button>
-                   <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
-                </div>
-             </div>
-
-             <div className={`flex-1 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
-                {thiernoMessages.map((msg, i) => (
-                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
-                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? (theme === 'dark' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-white text-zinc-800 border-zinc-200') + ' border rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
-                         {msg.text}
-                      </div>
-                   </div>
-                ))}
-                <div ref={thiernoChatEndRef} />
-             </div>
-
-             <div className={`p-3 border-t flex gap-2 ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-                <input type="text" value={thiernoUserReply} onChange={e => setThiernoUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processThiernoReply(thiernoUserReply)} placeholder="Poser une question..." className={`flex-1 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black ${theme === 'dark' ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-black'}`} />
-                <button onClick={() => processThiernoReply(thiernoUserReply)} className="bg-black p-3 rounded-xl text-[#39FF14] hover:scale-105 transition"><CheckCircle size={18}/></button>
-             </div>
-          </div>
-        )}
-
-        {!isThiernoChatOpen && !isThiernoDismissed && (
-           <div className="relative group animate-bounce flex items-center justify-center">
-             <button
-               onClick={(e) => { e.stopPropagation(); setIsThiernoDismissed(true); }}
-               className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
-               aria-label="Fermer l'assistant"
-             >
-               <X size={14} />
-             </button>
-             <button onClick={() => setIsThiernoChatOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-3xl">
-               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" />
-             </button>
-           </div>
-        )}
-      </div>
-
-      {/* TOAST NOTIFICATION */}
-      {toastMessage && (
-         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[400] animate-in slide-in-from-bottom-5">
-             <CheckCircle size={16}/> {toastMessage}
-         </div>
-      )}
-
-      {/* BOTTOM NAVIGATION MOBILE */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center px-4 py-2 z-[100] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-         <button onClick={() => { handleTabChange('week'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Sama Menu</span></button>
-         <button onClick={() => { handleTabChange('today'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Mon Jour</span></button>
-         <div className="flex-1 flex justify-center -mt-6">
-            <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] w-14 h-14 rounded-full shadow-[0_10px_20px_rgba(57,255,20,0.3)] border-4 border-[#f4f4f5] dark:border-zinc-950 flex items-center justify-center hover:scale-110 transition-transform"><ScanLine size={24}/></button>
-         </div>
-         <button onClick={() => { handleTabChange('shop'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.shop} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Boutique</span></button>
-         <button onClick={() => setShowMobileHub(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
-      </div>
-
-    </div>
-  );
-}
-
-
-
-  // @ts-ignore
+// @ts-ignore
   const tabProps = {
     today,
     todayStr,
@@ -4347,3 +3941,409 @@ const currentHour = new Date().getHours();
     setDeliveryAddress,
     loadRecipeReviews
   };
+
+  return (
+    <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
+
+      {/* IMMERSIVE RECIPE MODAL */}
+      <AnimatePresence>
+        {selectedRecipeDetail && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center sm:p-6"
+          >
+            <div className="w-full sm:max-w-2xl bg-white dark:bg-zinc-950 h-[90vh] sm:h-[85vh] sm:rounded-[3rem] rounded-t-[3rem] overflow-hidden flex flex-col relative shadow-2xl">
+              {/* Image Hero Section */}
+              <div className="relative w-full h-1/3 sm:h-2/5 shrink-0">
+                <img src={selectedRecipeDetail.image_url || 'https://placehold.co/800x600/111/39FF14?text=Recette'} alt={selectedRecipeDetail.nom} className="absolute inset-0 w-full h-full object-cover" />
+
+                <button onClick={() => {
+                    const shareText = `Je viens de découvrir la recette de ${selectedRecipeDetail.nom} sur l'app NutriAfro ! 🔥 Télécharge l'app pour voir les ingrédients et cuisiner avec moi : https://nutriafro.app`;
+                    if (navigator.share) {
+                        navigator.share({ title: selectedRecipeDetail.nom, text: shareText, url: 'https://nutriafro.app' }).catch(console.error);
+                    } else {
+                        navigator.clipboard.writeText(shareText);
+                        alert("Lien de partage copié !");
+                    }
+                }} className="absolute top-6 right-20 bg-white/20 hover:bg-white text-white hover:text-black p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg border border-white/50">
+                  <Share2 size={20} />
+                </button>
+
+                <button onClick={() => setSelectedRecipeDetail(null)} className="absolute top-6 right-6 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all z-10 shadow-lg">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Glassmorphism Container over Image */}
+              <div className="flex-1 overflow-y-auto bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md rounded-t-[40px] -mt-10 relative z-10 p-8 flex flex-col custom-scrollbar pb-32 border-t border-white/20">
+                <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-6 shrink-0"></div>
+
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-none`}>{selectedRecipeDetail.nom}</h2>
+                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500 mb-6">
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.preparation_time || 15} min</span>
+                    <span className="flex items-center gap-1.5"><Eye size={14} className="text-black dark:text-white"/> {selectedRecipeDetail.views || 0} vues</span>
+                </div>
+
+                {/* Macro Pills */}
+                <div className="flex flex-wrap gap-3 mb-8">
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CALS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.calories} kcal</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={PROTEINS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.proteins}g Prot</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={CARBS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.carbs || 0}g Gluc</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><img src={FATS_ICON} className="w-4 h-4"/> {selectedRecipeDetail.fats || 0}g Lip</span>
+                </div>
+
+                {/* Navigation Pills */}
+                <div className="flex gap-2 mb-6 bg-zinc-100/50 dark:bg-zinc-900/50 p-1.5 rounded-2xl">
+                    {['apercu', 'ingredients', 'preparation', 'avis'].map((tab) => (
+                        <button key={tab} onClick={() => setRecipeDetailTab(tab as any)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${recipeDetailTab === tab ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>
+                            {tab === 'apercu' ? 'Aperçu' : tab === 'ingredients' ? 'Ingrédients' : tab === 'preparation' ? 'Préparation' : 'Avis'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 animate-in fade-in">
+                    {recipeDetailTab === 'apercu' && (
+                        <div className="space-y-4">
+                            <p className="text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                                {selectedRecipeDetail.description_courte || "Une recette délicieuse et saine, parfaitement équilibrée pour vous aider à atteindre vos objectifs nutritionnels."}
+                            </p>
+                        </div>
+                    )}
+
+                    {recipeDetailTab === 'ingredients' && (
+                        <div className="space-y-3">
+                            {selectedRecipeDetail.ingredients && selectedRecipeDetail.ingredients.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {selectedRecipeDetail.ingredients.map((ing: any, idx: number) => (
+                                        <li key={idx} className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-xl">
+                                            <div className="w-2 h-2 bg-[#39FF14] rounded-full shrink-0"></div>
+                                            <span className="text-sm font-bold text-black dark:text-white">{ing.nom || ing}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-zinc-500 italic text-sm">Liste détaillée des ingrédients à venir.</p>
+                            )}
+                        </div>
+                    )}
+
+                    {recipeDetailTab === 'preparation' && (
+                        <div className="space-y-4">
+                            {selectedRecipeDetail.instructions ? (
+                                <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400 leading-loose whitespace-pre-line bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[2rem]">
+                                    {selectedRecipeDetail.instructions}
+                                </div>
+                            ) : (
+                                <p className="text-zinc-500 italic text-sm">Instructions de préparation à venir.</p>
+                            )}
+                        </div>
+                    )}
+
+                    {recipeDetailTab === 'avis' && (
+                        <div className="space-y-6">
+                            {/* Nouveau Avis */}
+                            <div className="bg-zinc-50 p-4 rounded-2xl">
+                                <h4 className="font-bold text-sm mb-3">Laisser un avis</h4>
+                                <div className="flex items-center gap-2 mb-3">
+                                    {[1,2,3,4,5].map(star => (
+                                        <button key={star} onClick={() => setUserRating(star)} className="focus:outline-none">
+                                            <Star className={`w-6 h-6 ${userRating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300'}`} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <textarea
+                                    value={userComment}
+                                    onChange={e => setUserComment(e.target.value)}
+                                    placeholder="Partagez votre avis sur cette recette..."
+                                    className="w-full bg-white border-0 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#39FF14]"
+                                    rows={3}
+                                />
+                                <button onClick={() => submitReview(selectedRecipeDetail.id)} disabled={isSubmittingReview} className="mt-3 w-full bg-black text-[#39FF14] font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                                    {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Publier mon avis'}
+                                </button>
+                            </div>
+
+                            {/* Liste Avis */}
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-sm flex items-center justify-between">
+                                    Avis de la communauté
+                                    <span className="text-zinc-500 font-normal">{recipeReviews.length} avis</span>
+                                </h4>
+                                {recipeReviews.length === 0 ? (
+                                    <p className="text-zinc-500 text-sm italic">Soyez le premier à donner votre avis !</p>
+                                ) : (
+                                    recipeReviews.map(review => (
+                                        <div key={review.id} className="border-b border-zinc-100 pb-4 last:border-0">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-zinc-200 overflow-hidden">
+                                                        <img src={review.clients?.avatar_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt={review.clients?.prenom} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <span className="font-bold text-sm">{review.clients?.prenom || 'Utilisateur'}</span>
+                                                </div>
+                                                <div className="flex">
+                                                    {[1,2,3,4,5].map(star => (
+                                                        <Star key={star} className={`w-3 h-3 ${review.rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300'}`} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {review.comment && <p className="text-sm text-zinc-600 pl-10">{review.comment}</p>}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+              </div>
+
+              {/* Fixed Action Footer */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-white/50 dark:bg-zinc-950/80 dark:border-zinc-800 z-50 pb-safe">
+                  <button onClick={() => {
+                      confirmMealLog(selectedRecipeDetail.type || 'Déjeuner', selectedRecipeDetail.nom, selectedRecipeDetail.calories || selectedRecipeDetail.cals || selectedRecipeDetail.kcal || 0, selectedRecipeDetail.proteins || selectedRecipeDetail.prots || 0, selectedRecipeDetail.carbs || 0, selectedRecipeDetail.fats || 0, selectedRecipeDetail);
+                      alert("Ajouté au tracker du jour !");
+                      setSelectedRecipeDetail(null);
+                  }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3 shadow-2xl">
+                      <PlusCircle size={20}/> Ajouter au repas
+                  </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes gentle-pulse {
+          0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
+          50% { opacity: 0.85; filter: drop-shadow(0 0 25px rgba(57,255,20,0.4)); transform: scale(1.02); }
+        }
+        .animate-gentle-pulse {
+          animation: gentle-pulse 4s ease-in-out infinite;
+        }
+      `}} />
+
+      {/* ANIMATION LUDIQUE DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
+          {[...Array(60)].map((_, i) => {
+            const emojis = showConfetti === 'weight'
+              ? ['🎉', '⚖️', '💪', '🔥', '🏆', '✨']
+              : ['🎉', '✨', '🏆', '🥬', '🎯', '🥑'];
+            return (
+              <div
+                key={i}
+                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                  animationDelay: `${Math.random() * 0.5}s`,
+                }}
+              >
+                {emojis[i % emojis.length]}
+              </div>
+            );
+          })}
+          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
+        </div>
+      )}
+
+      {/* SIDEBAR VERTICAL */}
+
+
+      {/* NOUVEAU HEADER GLASSMORPHISM */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#39FF14]/30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="NutriAfro" className="h-12 w-auto object-contain cursor-pointer" onClick={() => handleTabChange('dashboard')} />
+        </div>
+
+        {/* MÉGA-MENU (Desktop) */}
+        <div className="hidden lg:flex items-center gap-2">
+            <button onClick={() => handleTabChange('dashboard')} className="flex items-center gap-2 font-black uppercase text-[11px] tracking-widest text-black hover:text-[#39FF14] transition-colors py-2 bg-zinc-50 px-4 rounded-full border border-zinc-200"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded-full object-cover shadow-sm"/> Accueil</button>
+            <div className="relative group">
+                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
+                    <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
+                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Mon Jour</button>
+                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Historique</button>
+                    <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
+                </div>
+            </div>
+
+            <div className="relative group">
+                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
+                    <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
+                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Sama Menu</button>
+                    <button onClick={() => handleTabChange('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
+                </div>
+            </div>
+
+            <div className="relative group">
+                <button className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2">
+                    <MessageSquare size={14}/> Réseau <ChevronDown size={12}/>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
+                    <button onClick={() => handleTabChange('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
+                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Coaching</button>
+                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Doc & Astuces</button>
+                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Fitness</button>
+                    <button onClick={() => handleTabChange('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
+
+                </div>
+            </div>
+
+<button onClick={() => handleTabChange('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
+                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Boutique
+                </button>
+        </div>
+
+        {/* Actions Droite */}
+        <div className="flex items-center gap-3">
+            {/* Search Bar */}
+            <div className="hidden md:flex items-center bg-white border border-zinc-200 rounded-full px-3 py-1.5 shadow-sm">
+                <Search size={14} className="text-zinc-400" />
+                <input type="text" placeholder="Chercher une recette, un membre..." className="bg-transparent border-none text-xs text-zinc-700 outline-none w-48 focus:w-64 transition-all ml-2 placeholder:text-zinc-400" />
+            </div>
+
+            {/* Toggles */}
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-yellow-500 transition-colors shadow-sm" title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}>
+                {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
+            </button>
+
+            <button onClick={() => { setIsExpertMode(!isExpertMode); handleExpertModeChange(!isExpertMode); }} className={`p-2 rounded-full border transition-colors shadow-sm ${isExpertMode ? 'bg-[#39FF14]/10 border-[#39FF14] text-[#39FF14]' : 'bg-white border-zinc-200 text-zinc-400 hover:text-black'}`} title={isExpertMode ? "Mode Expert Actif" : "Mode Simple"}>
+                {isExpertMode ? <Eye size={16}/> : <EyeOff size={16}/>}
+            </button>
+
+            {/* Cart */}
+            <button onClick={() => handleTabChange('cart')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
+                <ShoppingCart size={16} />
+                {shopCart.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
+                        {shopCart.length}
+                    </span>
+                )}
+            </button>
+
+            {/* Avatar Dropdown */}
+            <div className="relative group ml-2">
+                <button className="flex items-center gap-2 focus:outline-none">
+                    <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-9 h-9 rounded-full border-2 border-[#39FF14]/50 object-cover shadow-sm" />
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50 flex flex-col">
+                    <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14}/> Mon Profil</button>
+                    <div className="h-px w-full bg-zinc-100"></div>
+                    <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; }} className="px-4 py-3 text-xs font-bold text-red-500 text-left hover:bg-red-50 flex items-center gap-2"><LogOut size={14}/> Déconnexion</button>
+                </div>
+            </div>
+
+            {/* Theme Toggle */}
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 text-zinc-700 hover:text-black hover:bg-zinc-100 rounded-full transition-colors hidden md:flex">
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            {/* Mobile Menu Toggle */}
+            <button onClick={() => setShowMobileHub(true)} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
+        </div>
+      </header>
+
+      {/* MAIN CONTENT AREA */}
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5`}>
+
+                {activeTab === 'minute-doc' && (<MinuteDocTab {...tabProps} />)}
+                {activeTab === 'dashboard' && (<DashboardTab1 {...tabProps} />)}
+                {activeTab === 'dashboard' && (<DashboardTab2 {...tabProps} />)}
+                {activeTab === 'today' && (<TodayTab {...tabProps} />)}
+                {activeTab === 'week' && (<WeekTab {...tabProps} />)}
+                {activeTab === 'cart' && (<CartTab {...tabProps} />)}
+                {activeTab === 'orders' && (<OrdersTab1 {...tabProps} />)}
+                {activeTab === 'profile' && (<ProfileTab {...tabProps} />)}
+                {activeTab === 'favorites' && (<FavoritesTab {...tabProps} />)}
+                {activeTab === 'orders' && (<OrdersTab2 {...tabProps} />)}
+                {activeTab === 'shop' && (<ShopTab {...tabProps} />)}
+                {activeTab === 'history' && (<HistoryTab {...tabProps} />)}
+                {activeTab === 'blog' && selectedArticle && (<BlogArticleTab {...tabProps} />)}
+                {activeTab === 'blog' && !selectedArticle && (<BlogListTab {...tabProps} />)}
+                {activeTab === 'coaching' && (<CoachingTab {...tabProps} />)}
+                {activeTab === 'weight' && (<WeightTab {...tabProps} />)}
+                {activeTab === 'fitness' && (<FitnessTab {...tabProps} />)}
+                {activeTab === 'community' && (<CommunityTab {...tabProps} />)}
+
+</main>
+
+      {/* BOT THIERNO (COACH MÉDECIN) */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+        {isThiernoChatOpen && (
+          <div className={`rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[450px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden ${theme === 'dark' ? 'bg-zinc-950' : 'bg-white'}`}>
+             <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl overflow-hidden"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" /></div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Dr. Thierno</p><p className="text-zinc-400 text-[9px] uppercase font-bold tracking-widest">Coach Nutrition</p></div>
+                </div>
+                <div className="flex items-center gap-3">
+                   <button onClick={toggleThiernoVoice} className={`p-2 rounded-full transition ${isThiernoVoiceEnabled ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-zinc-800 text-zinc-500 hover:text-white'}`} title="Activer/Désactiver la voix">{isThiernoVoiceEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button>
+                   <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+                </div>
+             </div>
+
+             <div className={`flex-1 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                {thiernoMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? (theme === 'dark' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-white text-zinc-800 border-zinc-200') + ' border rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                      </div>
+                   </div>
+                ))}
+                <div ref={thiernoChatEndRef} />
+             </div>
+
+             <div className={`p-3 border-t flex gap-2 ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                <input type="text" value={thiernoUserReply} onChange={e => setThiernoUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processThiernoReply(thiernoUserReply)} placeholder="Poser une question..." className={`flex-1 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black ${theme === 'dark' ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-black'}`} />
+                <button onClick={() => processThiernoReply(thiernoUserReply)} className="bg-black p-3 rounded-xl text-[#39FF14] hover:scale-105 transition"><CheckCircle size={18}/></button>
+             </div>
+          </div>
+        )}
+
+        {!isThiernoChatOpen && !isThiernoDismissed && (
+           <div className="relative group animate-bounce flex items-center justify-center">
+             <button
+               onClick={(e) => { e.stopPropagation(); setIsThiernoDismissed(true); }}
+               className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
+               aria-label="Fermer l'assistant"
+             >
+               <X size={14} />
+             </button>
+             <button onClick={() => setIsThiernoChatOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-3xl">
+               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" />
+             </button>
+           </div>
+        )}
+      </div>
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[400] animate-in slide-in-from-bottom-5">
+             <CheckCircle size={16}/> {toastMessage}
+         </div>
+      )}
+
+      {/* BOTTOM NAVIGATION MOBILE */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center px-4 py-2 z-[100] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+         <button onClick={() => { handleTabChange('week'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Sama Menu</span></button>
+         <button onClick={() => { handleTabChange('today'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Mon Jour</span></button>
+         <div className="flex-1 flex justify-center -mt-6">
+            <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] w-14 h-14 rounded-full shadow-[0_10px_20px_rgba(57,255,20,0.3)] border-4 border-[#f4f4f5] dark:border-zinc-950 flex items-center justify-center hover:scale-110 transition-transform"><ScanLine size={24}/></button>
+         </div>
+         <button onClick={() => { handleTabChange('shop'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.shop} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Boutique</span></button>
+         <button onClick={() => setShowMobileHub(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
+      </div>
+
+    </div>
+  );
+}
