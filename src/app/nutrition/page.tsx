@@ -3903,7 +3903,7 @@ const currentHour = new Date().getHours();
     handleRepost,
     handleBookmarkPost,
 
-    loadRecipeReviews};
+    };
 
   return (
     <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
@@ -4101,7 +4101,6 @@ const currentHour = new Date().getHours();
   const handleLikeComment = (...args: any[]) => console.log('handleLikeComment', ...args);
   const handlePostComment = (...args: any[]) => console.log('handlePostComment', ...args);
   const setShowFoodSearch = (val: any) => console.log('setShowFoodSearch', val);
-  const loadRecipeReviews = (...args: any[]) => console.log('loadRecipeReviews', ...args);
 
   return (
               <div
