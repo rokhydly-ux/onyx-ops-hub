@@ -4310,58 +4310,6 @@ const currentHour = new Date().getHours();
       </footer>
 
 
-      {/* BOT THIERNO (COACH MÉDECIN) */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
-        {isThiernoChatOpen && (
-          <div className={`rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[450px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden ${theme === 'dark' ? 'bg-zinc-950' : 'bg-white'}`}>
-             <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
-                <div className="flex items-center gap-3">
-                   <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl overflow-hidden"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" /></div>
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
-                   </div>
-                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Dr. Thierno</p><p className="text-zinc-400 text-[9px] uppercase font-bold tracking-widest">Coach Nutrition</p></div>
-                </div>
-                <div className="flex items-center gap-3">
-                   <button onClick={toggleThiernoVoice} className={`p-2 rounded-full transition ${isThiernoVoiceEnabled ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-zinc-800 text-zinc-500 hover:text-white'}`} title="Activer/Désactiver la voix">{isThiernoVoiceEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button>
-                   <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
-                </div>
-             </div>
-
-             <div className={`flex-1 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
-                {thiernoMessages.map((msg, i) => (
-                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
-                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? (theme === 'dark' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-white text-zinc-800 border-zinc-200') + ' border rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
-                         {msg.text}
-                      </div>
-                   </div>
-                ))}
-                <div ref={thiernoChatEndRef} />
-             </div>
-
-             <div className={`p-3 border-t flex gap-2 ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-                <input type="text" value={thiernoUserReply} onChange={e => setThiernoUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processThiernoReply(thiernoUserReply)} placeholder="Poser une question..." className={`flex-1 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black ${theme === 'dark' ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-black'}`} />
-                <button onClick={() => processThiernoReply(thiernoUserReply)} className="bg-black p-3 rounded-xl text-[#39FF14] hover:scale-105 transition"><CheckCircle size={18}/></button>
-             </div>
-          </div>
-        )}
-
-        {!isThiernoChatOpen && !isThiernoDismissed && (
-           <div className="relative group animate-bounce flex items-center justify-center">
-             <button
-               onClick={(e) => { e.stopPropagation(); setIsThiernoDismissed(true); }}
-               className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
-               aria-label="Fermer l'assistant"
-             >
-               <X size={14} />
-             </button>
-             <button onClick={() => setIsThiernoChatOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-3xl">
-               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" />
-             </button>
-           </div>
-        )}
-      </div>
-
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[400] animate-in slide-in-from-bottom-5">
