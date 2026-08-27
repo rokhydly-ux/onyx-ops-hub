@@ -4222,6 +4222,7 @@ const currentHour = new Date().getHours();
 
       {/* MAIN CONTENT AREA */}
       <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5`}>
+      <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
 
                 {activeTab === 'minute-doc' && (<MinuteDocTab {...tabProps} />)}
                 {activeTab === 'dashboard' && (<DashboardTab1 {...tabProps} />)}
@@ -4242,6 +4243,7 @@ const currentHour = new Date().getHours();
                 {activeTab === 'fitness' && (<FitnessTab {...tabProps} />)}
                 {activeTab === 'community' && (<CommunityTab {...tabProps} />)}
 
+      </div>
 </main>
 
       {/* BOT THIERNO (COACH MÉDECIN) */}
