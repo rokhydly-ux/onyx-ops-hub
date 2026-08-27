@@ -686,6 +686,11 @@ export default function NutritionDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMobileHub, setShowMobileHub] = useState(false);
+
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const deliveryCost = 2000;
+  const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; };
+
   const [myFollowersCount, setMyFollowersCount] = useState(0);
 
   // Boutique states
