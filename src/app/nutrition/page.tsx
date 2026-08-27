@@ -3861,8 +3861,49 @@ const currentHour = new Date().getHours();
     deliveryCost,
     deliveryAddress,
     setDeliveryAddress,
+    updateCartQuantity,
 
-  };
+    lvlInfo,
+    openLeaderboard,
+    handleUpdateWater,
+    handleTabChange,
+    handleMealClick,
+    todayPlan,
+    deleteMealLog,
+
+    toggleFavorite,
+    downloadHistoryPDF,
+    handleChangeAvatar,
+    handleSaveProfile,
+    emblaNewArrivalsRef,
+    openProductModal,
+    toggleSaveProduct,
+    handleTrackingModeChange,
+    remainingCalories,
+    targetCalories,
+    formattedCurrentDay,
+    confirmMealLog,
+    handleSwapMeal,
+
+    crossSellProducts,
+    downloadGroceryListPDF,
+    getGroceryList,
+    weeklyMenus,
+    handleDeleteWeight,
+    handleSaveWeight,
+    setSelectedArticle,
+    selectedArticle,
+    emblaBlogRef,
+    TEXT_BACKGROUNDS,
+    handleImageUpload,
+    handlePostCommunity,
+    handleFollowUser,
+    handleDeletePost,
+    handleLikePost,
+    handleRepost,
+    handleBookmarkPost,
+
+    loadRecipeReviews};
 
   return (
     <div className={`flex flex-col min-h-screen w-full overflow-x-hidden ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
@@ -4054,7 +4095,15 @@ const currentHour = new Date().getHours();
             const emojis = showConfetti === 'weight'
               ? ['🎉', '⚖️', '💪', '🔥', '🏆', '✨']
               : ['🎉', '✨', '🏆', '🥬', '🎯', '🥑'];
-            return (
+
+  // Dummy functions to prevent ReferenceErrors
+  const handleToggleComments = (...args: any[]) => console.log('handleToggleComments', ...args);
+  const handleLikeComment = (...args: any[]) => console.log('handleLikeComment', ...args);
+  const handlePostComment = (...args: any[]) => console.log('handlePostComment', ...args);
+  const setShowFoodSearch = (val: any) => console.log('setShowFoodSearch', val);
+  const loadRecipeReviews = (...args: any[]) => console.log('loadRecipeReviews', ...args);
+
+  return (
               <div
                 key={i}
                 className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
