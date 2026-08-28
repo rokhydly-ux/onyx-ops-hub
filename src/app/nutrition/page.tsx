@@ -3790,7 +3790,7 @@ const currentHour = new Date().getHours();
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             {/* Mobile Menu Toggle */}
-            <button onClick={() => setShowMobileHub(true)} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
+            <button onClick={() => { setShowMobileHub(true); setIsMobileMenuOpen(true); setIsSidebarOpen(true); }} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
         </div>
       </header>
 
@@ -8113,7 +8113,7 @@ const currentHour = new Date().getHours();
             <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] w-14 h-14 rounded-full shadow-[0_10px_20px_rgba(57,255,20,0.3)] border-4 border-[#f4f4f5] dark:border-zinc-950 flex items-center justify-center hover:scale-110 transition-transform"><ScanLine size={24}/></button>
          </div>
          <button onClick={() => { handleTabChange('shop'); setShowMobileHub(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.shop} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Boutique</span></button>
-         <button onClick={() => setShowMobileHub(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
+         <button onClick={() => { setShowMobileHub(true); setIsMobileMenuOpen(true); setIsSidebarOpen(true); }} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
       </div>
 
     </div>
