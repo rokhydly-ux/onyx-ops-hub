@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import Confetti from 'react-confetti';
+import React from 'react';
 import { X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf, Users } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import { YAxis, ResponsiveContainer, AreaChart, PieChart, Pie, LineChart, XAxis, ReferenceLine, Cell, Bar, Line, BarChart, Tooltip as RechartsTooltip, CartesianGrid, Area } from 'recharts';
@@ -8,51 +7,11 @@ import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 
 // @ts-nocheck
 export default function CartTab({ ...tabProps }: any) {
-  const [selectedZone, setSelectedZone] = React.useState<number | null>(null);
-  const [localPromoInput, setLocalPromoInput] = React.useState('');
-  const [localPromoApplied, setLocalPromoApplied] = React.useState<any>(null);
-  const [showPromoConfetti, setShowPromoConfetti] = React.useState(false);
-  const zones = [
-    { id: 1, name: "Zone 1 (Plateau, Médina, Fann, Point E, Amitié, Mermoz, Sacré-Cœur, Liberté, Dieuppeul, Fass, Colobane, Grand Dakar)", price: 1500 },
-    { id: 2, name: "Zone 2 (Ouakam, Ngor, Almadies, Yoff, Grand Yoff, Maristes, Parcelles Assainies, Patte d'Oie, Pikine, Guédiawaye, Cambérène, Thiaroye, Dalifort)", price: 2000 },
-    { id: 3, name: "Zone 3 (Mbao, Yeumbeul, Keur Massar, Rufisque, Tivaouane Peulh, Malika)", price: 3000 },
-    { id: 4, name: "Zone 4 (Diamniadio, Sangalkam, Lac Rose, Sebikotane)", price: 5000 },
-  ];
-
   const {
     today, todayStr, router, searchParams, photoInputRef, mealPhotoInputRef, thiernoChatEndRef, thiernoVoiceRef, sidebarTimeoutRef, toggleThiernoVoice, speakText, processThiernoReply, sendWaterReminderPush, storyInputRef, handleArticleClick, togglePushNotifications, imcValue, user, setUser, clientProfile, setClientProfile, loading, setLoading, daysLeft, setDaysLeft, theme, setTheme, activeTab, setActiveTab, blogCategory, setBlogCategory, blogSearch, setBlogSearch, trackingMode, setTrackingMode, dailyLogs, setDailyLogs, showRedoDiagModal, setShowRedoDiagModal, redoReason, setRedoReason, showPaymentModal, setShowPaymentModal, isScanning, setIsScanning, barcodeInput, setBarcodeInput, toastMessage, setToastMessage, isPhotoScanning, setIsPhotoScanning, calories, setCalories, waterGlasses, setWaterGlasses, bmr, setBmr, proteins, setProteins, carbs, setCarbs, fats, setFats, showDailyReport, setShowDailyReport, selectedReportDate, setSelectedReportDate, showExitIntentModal, setShowExitIntentModal, intendedTab, setIntendedTab, reportData, setReportData, isSubmittingReport, setIsSubmittingReport, consumedMeals, setConsumedMeals, moods, setMoods, moodNotes, setMoodNotes, selectedMealModal, setSelectedMealModal, selectedMealPhoto, setSelectedMealPhoto, foodSearchQuery, setFoodSearchQuery, offResults, setOffResults, isSearchingOFF, setIsSearchingOFF, selectedFoodDB, setSelectedFoodDB, foodQuantity, setFoodQuantity, foodDatabaseDB, setFoodDatabaseDB, foodUnit, setFoodUnit, allRecipesDB, setAllRecipesDB, recipeFilter, setRecipeFilter, selectedRecipeDetail, setSelectedRecipeDetail, recipeDetailTab, setRecipeDetailTab, recipeReviews, setRecipeReviews, userRating, setUserRating, userComment, setUserComment, isSubmittingReview, setIsSubmittingReview, hasUserReviewed, setHasUserReviewed, rokhyMessage, setRokhyMessage, isThiernoChatOpen, setIsThiernoChatOpen, isThiernoDismissed, setIsThiernoDismissed, thiernoUserReply, setThiernoUserReply, coachingChatStep, setCoachingChatStep, thiernoMessages, setThiernoMessages, isThiernoVoiceEnabled, setIsThiernoVoiceEnabled, diagStep, setDiagStep, isSubmittingDiag, setIsSubmittingDiag, diagData, setDiagData, forceTarget, setForceTarget, jongomaXP, setJongomaXP, weightLogs, setWeightLogs, newWeight, setNewWeight, showWeightModal, setShowWeightModal, currentWeightInput, setCurrentWeightInput, showConfetti, setShowConfetti, weightCoachMessage, setWeightCoachMessage, coachFeedback, setCoachFeedback, newPostText, setNewPostText, showLeaderboard, setShowLeaderboard, leaderboardData, setLeaderboardData, newPostImage, setNewPostImage, newPostVideo, setNewPostVideo, postMode, setPostMode, textBgIndex, setTextBgIndex, locationName, setLocationName, taggedFriends, setTaggedFriends, uploadingImage, setUploadingImage, communityPosts, setCommunityPosts, stories, setStories, groupedStories, setGroupedStories, isUploadingStory, setIsUploadingStory, storyPreviewFile, setStoryPreviewFile, storyPreviewUrl, setStoryPreviewUrl, storyCaption, setStoryCaption, viewerActiveGroupIndex, setViewerActiveGroupIndex, viewerActiveStoryIndex, setViewerActiveStoryIndex, isViewerPaused, setIsViewerPaused, isVideoMuted, setIsVideoMuted, viewerProgress, setViewerProgress, favoriteMeals, setFavoriteMeals, favoriteSearchQuery, setFavoriteSearchQuery, activeReactionPostId, setActiveReactionPostId, followedUsers, setFollowedUsers, isSaving, setIsSaving, activeChallenge, setActiveChallenge, showChallengeModal, setShowChallengeModal, isParticipating, setIsParticipating, challengeParticipants, setChallengeParticipants, earnedBadges, setEarnedBadges, notifications, setNotifications, pdfHistory, setPdfHistory, activeMenuPostId, setActiveMenuPostId, showSavedOnly, setShowSavedOnly, showCommentsPostId, setShowCommentsPostId, postComments, setPostComments, newCommentText, setNewCommentText, isSharingPDF, setIsSharingPDF, xpAnimation, setXpAnimation, showFirstBadgeModal, setShowFirstBadgeModal, showSecondBadgeModal, setShowSecondBadgeModal, calorieGoal, setCalorieGoal, proteinGoal, setProteinGoal, carbsGoal, setCarbsGoal, fatsGoal, setFatsGoal, isFastingMode, setIsFastingMode, isExpertMode, setIsExpertMode, weeklyGeneratedMenu, setWeeklyGeneratedMenu, showGroceryList, setShowGroceryList, excludedIngredients, setExcludedIngredients, profileForm, setProfileForm, showReminder, setShowReminder, welcomeMessage, setWelcomeMessage, isSidebarOpen, setIsSidebarOpen, isMobileMenuOpen, setIsMobileMenuOpen, showMobileHub, setShowMobileHub, myFollowersCount, setMyFollowersCount, selectedShopGoal, setSelectedShopGoal, selectedProduct, setSelectedProduct, shopDataDB, setShopDataDB, showOrderSuccessModal, setShowOrderSuccessModal, createdOrderRef, setCreatedOrderRef, userOrders, setUserOrders, shopPromoCodesDB, setShopPromoCodesDB, productMediaView, setProductMediaView, productActiveImage, setProductActiveImage, showZoneSuggestions, setShowZoneSuggestions, clientOrders, setClientOrders, hasTriggeredCartExit, setHasTriggeredCartExit, isCartBouncing, setIsCartBouncing, scratchedBlocks, setScratchedBlocks, shopBannerUrl, setShopBannerUrl, shopSearchQuery, setShopSearchQuery, shopMinPrice, setShopMinPrice, shopMaxPrice, setShopMaxPrice, articles, setArticles, pushEnabled, setPushEnabled, isOffline, setIsOffline, shopCart, addToCart, savedShopProducts, setGlobalShopProducts, setSavedShopProducts, handleLogout, generateWeeklyMenu, handleDailyReportSubmit, handleRefreshMeal, calculateWaterGoal, calculateProgress, calculateMacroPercentage, getMenuForDay, formatPrice, handleOrder, addToCartCustom, handleCheckout, handleApplyPromoCode, handleProductClick, handleStoryClick, handleCloseViewer, handleNextStory, handlePrevStory, pauseStory, resumeStory, handleStoryMediaClick, handleLikePost, handlePostSubmit, handleCommentSubmit, handleDeletePost, handleFollowUser, fetchLeaderboard, handleStoryUpload, closeStoryPreview, publishStory, openMealModal, handleCloseMealModal, handleSearchFood, handleAddFood, handleMealPhotoUpload, analyzeMealPhoto, handleWeightSubmit, generatePDFMenu, handleSaveChallenge, handleJoinChallenge, handleOpenRecipe, handleCloseRecipe, handleRecipeReviewSubmit, addThiernoMessage, simulateThiernoResponse, handleThiernoVoiceInput, handleThiernoDismiss, handleClearHistory, handleRedoDiagnostic, handleOfflineStatus, fetchPosts, fetchStories, handleTabChange, greetingText, greetingSubtext, lvlInfo, openLeaderboard, handleUpdateWater, todayPlan, deleteMealLog, spaceGrotesk, toggleFavorite, CALS_ICON, PROTEINS_ICON, MENU_ICONS, downloadHistoryPDF, WATER_ICON, handleChangeAvatar, handleSaveProfile, emblaNewArrivalsRef, openProductModal, SHOP_GOALS, toggleSaveProduct, handleTrackingModeChange, remainingCalories, targetCalories, CARBS_ICON, FATS_ICON, formattedCurrentDay, confirmMealLog, handleSwapMeal, crossSellProducts, downloadGroceryListPDF, guessVisualPortion, getGroceryList, weeklyMenus, handleDeleteWeight, handleSaveWeight, clearCart, setShopPromoCode, setSelectedArticle, selectedArticle, emblaBlogRef, TEXT_BACKGROUNDS, handleImageUpload, handlePostCommunity, handleRepost, handleBookmarkPost, supabase, updateCartQuantity, handleMealClick, removeFromCart, deliveryCost, deliveryAddress, setDeliveryAddress } = tabProps;
 
-    const handleApplyLocalPromo = async () => {
-     if (!localPromoInput.trim()) return alert("Veuillez entrer un code.");
-     try {
-         const { data: dbPromos, error } = await tabProps.supabase.from('nutrition_promo_codes').select('*').eq('active', true).eq('code', localPromoInput.trim().toUpperCase());
-
-         let codeObj = dbPromos && dbPromos.length > 0 ? dbPromos[0] : null;
-
-         if (!codeObj && localPromoInput.trim().toUpperCase() === 'CODE10') {
-            codeObj = { code: 'CODE10', discount_pct: 10, min_xp: 0, active: true };
-         }
-
-         if (codeObj) {
-            setLocalPromoApplied(codeObj);
-            setShowPromoConfetti(true);
-            setTimeout(() => setShowPromoConfetti(false), 5000);
-            alert(`Code ${codeObj.code} appliqué (-${codeObj.discount_pct || codeObj.discount}%) !`);
-         } else {
-            alert("Code promo invalide ou inactif.");
-         }
-     } catch (e) {
-         console.error(e);
-     }
-  };
-
   return (
     <>
-      {showPromoConfetti && (
-          <div className="fixed inset-0 z-[100] pointer-events-none">
-              <Confetti width={typeof window !== 'undefined' ? window.innerWidth : 1200} height={typeof window !== 'undefined' ? window.innerHeight : 800} recycle={false} numberOfPieces={500} colors={['#39FF14', '#000000', '#ffffff', '#FFA500']} />
-          </div>
-      )}
 
            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 w-full">
               <button onClick={() => handleTabChange('shop')} className="flex items-center gap-2 text-zinc-500 hover:text-black font-black uppercase text-[10px] tracking-widest mb-6"><ChevronLeft size={16}/> Retour à la boutique</button>
@@ -77,12 +36,12 @@ export default function CartTab({ ...tabProps }: any) {
                               {shopCart.map((item: any) => (
                                   <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm">
                                       <button onClick={() => removeFromCart(item.id)} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
-                                      <div onClick={() => { if(typeof tabProps.handleProductClick === 'function') tabProps.handleProductClick(item); else { tabProps.handleTabChange('shop'); } }} className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+                                      <div className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
                                           {item.image_url ? <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover"/> : <Box size={32} className="text-zinc-300"/>}
                                       </div>
                                       <div className="flex-1 flex flex-col justify-between py-1 pr-8">
                                           <div>
-                                              <h3 onClick={() => { if(typeof tabProps.handleProductClick === 'function') tabProps.handleProductClick(item); else { tabProps.handleTabChange('shop'); } }} className="font-bold text-sm text-black mb-1 line-clamp-1 cursor-pointer hover:underline">{item.nom}</h3>
+                                              <h3 className="font-bold text-sm text-black mb-1 line-clamp-1">{item.nom}</h3>
                                               <p className="text-xs text-zinc-500 font-medium">Prix unitaire: {(item.finalPrice || item.prix_premium || item.prix_standard || 0).toLocaleString()} F</p>
                                           </div>
                                           <div className="flex items-center justify-between mt-2">
@@ -106,16 +65,14 @@ export default function CartTab({ ...tabProps }: any) {
                                   <h3 className="font-black text-lg uppercase mb-6 flex items-center gap-2"><ShoppingCart size={20} className="text-[#39FF14]"/> Récapitulatif</h3>
 
                                   {(() => {
-                                      const baseSubTotal = shopCart.reduce((acc, item: any) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
-                                      const promoDiscount = localPromoApplied ? (baseSubTotal * (localPromoApplied.discount_pct || localPromoApplied.discount || 0) / 100) : 0;
-                                      const subTotal = baseSubTotal - promoDiscount;
+                                      const subTotal = shopCart.reduce((acc, item: any) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
                                       // Jauge de livraison
                                       const progress = Math.min(100, (subTotal / 30000) * 100);
                                       const remaining = Math.max(0, 30000 - subTotal);
                                       const isFreeDelivery = subTotal >= 30000;
 
                                       // Base delivery
-                                      const dCost = selectedZone ? zones.find(z => z.id === selectedZone)?.price || 0 : 0;
+                                      const dCost = deliveryCost || 1500;
                                       const finalDeliveryCost = isFreeDelivery ? Math.max(0, dCost - 1500) : dCost;
                                       const total = subTotal + finalDeliveryCost;
 
@@ -139,51 +96,14 @@ export default function CartTab({ ...tabProps }: any) {
                                             </div>
 
                                             <div className="flex flex-col gap-2">
-                                                {/* Promo Code Section */}
-                                            <div className="bg-zinc-100 p-4 rounded-xl border border-zinc-200 mb-2">
-                                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-2">Avez-vous un code promo ?</p>
-                                                {localPromoApplied ? (
-                                                    <div className="flex items-center justify-between bg-black text-[#39FF14] p-3 rounded-xl border border-[#39FF14]">
-                                                        <span className="font-black text-sm uppercase tracking-widest">{localPromoApplied.code} Appliqué !</span>
-                                                        <button onClick={() => setLocalPromoApplied(null)} className="text-zinc-400 hover:text-white"><X size={16}/></button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex gap-2">
-                                                        <input type="text" placeholder="Entrez votre code" value={localPromoInput} onChange={(e) => setLocalPromoInput(e.target.value)} className="flex-1 bg-white border border-zinc-200 rounded-xl px-4 py-2 text-sm font-bold uppercase outline-none focus:border-black" />
-                                                        <button onClick={handleApplyLocalPromo} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-xs font-black uppercase hover:scale-105 transition-transform">Valider</button>
-                                                    </div>
-                                                )}
-                                                {localPromoApplied && (
-                                                    <div className="flex justify-between text-xs font-bold text-zinc-600 mt-3 border-t border-zinc-200 pt-2">
-                                                        <span>Remise ({localPromoApplied.code})</span>
-                                                        <span className="text-[#39FF14] font-black">-{promoDiscount.toLocaleString()} F</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between text-sm font-bold text-zinc-600 mb-2 mt-4">
-                                                <span>Livraison</span>
-                                                <span className={isFreeDelivery ? 'text-[#39FF14]' : ''}>{finalDeliveryCost === 0 && selectedZone ? 'Offerte' : !selectedZone ? 'À déterminer' : `+ ${finalDeliveryCost.toLocaleString()} F`}</span>
+                                                <div className="flex justify-between text-sm font-bold text-zinc-600">
+                                                    <span>Livraison</span>
+                                                    <span className={isFreeDelivery ? 'text-[#39FF14]' : ''}>{finalDeliveryCost === 0 ? 'Offerte' : `+ ${finalDeliveryCost.toLocaleString()} F`}</span>
+                                                </div>
+                                                <input type="text" placeholder="Adresse complète" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
                                             </div>
 
-                                            <select
-                                                value={selectedZone || ''}
-                                                onChange={(e) => setSelectedZone(Number(e.target.value))}
-                                                className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mb-2 text-zinc-600"
-                                            >
-                                                <option value="" disabled>Sélectionnez votre zone de livraison</option>
-                                                {zones.map(z => (
-                                                    <option key={z.id} value={z.id}>{z.name.split('(')[0]} - {z.price}F</option>
-                                                ))}
-                                            </select>
-                                            {selectedZone && (
-                                                <p className="text-[10px] text-zinc-500 font-medium mb-3 italic">
-                                                    {zones.find(z => z.id === selectedZone)?.name.match(/\((.*?)\)/)?.[1]}
-                                                </p>
-                                            )}
-
-                                            <input type="text" placeholder="Adresse complète et détails (étage, porte...)" value={tabProps.deliveryAddress} onChange={(e) => tabProps.setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
-                                            </div>
-<div className="h-px bg-zinc-200 my-2"></div>
+                                            <div className="h-px bg-zinc-200 my-2"></div>
 
                                             <div className="flex justify-between items-center mb-6">
                                                 <span className="font-black text-lg uppercase">Total</span>
@@ -203,8 +123,6 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        promo_code: localPromoApplied?.code || null,
-                                                        discount_amount: localPromoApplied ? (baseSubTotal * (localPromoApplied.discount_pct || localPromoApplied.discount || 0) / 100) : 0,
                                                         address: deliveryAddress
                                                     }).select();
 
@@ -235,8 +153,6 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        promo_code: localPromoApplied?.code || null,
-                                                        discount_amount: localPromoApplied ? (baseSubTotal * (localPromoApplied.discount_pct || localPromoApplied.discount || 0) / 100) : 0,
                                                         address: deliveryAddress
                                                     }).select();
 

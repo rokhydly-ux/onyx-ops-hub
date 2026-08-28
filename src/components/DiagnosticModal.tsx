@@ -631,7 +631,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781443964/A_cute__highly_detailed_3D_202606141332_ggiubt.jpg" className="w-12 h-12 rounded-full object-cover" alt="Calories" />
                             <div className="text-center">
                                 <p className="text-3xl font-black text-black">{profile.calories} <span className="text-sm font-bold text-zinc-500">kcal</span></p>
-                                {(profile as any).hitFloor && <span className="text-red-600 font-bold text-[8px] uppercase tracking-wider block mt-1">Plancher de sécurité activé</span>}
+                                {profile.hitFloor && <span className="text-red-600 font-bold text-[8px] uppercase tracking-wider block mt-1">Plancher de sécurité activé</span>}
                             </div>
                         </div>
 
