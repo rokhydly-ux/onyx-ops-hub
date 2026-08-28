@@ -32,7 +32,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                  </div>
 
                  {/* NAVIGATION HORIZONTALE DESKTOP (PILLS SUB-NAV) */}
-                 <div className="hidden lg:flex items-center gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-full w-fit border border-zinc-200/50 dark:border-zinc-700/50">
+                 <div className="flex flex-wrap lg:flex-nowrap items-center justify-center lg:justify-start gap-2 mb-8 bg-zinc-100 dark:bg-zinc-800/60 p-1.5 rounded-3xl lg:rounded-full w-full lg:w-fit border border-zinc-200/50 dark:border-zinc-700/50">
 
                     {/* 1. Bouton Le Mur */}
                     <button

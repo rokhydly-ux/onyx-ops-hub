@@ -47,8 +47,8 @@ export default function OrdersRevenueWidget({ orders, setShowOrdersWidgetModal }
         const prevRevenue = prevOrders.reduce((sum, o) => sum + (o.total || 0), 0);
         const prevAov = prevOrders.length > 0 ? Math.round(prevRevenue / prevOrders.length) : 0;
 
-        let revenueTrend: number | null = null;
-        let aovTrend: number | null = null;
+        let revenueTrend = null;
+        let aovTrend = null;
 
         if (caFilterMode !== 'custom' && prevStartDate) {
             if (prevRevenue > 0) {
