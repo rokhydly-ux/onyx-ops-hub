@@ -4,12 +4,13 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Download, ShoppingCart, X, CheckCircle, ShieldCheck, Loader2, Box, Eye, Send, Minus, Plus, Trash2, Search, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 function CatalogueViewer() {
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get('t');
-  const idsParam = searchParams.get('ids');
+  const tenantId = searchParams?.get('t');
+  const idsParam = searchParams?.get('ids');
   
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState({ crm_name: 'Catalogue', logo_url: '', theme_color: '#39FF14' });
