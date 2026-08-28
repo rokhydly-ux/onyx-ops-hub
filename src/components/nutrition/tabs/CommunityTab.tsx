@@ -25,7 +25,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                             <Search size={16} className="text-zinc-400" />
                             <input type="text" placeholder="Search Feed..." className="bg-transparent border-none text-xs text-black outline-none w-full ml-2 placeholder:text-zinc-400" />
                         </div>
-                        <button onClick={(e) => { e.preventDefault(); setShowMobileHub(true); setIsMobileMenuOpen(true); setIsSidebarOpen(true); }} className="lg:hidden flex items-center gap-2 bg-zinc-100 hover:bg-[#39FF14] text-zinc-900 px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm shrink-0">
+                        <button onClick={(e) => { e.preventDefault(); setShowMobileHub(true); setIsSidebarOpen(true); setIsMobileMenuOpen(prev => !prev); }} className="lg:hidden flex items-center gap-2 bg-zinc-100 hover:bg-[#39FF14] text-zinc-900 px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm shrink-0">
                             <Trophy className="w-4 h-4 text-[#39FF14]"/> Hub Club
                         </button>
                      </div>
@@ -49,9 +49,9 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                     {/* 2. Bouton Recettes & Menus */}
                     <button
-                      onClick={(e) => { e.preventDefault(); setActiveFeedFilter('recipes'); }}
+                      onClick={(e) => { e.preventDefault(); handleTabChange('samaMenu'); }}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-poppins-bold text-sm transition-all duration-300 ${
-                        activeFeedFilter === 'recipes'
+                        activeTab === 'samaMenu'
                           ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20 scale-105'
                           : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
                       }`}
@@ -63,7 +63,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                     {/* 3. Bouton Challenges Tendance */}
                     <button
                       onClick={(e) => {
-                        e.preventDefault(); document.getElementById('challenges-section')?.scrollIntoView({ behavior: 'smooth' });
+                        e.preventDefault(); document.getElementById('challenges-section')?.scrollIntoView({ behavior: 'smooth' }); if(window.innerWidth < 1024 && document.getElementById('mobile-challenge-4')) { document.getElementById('mobile-challenge-4')?.scrollIntoView({ behavior: 'smooth' }); }
                         // Future action to explicitly pop up the challenge modal if implemented.
                         // We scroll to it for now since it is part of the right column.
                       }}
@@ -314,7 +314,7 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                         {/* Le Feed */}
                         <div className="space-y-6">
-                           {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.filter(p => showSavedOnly ? p._bookmarkedByMe : true).filter(p => activeFeedFilter === 'recipes' ? (p.tags?.includes('recette') || p.tags?.includes('menu') || p.content?.toLowerCase().includes('recette') || p.content?.toLowerCase().includes('plat') || p.image_url) : true).map((post, idx) => (
+                           {Array.isArray(communityPosts) && communityPosts.length > 0 ? communityPosts.filter(p => showSavedOnly ? p._bookmarkedByMe : true).filter(p => activeTab === 'samaMenu' ? (p.tags?.includes('recette') || p.tags?.includes('menu') || p.content?.toLowerCase().includes('recette') || p.content?.toLowerCase().includes('plat') || p.image_url) : true).map((post, idx) => (
                               <React.Fragment key={post.id || idx}>
                                  {/* Injection Challenge Mobile tous les 4 posts */}
                                  {idx > 0 && idx % 4 === 0 && activeChallenge && (

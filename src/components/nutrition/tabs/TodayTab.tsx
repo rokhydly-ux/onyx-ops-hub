@@ -192,7 +192,7 @@ export default function TodayTab({ ...tabProps }: any) {
                                            <span className="text-xs font-bold text-[#39FF14] truncate">{m.name}</span>
 
                                            <div className="flex items-center gap-2 shrink-0">
-                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.calories || 0} kcal</span>
+                                              <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {m.calories || m.cals || 0} kcal</span>
                                               <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {m.prots || 0}g</span>
                                               <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {m.carbs || 0}g</span>
                                               <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1"><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {m.fats || 0}g</span>
