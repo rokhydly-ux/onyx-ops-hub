@@ -59,7 +59,7 @@ export default function ClientFitnessView({ clientId, tenantId }: { clientId: st
             const selectedCourses = shuffled.slice(0, 5);
 
             // 3. Assigner aux jours (Lundi à Vendredi, 0 à 4). Samedi(5) et Dimanche(6) = Repos
-            const newProgram = [];
+            const newProgram: any[] = [];
             for (let i = 0; i < 5; i++) {
                 newProgram.push({
                     client_id: clientId,

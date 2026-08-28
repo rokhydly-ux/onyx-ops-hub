@@ -12,7 +12,7 @@ import {
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
   ChevronDown,
   ShieldAlert, ChevronLeft, Activity, Rocket, Bot, Sun, Moon, HeartPulse,
-  Crosshair, RefreshCcw
+  Crosshair, RefreshCcw, Heart
 } from "lucide-react";
 import InteractiveParticles from "@/components/InteractiveParticles";
 import useEmblaCarousel from 'embla-carousel-react';
@@ -414,8 +414,8 @@ export default function OnyxOpsElite() {
         setShowExitIntent(false);
         setSelectedArticle(null);
         setIsMobileMenuOpen(false);
-          setShowProfileModal(false);
-          setIsBotOpen(false);
+          // setShowProfileModal(false);
+          // setIsBotOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);

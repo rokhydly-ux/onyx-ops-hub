@@ -104,7 +104,7 @@ export default function FavoritesTab({ ...tabProps }: any) {
                          const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
                          const isTop10 = top10RecipeIds.includes(fav.id);
 
-                         const tags = [];
+                         const tags: string[] = [];
                          if (prots >= 20) tags.push("Protéiné");
                          if (fav.carbs <= 30) tags.push("Low Carb");
                          if (cals <= 350) tags.push("Léger");

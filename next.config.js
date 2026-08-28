@@ -1,24 +1,25 @@
-/** @type {import('next').NextConfig} */
+
 const withPWA = require('next-pwa')({
   dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
   skipWaiting: true,
   clientsClaim: true,
-  register: true,
-  disable: process.env.NODE_ENV === 'development',
+  buildExcludes: [/middleware-manifest.json$/],
 });
 
-const nextConfig = {
-  productionBrowserSourceMaps: false, // Économise énormément de RAM
-  typescript: { ignoreBuildErrors: true }, // Ignore les vérifications de type lourdes au build
-  eslint: { ignoreDuringBuilds: true }, // Désactive le linter pendant le build
+module.exports = withPWA({
+  reactStrictMode: false,
   images: {
+    unoptimized: true,
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "i.ibb.co",
-      },
-    ],
+      { protocol: 'https', hostname: '**' }
+    ]
   },
-};
-
-module.exports = withPWA(nextConfig);
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  }
+});
