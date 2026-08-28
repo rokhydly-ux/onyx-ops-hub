@@ -2290,7 +2290,8 @@ export default function NutritionDashboard() {
           return;
       }
 
-      const calsRounded = Math.round(cals);
+      const parsedCals = parseInt(cals || foodObj?.calories || foodObj?.cals || foodObj?.kcal || foodObj?.energy || "0", 10);
+      const calsRounded = Math.round(parsedCals);
       const protsRounded = Math.round(prots);
       const carbsRounded = Math.round(mealCarbs);
       const fatsRounded = Math.round(mealFats);
