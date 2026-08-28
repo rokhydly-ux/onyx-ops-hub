@@ -524,7 +524,8 @@ export default function CommunityTab({ ...tabProps }: any) {
                                          </div>
                                      </div>
                                  )}
-                              </div></React.Fragment>
+                              </div>
+</div></React.Fragment>
                            )) : (
                                <div className="text-center py-16 px-6 text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-[2rem] bg-white">
                                    <Camera size={40} className="mx-auto mb-4 text-zinc-300"/>
