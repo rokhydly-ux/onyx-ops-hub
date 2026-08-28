@@ -563,7 +563,7 @@ export default function NutritionDashboard() {
              body: "N'oublie pas de boire ton verre d'eau pour atteindre ton objectif aujourd'hui. Ton métabolisme te dira merci !",
              icon: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
              badge: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
-             vibrate: [200, 100, 200]
+             // vibrate: [200, 100, 200] as any
           });
        });
     }
@@ -961,7 +961,7 @@ export default function NutritionDashboard() {
         }
       }
 
-      const rawFullName = finalUser?.user_metadata?.full_name || finalUser?.full_name || "Membre";
+      const rawFullName = finalUser?.user_metadata?.full_name || (finalUser as any)?.full_name || "Membre";
       const nameParts = rawFullName.split(' ');
       const rawFirstName = nameParts[0];
       const rawLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : "";
@@ -971,7 +971,7 @@ export default function NutritionDashboard() {
          ...prev,
          firstName: rawFirstName,
          lastName: rawLastName,
-         avatar_url: finalUser?.user_metadata?.avatar_url || finalUser?.avatar_url || ""
+         avatar_url: finalUser?.user_metadata?.avatar_url || (finalUser as any)?.avatar_url || ""
       }));
 
       // Récupérer le profil client complet depuis la table 'clients'
@@ -1103,32 +1103,32 @@ export default function NutritionDashboard() {
           if (nutritionData) {
              setClientProfile(prev => ({
                 ...prev,
-                diagnostic_data: nutritionData.diagnostic_data,
-                expert_mode: nutritionData.expert_mode,
-                weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
+                diagnostic_data: (nutritionData as any).diagnostic_data,
+                expert_mode: (nutritionData as any).expert_mode,
+                weekly_budget_tier: (nutritionData as any).weekly_budget_tier || 'famille_15k'
              }));
-             setBmr(nutritionData.bmr || 0);
-             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
-             setProteinGoal(nutritionData.protein_goal || 0);
-             setCarbsGoal(nutritionData.carbs_goal || 0);
-             setFatsGoal(nutritionData.fats_goal || 0);
-             setIsExpertMode(nutritionData.expert_mode || false);
-             setJongomaXP(nutritionData.jongoma_xp || 0);
-             setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
-             if (nutritionData.weekly_menu && Array.isArray(nutritionData.weekly_menu) && nutritionData.weekly_menu.length > 0) {
-                 setWeeklyGeneratedMenu(nutritionData.weekly_menu);
+             setBmr((nutritionData as any).bmr || 0);
+             setCalorieGoal((nutritionData as any).daily_calorie_goal || 0);
+             setProteinGoal((nutritionData as any).protein_goal || 0);
+             setCarbsGoal((nutritionData as any).carbs_goal || 0);
+             setFatsGoal((nutritionData as any).fats_goal || 0);
+             setIsExpertMode((nutritionData as any).expert_mode || false);
+             setJongomaXP((nutritionData as any).jongoma_xp || 0);
+             setIsFastingMode((nutritionData as any).diagnostic_data?.fasting_mode || false);
+             if ((nutritionData as any).weekly_menu && Array.isArray((nutritionData as any).weekly_menu) && (nutritionData as any).weekly_menu.length > 0) {
+                 setWeeklyGeneratedMenu((nutritionData as any).weekly_menu);
              }
 
              // Update profile form stats
-             if (nutritionData.diagnostic_data) {
+             if ((nutritionData as any).diagnostic_data) {
                  setProfileForm(prev => ({
                      ...prev,
-                     startingWeight: nutritionData.diagnostic_data.startingWeight || "",
-                     currentWeight: nutritionData.diagnostic_data.currentWeight || "",
-                     goalWeight: nutritionData.diagnostic_data.targetWeight || nutritionData.diagnostic_data.goalWeight || "",
-                     height: nutritionData.diagnostic_data.height || "",
-                     waist: nutritionData.diagnostic_data.waist || "",
-                     hips: nutritionData.diagnostic_data.hips || ""
+                     startingWeight: (nutritionData as any).diagnostic_data.startingWeight || "",
+                     currentWeight: (nutritionData as any).diagnostic_data.currentWeight || "",
+                     goalWeight: (nutritionData as any).diagnostic_data.targetWeight || (nutritionData as any).diagnostic_data.goalWeight || "",
+                     height: (nutritionData as any).diagnostic_data.height || "",
+                     waist: (nutritionData as any).diagnostic_data.waist || "",
+                     hips: (nutritionData as any).diagnostic_data.hips || ""
                  }));
              }
           }
@@ -1137,7 +1137,7 @@ export default function NutritionDashboard() {
           const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
 
           let fetchedLogs = wLogs || [];
-          const diagCurrentWeight = nutritionData?.diagnostic_data?.currentWeight;
+          const diagCurrentWeight = (nutritionData as any)?.diagnostic_data?.currentWeight;
 
           if (fetchedLogs.length === 0 && diagCurrentWeight) {
               const initialWeight = parseFloat(diagCurrentWeight);
@@ -1157,13 +1157,13 @@ export default function NutritionDashboard() {
           }
 
           if (nutritionData) {
-              setFavoriteMeals(nutritionData.favorite_meals || []);
-              setPdfHistory(nutritionData.pdf_history || []);
-              setSavedShopProducts(nutritionData.saved_shop_products || []);
-              setExcludedIngredients(nutritionData.excluded_ingredients || []);
+              setFavoriteMeals((nutritionData as any).favorite_meals || []);
+              setPdfHistory((nutritionData as any).pdf_history || []);
+              setSavedShopProducts((nutritionData as any).saved_shop_products || []);
+              setExcludedIngredients((nutritionData as any).excluded_ingredients || []);
           }
 
-          if (activeProfile.address) setDeliveryAddress(activeProfile.address);
+          // if (activeProfile.address) setDeliveryAddress(activeProfile.address);
 
           // Fetch des commandes du client
           const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
@@ -1195,14 +1195,14 @@ export default function NutritionDashboard() {
     verifyAuth();
 
     // Afficher un message de bienvenue après le diagnostic
-    if (searchParams.get('from') === 'diagnostic') {
+    if (searchParams?.get('from') === 'diagnostic') {
       alert("Félicitations et bienvenue ! Votre espace personnel est prêt.");
       // Nettoyer l'URL
       router.replace('/nutrition');
     }
 
     // Gérer la redirection depuis le panier vide
-    const tabParam = searchParams.get('tab');
+    const tabParam = searchParams?.get('tab');
     if (tabParam) {
         setActiveTab(tabParam);
         // Nettoyer l'URL pour ne pas rester bloqué sur l'onglet
@@ -1930,7 +1930,7 @@ export default function NutritionDashboard() {
     if (data.healthProfile === "Diabète" || data.healthProfile === "Pré-diabète" || data.femaleSpecific === "SOPK") {
         carbRatio = 0.40;
         proteinRatio = 0.25;
-        fatsRatio = 0.35;
+        fatRatio = 0.35;
     }
 
     return {
@@ -1955,12 +1955,12 @@ export default function NutritionDashboard() {
 
       let carbsRatio = 0.50;
       let proteinRatio = 0.20;
-      let fatsRatio = 0.30;
+      let fatRatio = 0.30;
 
       if (diagData.healthProfile === "Diabète" || diagData.healthProfile === "Pré-diabète" || diagData.femaleSpecific === "SOPK") {
           carbsRatio = 0.40;
           proteinRatio = 0.25;
-          fatsRatio = 0.35;
+          fatRatio = 0.35;
       }
 
       const results = {
@@ -1969,7 +1969,7 @@ export default function NutritionDashboard() {
           tdee: calcResult.tdee,
           protein: Math.round((dailyCalories * proteinRatio) / 4),
           carbs: Math.round((dailyCalories * carbsRatio) / 4),
-          fats: Math.round((dailyCalories * fatsRatio) / 9)
+          fats: Math.round((dailyCalories * fatRatio) / 9)
       };
 
       setCalorieGoal(results.calories);
@@ -3295,7 +3295,7 @@ const currentHour = new Date().getHours();
   };
 
   const updateCartQuantity = (productId: string, delta: number) => {
-    setShopCart(prevCart => {
+    (window as any).setShopCart(prevCart => {
         const itemToUpdate = prevCart.find(item => item.id === productId);
         // Si la quantité devient 0 ou moins, on supprime l'article
         if (itemToUpdate && (itemToUpdate.quantity || 1) + delta < 1) {
@@ -3311,7 +3311,7 @@ const currentHour = new Date().getHours();
   };
 
   const applyShopPromo = () => {
-     const codeInput = shopPromoCode.trim().toUpperCase();
+     const codeInput = (window as any).shopPromoCode?.trim().toUpperCase() || "";
      let codeObj = shopPromoCodesDB.find(c => c.code.toUpperCase() === codeInput);
 
      // Injection forcée pour CODE10 si non présent dans la DB
@@ -3321,8 +3321,8 @@ const currentHour = new Date().getHours();
 
      if (codeObj) {
          if (jongomaXP >= codeObj.min_xp) {
-             setIsShopPromoApplied(true);
-             setAppliedPromoData(codeObj);
+             (window as any).setIsShopPromoApplied(true);
+             (window as any).setAppliedPromoData(codeObj);
              alert(`Code ${codeObj.code} appliqué (-${codeObj.discount_pct}%) !`);
          } else {
              alert(`Vous n'avez pas assez d'XP pour utiliser ce code (${codeObj.min_xp} XP requis).`);
@@ -3605,7 +3605,7 @@ const currentHour = new Date().getHours();
                                     className="w-full bg-white border-0 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#39FF14]"
                                     rows={3}
                                 />
-                                <button onClick={() => submitReview(selectedRecipeDetail.id)} disabled={isSubmittingReview} className="mt-3 w-full bg-black text-[#39FF14] font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                                <button onClick={() => (window as any).submitReview(selectedRecipeDetail.id)} disabled={isSubmittingReview} className="mt-3 w-full bg-black text-[#39FF14] font-bold py-3 rounded-xl flex items-center justify-center gap-2">
                                     {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Publier mon avis'}
                                 </button>
                             </div>
@@ -3889,7 +3889,7 @@ const currentHour = new Date().getHours();
               consumedMeals={consumedMeals}
               weightLogs={weightLogs}
               setActiveTab={handleTabChange}
-              handleMealClick={handleMealClick}
+              handleMealClick={handleMealClick as any}
               setShowDailyReport={setShowDailyReport}
               todayMenu={todayPlan}
               isFastingMode={isFastingMode}
@@ -4067,10 +4067,10 @@ const currentHour = new Date().getHours();
                      {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                          const loggedMeals = consumedMeals.filter((m: any) => m.type === mealType);
                          return (
-                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setSelectedMealModal({ type: mealType, action: 'add' }); setShowFoodSearch(true); }}>
+                           <div key={mealType} className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 border border-zinc-100 hover:border-black transition-colors cursor-pointer" onClick={() => { setSelectedMealModal({ type: mealType, action: 'add' }); (window as any).setShowFoodSearch(true); }}>
                              <div className="flex justify-between items-center">
                                  <p className="text-xs font-black uppercase text-zinc-500">{mealType}</p>
-                                 <button onClick={(e) => { e.stopPropagation(); setSelectedMealModal({ type: mealType, action: 'add' }); setShowFoodSearch(true); }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                 <button onClick={(e) => { e.stopPropagation(); setSelectedMealModal({ type: mealType, action: 'add' }); (window as any).setShowFoodSearch(true); }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                                     <Plus size={14}/> Ajouter un repas
                                  </button>
                              </div>
@@ -4432,7 +4432,7 @@ const currentHour = new Date().getHours();
                           <div className="lg:col-span-8 flex flex-col gap-6">
                               {shopCart.map((item: any) => (
                                   <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm">
-                                      <button onClick={() => removeFromCart(item.id)} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
+                                      <button onClick={() => (window as any).removeFromCart(item.id)} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
                                       <div className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
                                           {item.image_url ? <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover"/> : <Box size={32} className="text-zinc-300"/>}
                                       </div>
@@ -4446,9 +4446,9 @@ const currentHour = new Date().getHours();
                                                   {((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F
                                               </p>
                                               <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200">
-                                                  <button onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
+                                                  <button onClick={() => (window as any).updateQuantity(item.id, (item.quantity || 1) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
                                                   <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                                  <button onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
+                                                  <button onClick={() => (window as any).updateQuantity(item.id, (item.quantity || 1) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
                                               </div>
                                           </div>
                                       </div>
@@ -4469,7 +4469,7 @@ const currentHour = new Date().getHours();
                                       const isFreeDelivery = subTotal >= 30000;
 
                                       // Base delivery
-                                      const dCost = deliveryCost || 1500;
+                                      const dCost = (window as any).deliveryCost || 1500;
                                       const finalDeliveryCost = isFreeDelivery ? Math.max(0, dCost - 1500) : dCost;
                                       const total = subTotal + finalDeliveryCost;
 
@@ -4497,7 +4497,7 @@ const currentHour = new Date().getHours();
                                                     <span>Livraison</span>
                                                     <span className={isFreeDelivery ? 'text-[#39FF14]' : ''}>{finalDeliveryCost === 0 ? 'Offerte' : `+ ${finalDeliveryCost.toLocaleString()} F`}</span>
                                                 </div>
-                                                <input type="text" placeholder="Adresse complète" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
+                                                <input type="text" placeholder="Adresse complète" value={(window as any).deliveryAddress} onChange={(e) => (window as any).setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
                                             </div>
 
                                             <div className="h-px bg-zinc-200 my-2"></div>
@@ -4508,7 +4508,7 @@ const currentHour = new Date().getHours();
                                             </div>
 
                                             <button onClick={async () => {
-                                                if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                if (!(window as any).deliveryAddress?.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
 
                                                 try {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -4520,13 +4520,13 @@ const currentHour = new Date().getHours();
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: deliveryAddress
+                                                        address: (window as any).deliveryAddress
                                                     }).select();
 
                                                     if (error) throw error;
 
-                                                    clearCart();
-                                                    setShopPromoCode('');
+                                                    (window as any).clearCart();
+                                                    (window as any).setShopPromoCode('');
                                                     alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
                                                     handleTabChange('orders');
 
@@ -4538,7 +4538,7 @@ const currentHour = new Date().getHours();
                                             </button>
 
                                             <button onClick={async () => {
-                                                if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                if (!(window as any).deliveryAddress?.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
 
                                                 try {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -4550,14 +4550,14 @@ const currentHour = new Date().getHours();
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: deliveryAddress
+                                                        address: (window as any).deliveryAddress
                                                     }).select();
 
                                                     if (error) throw error;
 
                                                     const cartText = shopCart.map((item: any) => `- ${item.quantity}x ${item.nom}`).join('\n');
                                                     const orderId = data[0].id;
-                                                    clearCart();
+                                                    (window as any).clearCart();
 
                                                     const msg = `🛍️ NOUVELLE COMMANDE\nN°${orderIdStr}\nTotal: ${total.toLocaleString()} FCFA\nAdmin: https://nutriafro.app/admin/orders/${orderId}`;
                                                     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
@@ -5034,14 +5034,14 @@ const currentHour = new Date().getHours();
                          const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
                          const isTop10 = top10RecipeIds.includes(fav.id);
 
-                         const tags = [];
+                         const tags: string[] = [];
                          if (prots >= 20) tags.push("Protéiné");
                          if (fav.carbs <= 30) tags.push("Low Carb");
                          if (cals <= 350) tags.push("Léger");
                          if (fav.fats <= 15) tags.push("Low Fat");
 
                          return (
-                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); loadRecipeReviews(fav.id); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
+                         <div key={fav.id} onClick={() => { setSelectedRecipeDetail(fav); setRecipeDetailTab('apercu'); }} className={`flex flex-col cursor-pointer bg-white/60 backdrop-blur-lg border border-white/50 p-5 rounded-3xl justify-between hover:border-[#39FF14]/50 hover:bg-white/80 transition-all duration-300 group shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isFeatured ? 'h-full' : ''}`}>
                              <div className="w-full h-full flex flex-col">
                                  {fav.image_url && <img src={fav.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={name} className={`w-full object-cover rounded-2xl mb-4 ${isFeatured ? 'h-64 sm:h-80 lg:h-96' : 'h-32'}`} />}
                                  <div className="flex justify-between items-start mb-2">
@@ -5331,9 +5331,9 @@ const currentHour = new Date().getHours();
                                 if (cartItem) {
                                     return (
                                         <div className="flex-1 bg-zinc-100 border border-[#39FF14] rounded-xl flex items-center justify-between overflow-hidden shadow-sm h-full">
-                                            <button onClick={(e) => { e.stopPropagation(); updateQuantity(product.id, cartItem.quantity - 1); }} className="w-10 h-full flex items-center justify-center text-black hover:bg-zinc-200 transition-colors"><Minus size={14}/></button>
+                                            <button onClick={(e) => { e.stopPropagation(); (window as any).updateQuantity(product.id, cartItem.quantity - 1); }} className="w-10 h-full flex items-center justify-center text-black hover:bg-zinc-200 transition-colors"><Minus size={14}/></button>
                                             <span className="font-black text-sm text-black">{cartItem.quantity}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateQuantity(product.id, cartItem.quantity + 1); }} className="w-10 h-full flex items-center justify-center bg-[#39FF14] text-black hover:brightness-110 transition-colors"><Plus size={14}/></button>
+                                            <button onClick={(e) => { e.stopPropagation(); (window as any).updateQuantity(product.id, cartItem.quantity + 1); }} className="w-10 h-full flex items-center justify-center bg-[#39FF14] text-black hover:brightness-110 transition-colors"><Plus size={14}/></button>
                                         </div>
                                     );
                                 }
@@ -5448,9 +5448,9 @@ const currentHour = new Date().getHours();
                                        if (inCart) {
                                            return (
                                                <div className="flex-1 flex items-center justify-between bg-zinc-100 rounded-2xl p-2 px-4 shadow-inner">
-                                                   <button onClick={(e) => { e.stopPropagation(); updateQuantity(inCart.id, inCart.quantity - 1); }} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
+                                                   <button onClick={(e) => { e.stopPropagation(); (window as any).updateQuantity(inCart.id, inCart.quantity - 1); }} className="p-3 bg-white hover:bg-red-100 hover:text-red-500 rounded-xl shadow-sm transition-colors text-black font-black"><Minus size={18}/></button>
                                                    <span className="font-black text-xl text-black px-6">{inCart.quantity}</span>
-                                                   <button onClick={(e) => { e.stopPropagation(); updateQuantity(inCart.id, inCart.quantity + 1); }} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
+                                                   <button onClick={(e) => { e.stopPropagation(); (window as any).updateQuantity(inCart.id, inCart.quantity + 1); }} className="p-3 bg-white hover:bg-[#39FF14] rounded-xl shadow-sm transition-colors text-black font-black"><Plus size={18}/></button>
                                                </div>
                                            );
                                        }
@@ -6639,7 +6639,7 @@ const currentHour = new Date().getHours();
                                                  {post.likes_count || post.reactions?.top || post.reactions?.length || 0}
                                              </button>
                                          </div>
-                                         <button onClick={() => handleToggleComments(post.id)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+                                         <button onClick={() => (window as any).handleToggleComments(post.id)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
                                              <MessageSquare size={16}/> {post.comments_count || post.comments?.length || 0} Réponses
                                          </button>
                                      </div>
@@ -6672,8 +6672,8 @@ const currentHour = new Date().getHours();
                                                                  <p className="text-sm text-zinc-700 dark:text-zinc-300">{c.content}</p>
                                                              </div>
                                                              <div className="flex items-center gap-4 mt-2 px-2 text-[10px] font-black uppercase text-zinc-400">
-                                                                 <button onClick={() => handleLikeComment(c.id, 'like')} className="hover:text-black transition-colors flex items-center gap-1">👍 {c.likes_count || 0}</button>
-                                                                 <button onClick={() => handleLikeComment(c.id, 'dislike')} className="hover:text-black transition-colors flex items-center gap-1">👎 {c.dislikes_count || 0}</button>
+                                                                 <button onClick={() => (window as any).handleLikeComment(c.id, 'like')} className="hover:text-black transition-colors flex items-center gap-1">👍 {c.likes_count || 0}</button>
+                                                                 <button onClick={() => (window as any).handleLikeComment(c.id, 'dislike')} className="hover:text-black transition-colors flex items-center gap-1">👎 {c.dislikes_count || 0}</button>
                                                                  <button onClick={() => setNewCommentText(`@${c.clients?.full_name?.split(' ')[0]} `)} className="hover:text-black transition-colors">Répondre</button>
                                                              </div>
                                                          </div>
@@ -6683,8 +6683,8 @@ const currentHour = new Date().getHours();
                                          </div>
                                          <div className="flex items-center gap-3">
                                              <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Moi')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Moi"/>
-                                             <input type="text" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} placeholder="Écrire un commentaire..." className="flex-1 bg-zinc-50 dark:bg-zinc-800 border-none rounded-full px-4 py-2 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-[#39FF14] transition-shadow placeholder:text-zinc-400" onKeyDown={e => e.key === 'Enter' && handlePostComment(post.id)} />
-                                             <button onClick={() => handlePostComment(post.id)} disabled={!newCommentText.trim() || isSaving} className="p-2 bg-black text-[#39FF14] rounded-full hover:scale-105 transition-transform disabled:opacity-50"><Send size={16}/></button>
+                                             <input type="text" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} placeholder="Écrire un commentaire..." className="flex-1 bg-zinc-50 dark:bg-zinc-800 border-none rounded-full px-4 py-2 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-[#39FF14] transition-shadow placeholder:text-zinc-400" onKeyDown={e => e.key === 'Enter' && (window as any).handlePostComment(post.id)} />
+                                             <button onClick={() => (window as any).handlePostComment(post.id)} disabled={!newCommentText.trim() || isSaving} className="p-2 bg-black text-[#39FF14] rounded-full hover:scale-105 transition-transform disabled:opacity-50"><Send size={16}/></button>
                                          </div>
                                      </div>
                                  )}
