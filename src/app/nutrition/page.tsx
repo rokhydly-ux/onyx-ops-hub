@@ -4121,7 +4121,117 @@ const currentHour = new Date().getHours();
         </div>
       )}
 
-      {/* SIDEBAR VERTICAL */}
+
+      {/* SIDEBAR VERTICAL & BACKDROP MOBILE */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setShowMobileHub(false);
+              setIsSidebarOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+         onMouseEnter={() => {
+            if (window.innerWidth >= 1024) {
+               if (sidebarTimeoutRef.current) clearTimeout(sidebarTimeoutRef.current);
+               setIsSidebarOpen(true);
+            }
+         }}
+         onMouseLeave={() => {
+            if (window.innerWidth >= 1024) {
+               sidebarTimeoutRef.current = setTimeout(() => {
+                  setIsSidebarOpen(false);
+               }, 400);
+            }
+         }}
+         className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      >
+         <div className="p-6 flex items-center justify-between">
+            <div className={`flex items-center gap-3 overflow-hidden transition-all duration-500 ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
+               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="OnyxNutrition Logo" className="h-10 w-auto object-contain transition-transform hover:scale-110 duration-500 drop-shadow-2xl" />
+            </div>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'} ${!isSidebarOpen ? 'mx-auto' : ''}`}>
+               {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
+            </button>
+            <button onClick={() => setIsMobileMenuOpen(false)} className={`lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors ${!isSidebarOpen ? 'mx-auto' : ''}`}>
+               <X size={24}/>
+            </button>
+         </div>
+
+         <nav className="mt-6 px-4 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
+            {[
+              { id: 'dashboard', label: 'Accueil', icon: MENU_ICONS.dashboard },
+              { id: 'week', label: 'Sama Menu', icon: MENU_ICONS.samaMenu },
+              { id: 'today', label: 'Mon Jour', icon: MENU_ICONS.monJour },
+              { id: 'favorites', label: 'Galerie Recettes', icon: MENU_ICONS.favorites },
+              { id: 'community', label: 'Communauté', icon: MENU_ICONS.community },
+              { id: 'weight', label: 'Mon Poids', icon: MENU_ICONS.weight },
+              { id: 'fitness', label: 'Fitness', icon: MENU_ICONS.fitness },
+              { id: 'minute-doc', label: 'La Minute Doc', icon: MENU_ICONS.minuteDoc },
+              { id: 'shop', label: 'Boutique', icon: MENU_ICONS.shop },
+              { id: 'orders', label: 'Mes Commandes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540553/A_cute__highly_detailed_3D_202606151621_l47tzv.jpg" },
+              { id: 'blog', label: 'Blog & Conseils', icon: MENU_ICONS.blog },
+              { id: 'coaching', label: 'Coaching', icon: MENU_ICONS.coaching },
+              { id: 'history', label: 'Historique', icon: MENU_ICONS.dashboard, dot: jongomaXP >= 500 && activeTab !== 'history' },
+              { id: 'profile', label: 'Réglages', icon: MENU_ICONS.profile },
+            ].map((item: any) => (
+               <button
+                  key={item.id}
+                  title={item.label}
+                  onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center p-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')} ${!isSidebarOpen ? 'justify-center' : 'justify-start'}`}
+               >
+                  {typeof item.icon === 'string' ? (
+                     <motion.img
+                        animate={{ y: [0, -3, 0] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        src={item.icon}
+                        className="w-6 h-6 rounded-xl object-cover shrink-0"
+                        alt=""
+                     />
+                  ) : (
+                     <UserIcon size={20} className="shrink-0" />
+                  )}
+                  <span className={`whitespace-nowrap transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0 ml-0' : 'max-w-[200px] opacity-100 ml-4'}`}>{item.label}</span>
+                  {item.dot && (
+                     <span className="absolute top-4 right-4 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                     </span>
+                  )}
+               </button>
+            ))}
+         </nav>
+
+         <div className={`mt-auto p-4 shrink-0 transition-all duration-300 overflow-hidden`}>
+            <div className={`flex items-center gap-3 px-2 cursor-pointer hover:opacity-80 transition-opacity ${isSidebarOpen ? 'mb-4' : 'mb-0 justify-center'}`} onClick={() => { setActiveTab('profile'); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }} title="Mon Profil">
+               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className={`w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'} shadow-sm shrink-0 cursor-pointer`} onClick={(e) => { e.stopPropagation(); handleChangeAvatar(); }} title="Changer l'avatar" />
+               <div className={`flex-1 min-w-0 transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
+                  <p className="text-xs font-black uppercase truncate text-black dark:text-white">{user?.full_name || 'Membre'}</p>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest truncate">Mon Profil</p>
+               </div>
+            </div>
+            <div className={`rounded-[1.5rem] border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-h-0 opacity-0 border-transparent m-0 p-0' : 'max-h-[200px] opacity-100 mt-4 p-4'}`}>
+               <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase mb-2">XP Progression</p>
+               <div className="flex items-center gap-3">
+                  <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black' : 'bg-zinc-200'}`}>
+                     <div className="h-full bg-[#39FF14]" style={{ width: `${Math.min((jongomaXP / 2000) * 100, 100)}%` }}></div>
+                  </div>
+                  <span className="text-[10px] font-black text-black dark:text-white">{jongomaXP}</span>
+               </div>
+            </div>
+         </div>
+      </aside>
+
 
 
       {/* NOUVEAU HEADER GLASSMORPHISM */}
@@ -4222,7 +4332,7 @@ const currentHour = new Date().getHours();
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5`}>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
 
                 {activeTab === 'minute-doc' && (<MinuteDocTab {...tabProps} />)}
