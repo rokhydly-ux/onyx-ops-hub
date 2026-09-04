@@ -100,7 +100,12 @@ export default function CartTab({ ...tabProps }: any) {
                                                     <span>Livraison</span>
                                                     <span className={isFreeDelivery ? 'text-[#39FF14]' : ''}>{finalDeliveryCost === 0 ? 'Offerte' : `+ ${finalDeliveryCost.toLocaleString()} F`}</span>
                                                 </div>
-                                                <input type="text" placeholder="Adresse complète" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
+                                                <select value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2">
+<option value="">Sélectionnez votre zone de livraison</option>
+{QUARTIERS.map(q => (
+<option key={q} value={q}>{q} ({DELIVERY_ZONES[q]} F)</option>
+))}
+</select>
                                             </div>
 
                                             <div className="h-px bg-zinc-200 my-2"></div>
