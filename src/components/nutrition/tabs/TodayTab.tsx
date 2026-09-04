@@ -86,7 +86,7 @@ export default function TodayTab({ ...tabProps }: any) {
                 {/* 2. Le grand widget "Refaire mon diagnostic" en dessous du Pie Chart */}
                 <button
                   onClick={() => setShowRedoDiagModal(true)}
-                  className="relative w-full rounded-[2rem] overflow-hidden group shadow-lg flex-1 min-h-[300px] flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
+                  className="relative z-20 pointer-events-auto cursor-pointer w-full rounded-[2rem] overflow-hidden group shadow-lg flex-1 min-h-[300px] flex items-center justify-center border-2 border-transparent hover:border-[#39FF14] transition-all"
                 >
                   <img
                     src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783002400/A_high-end__photorealistic_commercial_shot_202607021426_vutjqi.jpg"
@@ -256,7 +256,7 @@ export default function TodayTab({ ...tabProps }: any) {
                     </div>
 
                     {/* Bilan de la journée */}
-                    <button onClick={() => setShowDailyReport(true)} className="bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:scale-[1.02] transition-transform">
+                    <button onClick={() => setShowDailyReport(true)} className="relative z-20 pointer-events-auto cursor-pointer bg-[#39FF14] p-4 rounded-[2rem] border border-black shadow-sm flex flex-col justify-center items-center text-center hover:scale-[1.02] transition-transform">
                         <CheckCircle size={24} className="text-black mb-2"/>
                         <h3 className="font-black text-xs uppercase tracking-tighter text-black mb-1">Bilan du jour</h3>
                         <p className="text-black/70 font-bold text-[9px]">Clôturez pour gagner de l'XP.</p>

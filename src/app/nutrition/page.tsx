@@ -2,7 +2,7 @@
 import {X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf , Users} from 'lucide-react';
 
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
-import { useCartStore } from '@/store/useCartStore';
+import { useCartStore, DELIVERY_ZONES } from '@/store/useCartStore';
 
 import React, { useState, useEffect, useRef } from "react";
 
@@ -688,7 +688,7 @@ export default function NutritionDashboard() {
   const [showMobileHub, setShowMobileHub] = useState(false);
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const deliveryCost = 2000;
+  const deliveryCost = deliveryAddress ? (DELIVERY_ZONES[deliveryAddress] || 2000) : 2000;
   const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = '/nutriafro-login'; };
 
   const [myFollowersCount, setMyFollowersCount] = useState(0);
@@ -697,7 +697,7 @@ export default function NutritionDashboard() {
   const [selectedShopGoal, setSelectedShopGoal] = useState<string>("all");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const {
-    shopCart, addToCart: storeAddToCart,
+    shopCart, addToCart: storeAddToCart, updateQuantity, removeFromCart, clearCart,
     savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
     setSavedShopProducts
   } = useCartStore();
@@ -4332,7 +4332,7 @@ const currentHour = new Date().getHours();
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden w-full transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-x-hidden transition-all duration-500 bg-gradient-to-br from-white to-[#39FF14]/5 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
 
                 {activeTab === 'minute-doc' && (<MinuteDocTab {...tabProps} />)}
