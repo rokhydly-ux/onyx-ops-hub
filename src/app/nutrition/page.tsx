@@ -3323,19 +3323,15 @@ const currentHour = new Date().getHours();
   };
 
   const updateCartQuantity = (productId: string, delta: number) => {
-    setShopCart(prevCart => {
-        const itemToUpdate = prevCart.find(item => item.id === productId);
-        // Si la quantité devient 0 ou moins, on supprime l'article
-        if (itemToUpdate && (itemToUpdate.quantity || 1) + delta < 1) {
-            return prevCart.filter(item => item.id !== productId);
-        }
-        // Sinon, on met à jour la quantité
-        return prevCart.map(item =>
-            item.id === productId
-                ? { ...item, quantity: (item.quantity || 1) + delta }
-                : item
-        );
-    });
+      const existingItem = shopCart.find((p: any) => p.id === productId);
+      if (existingItem) {
+          const newQuantity = (existingItem.quantity || 1) + delta;
+          if (newQuantity < 1) {
+              removeFromCart(productId);
+          } else {
+              updateQuantity(productId, newQuantity);
+          }
+      }
   };
 
   const applyShopPromo = () => {

@@ -106,13 +106,13 @@ export default function ShopTab({ ...tabProps }: any) {
                           <div key={product.id} onClick={() => openProductModal(product)} className={`flex-[0_0_auto] w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm mr-4`}>
                            <div className="aspect-square rounded-2xl bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-4 relative">
                               <img src={product.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                              <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg">New</span>
-                                 {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
+                              <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg pointer-events-none">New</span>
+                                 {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg animate-pulse pointer-events-none">Quantité Limitée</span>}
                            </div>
                            <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
                            <div className="flex items-center justify-between mt-2">
                                <p className="text-[#39FF14] font-black text-lg">{product.prix_premium.toLocaleString()} F</p>
-                               <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
+                               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
                                    <Plus size={16} />
                                </button>
                            </div>
@@ -157,8 +157,8 @@ export default function ShopTab({ ...tabProps }: any) {
                        <div key={product.id} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-3xl p-4 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-700`} style={{ animationFillMode: 'both', animationDelay: `${index * 100}ms` }}>
                           <div className="relative aspect-square rounded-2xl bg-zinc-50 overflow-hidden mb-4 cursor-pointer" onClick={() => openProductModal(product)}>
                             <img src={product.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={product.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                             {product.badge && <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl">{product.badge}</span>}
-                             {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl animate-pulse">Qté Limitée</span>}
+                             {product.badge && <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl pointer-events-none">{product.badge}</span>}
+                             {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl animate-pulse pointer-events-none">Qté Limitée</span>}
                           </div>
                           <h4 className="font-black text-xs sm:text-sm uppercase text-black mb-2 line-clamp-2 leading-tight">{product.nom}</h4>
                           <div className="flex items-center gap-1 mb-3">
@@ -175,19 +175,19 @@ export default function ShopTab({ ...tabProps }: any) {
                                 if (cartItem) {
                                     return (
                                         <div className="flex-1 bg-zinc-100 border border-[#39FF14] rounded-xl flex items-center justify-between overflow-hidden shadow-sm h-full">
-                                            <button onClick={(e) => { e.stopPropagation(); updateCartQuantity(product.id, cartItem.quantity - 1); }} className="w-10 h-full flex items-center justify-center text-black hover:bg-zinc-200 transition-colors"><Minus size={14}/></button>
+                                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(product.id, -1); }} className="w-10 h-full flex items-center justify-center text-black hover:bg-zinc-200 transition-colors"><Minus size={14}/></button>
                                             <span className="font-black text-sm text-black">{cartItem.quantity}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateCartQuantity(product.id, cartItem.quantity + 1); }} className="w-10 h-full flex items-center justify-center bg-[#39FF14] text-black hover:brightness-110 transition-colors"><Plus size={14}/></button>
+                                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(product.id, 1); }} className="w-10 h-full flex items-center justify-center bg-[#39FF14] text-black hover:brightness-110 transition-colors"><Plus size={14}/></button>
                                         </div>
                                     );
                                 }
                                 return (
-                                    <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
                                         <Plus size={14}/> Ajouter
                                     </button>
                                 );
                              })()}
-                             <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
+                             <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaveProduct(product); }} className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
                                 <Heart size={16} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
                              </button>
                           </div>
