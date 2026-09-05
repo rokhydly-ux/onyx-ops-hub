@@ -1,6 +1,6 @@
 import React from 'react';
 import { QUARTIERS, DELIVERY_ZONES } from '@/store/useCartStore';
-import { X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf, Users } from 'lucide-react';
+import { X, Bookmark, Send, User, TrendingDown, Dumbbell, TrendingUp, ArrowRight, MoreHorizontal, HeartPulse, MessageCircle, RotateCcw, ChevronDown, UserIcon, LogOut, ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Check, Sun, Moon, Activity, Calendar, Clock, Sparkles, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, AlertCircle, Search, Trash2, Truck, Info, ShoppingCart, Scale, Camera, ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, EyeOff, Share2, AlertTriangle, Package, Minus, Plus, PlusCircle, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3, PartyPopper, Instagram, Facebook, Twitter, Coffee, Leaf, Users } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import { YAxis, ResponsiveContainer, AreaChart, PieChart, Pie, LineChart, XAxis, ReferenceLine, Cell, Bar, Line, BarChart, Tooltip as RechartsTooltip, CartesianGrid, Area } from 'recharts';
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
@@ -50,9 +50,9 @@ export default function CartTab({ ...tabProps }: any) {
                                                   {((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F
                                               </p>
                                               <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200">
-                                                  <button onClick={() => updateCartQuantity(item.id, (item.quantity || 1) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
+                                                  <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
                                                   <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                                  <button onClick={() => updateCartQuantity(item.id, (item.quantity || 1) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
+                                                  <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
                                               </div>
                                           </div>
                                       </div>
@@ -107,6 +107,9 @@ export default function CartTab({ ...tabProps }: any) {
 <option key={q} value={q}>{q} ({DELIVERY_ZONES[q]} F)</option>
 ))}
 </select>
+<input type="text" placeholder="Détails de l'adresse (rue, bâtiment...)" className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
+<input type="text" placeholder="Code Promo" className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2" />
+
                                             </div>
 
                                             <div className="h-px bg-zinc-200 my-2"></div>
@@ -116,35 +119,78 @@ export default function CartTab({ ...tabProps }: any) {
                                                 <span className="text-3xl font-black text-[#39FF14]">{total.toLocaleString()} F</span>
                                             </div>
 
-                                            <button onClick={async () => {
-                                                if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
 
-                                                try {
-                                                    const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                                            <div className="space-y-3">
+                                                <button onClick={async () => {
+                                                    if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                    try {
+                                                        const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                                                        const { data, error } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            address: deliveryAddress
+                                                        }).select();
+                                                        if (error) throw error;
+                                                        clearCart();
+                                                        setShopPromoCode('');
+                                                        alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
+                                                        handleTabChange('orders');
+                                                    } catch (err: any) { alert("Erreur: " + err.message); }
+                                                }} className="w-full bg-[#E5F1FB] text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 border border-blue-200">
+                                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsRgMYeeKcAxZzAMzyyiIjwO0N7csTtSMzVEjQ91U79w&s" className="h-6" alt="Wave"/> PAYER AVEC WAVE
+                                                </button>
 
-                                                    const { data, error } = await supabase.from('nutrition_orders').insert({
-                                                        client_id: clientProfile?.id || user?.id,
-                                                        client_name: user?.user_metadata?.full_name || 'Inconnu',
-                                                        phone: clientProfile?.phone || '',
-                                                        items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
-                                                        total: total,
-                                                        status: 'Nouveau',
-                                                        address: deliveryAddress
-                                                    }).select();
+                                                <button onClick={async () => {
+                                                    if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                    try {
+                                                        const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                                                        const { data, error } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            address: deliveryAddress
+                                                        }).select();
+                                                        if (error) throw error;
+                                                        clearCart();
+                                                        setShopPromoCode('');
+                                                        alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
+                                                        handleTabChange('orders');
+                                                    } catch (err: any) { alert("Erreur: " + err.message); }
+                                                }} className="w-full bg-orange-100 text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 border border-orange-200">
+                                                    <img src="https://dimelo-answers-production.s3-eu-west-1.amazonaws.com/268/6f44dfa59e0bcf0b/om_logo_original.png?09c0932" className="h-6" alt="Orange Money"/> PAYER AVEC ORANGE MONEY
+                                                </button>
 
-                                                    if (error) throw error;
+                                                <button onClick={async () => {
+                                                    if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                    try {
+                                                        const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                                                        const { data, error } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            address: deliveryAddress
+                                                        }).select();
+                                                        if (error) throw error;
+                                                        clearCart();
+                                                        setShopPromoCode('');
+                                                        alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
+                                                        handleTabChange('orders');
+                                                    } catch (err: any) { alert("Erreur: " + err.message); }
+                                                }} className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 border border-zinc-200">
+                                                    <Truck size={20} /> PAIEMENT À LA LIVRAISON
+                                                </button>
+                                            </div>
 
-                                                    clearCart();
-                                                    setShopPromoCode('');
-                                                    alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
-                                                    handleTabChange('orders');
-
-                                                } catch (err: any) {
-                                                    alert("Erreur: " + err.message);
-                                                }
-                                            }} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-xl shadow-black/20">
-                                                COMMANDE CLASSIQUE
-                                            </button>
 
                                             <button onClick={async () => {
                                                 if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");

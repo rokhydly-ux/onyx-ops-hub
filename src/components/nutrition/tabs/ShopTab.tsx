@@ -122,6 +122,57 @@ export default function ShopTab({ ...tabProps }: any) {
                  </div>
               </div>
 
+
+              {/* VOS FAVORIS */}
+              <div className="mb-16">
+                 <h3 className="${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2 text-black dark:text-white"><Heart className="text-red-500 fill-red-500" /> Vos Favoris</h3>
+                 {savedShopProducts.length === 0 ? (
+                     <p className="text-zinc-500 font-bold text-sm bg-zinc-50 p-6 rounded-2xl border border-zinc-200">Aucun produit dans vos favoris pour le moment.</p>
+                 ) : (
+                     <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                       {savedShopProducts.map((product: any) => (
+                          <div key={product.id} onClick={() => openProductModal(product)} className={`flex-[0_0_auto] w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm mr-4 relative`}>
+                           <div className="aspect-square rounded-2xl bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-4 relative">
+                              <img src={product.image_url || "https://placehold.co/400x400/111/39FF14?text=Produit"} onError={(e: any) => e.target.src="https://placehold.co/400x400/111/39FF14?text=Produit"} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }} className="absolute top-2 right-2 bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-lg z-10" title="Ajouter au panier"><ShoppingCart size={16} /></button>
+                           </div>
+                           <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
+                           <div className="flex items-center justify-between mt-2">
+                               <p className="text-[#39FF14] font-black text-lg">{product.prix_premium?.toLocaleString() || 0} F</p>
+                           </div>
+                       </div>
+                       ))}
+                     </div>
+                 )}
+              </div>
+
+              {/* RÉCEMMENT VUS */}
+              <div className="mb-16">
+                 <h3 className="${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2 text-black dark:text-white"><Eye className="text-blue-500" /> Récemment Consultés</h3>
+                 {(() => {
+                     const recentProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter(p => p.views && p.views > 0).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 6);
+                     if (recentProducts.length === 0) {
+                         return <p className="text-zinc-500 font-bold text-sm bg-zinc-50 p-6 rounded-2xl border border-zinc-200">Aucun article consulté récemment.</p>;
+                     }
+                     return (
+                         <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                           {recentProducts.map(product => (
+                              <div key={product.id} onClick={() => openProductModal(product)} className={`flex-[0_0_auto] w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm mr-4 relative`}>
+                               <div className="aspect-square rounded-2xl bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-4 relative">
+                                  <img src={product.image_url || "https://placehold.co/400x400/111/39FF14?text=Produit"} onError={(e: any) => e.target.src="https://placehold.co/400x400/111/39FF14?text=Produit"} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }} className="absolute top-2 right-2 bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-lg z-10" title="Ajouter au panier"><ShoppingCart size={16} /></button>
+                               </div>
+                               <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
+                               <div className="flex items-center justify-between mt-2">
+                                   <p className="text-[#39FF14] font-black text-lg">{product.prix_premium?.toLocaleString() || 0} F</p>
+                               </div>
+                           </div>
+                           ))}
+                         </div>
+                     );
+                 })()}
+              </div>
+
               {/* FILTRES & RECHERCHE */}
               <div className="flex flex-col md:flex-row gap-4 mb-8 items-center">
                  <div className="relative flex-1 w-full">
