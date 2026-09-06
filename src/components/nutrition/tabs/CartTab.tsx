@@ -36,7 +36,7 @@ export default function CartTab({ ...tabProps }: any) {
                           <div className="lg:col-span-8 flex flex-col gap-6">
                               {shopCart.map((item: any) => (
                                   <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm">
-                                      <button onClick={() => removeFromCart(item.id)} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
+                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromCart(item.id); }} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
                                       <div className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
                                           {item.image_url ? <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover"/> : <Box size={32} className="text-zinc-300"/>}
                                       </div>

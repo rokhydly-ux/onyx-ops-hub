@@ -3326,11 +3326,11 @@ const currentHour = new Date().getHours();
   const updateCartQuantity = (productId: string, delta: number) => {
       const existingItem = shopCart.find((p: any) => p.id === productId);
       if (existingItem) {
-          const newQuantity = (existingItem.quantity || 1) + delta;
+          const newQuantity = Number(existingItem.quantity || 1) + Number(delta);
           if (newQuantity < 1) {
               removeFromCart(productId);
           } else {
-              updateQuantity(productId, newQuantity);
+              updateQuantity(productId, Math.min(99, Math.max(1, newQuantity)));
           }
       }
   };
@@ -3861,6 +3861,8 @@ const currentHour = new Date().getHours();
     deliveryAddress,
     setDeliveryAddress,
     updateCartQuantity,
+    clearCart,
+    setShowConfetti,
 
     isShopPromoApplied,
     appliedPromoData,
