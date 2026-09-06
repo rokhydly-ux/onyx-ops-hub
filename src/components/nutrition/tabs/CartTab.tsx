@@ -211,8 +211,8 @@ export default function CartTab({ ...tabProps }: any) {
 
                                                     clearCart();
                                                     setShopPromoCode('');
-                                                    alert(`FÉLICITATIONS ${user?.user_metadata?.full_name || ''}, votre commande #${orderIdStr} est enregistrée !`);
-                                                    handleTabChange('orders');
+                                                    setCreatedOrderRef(orderIdStr);
+                                                    setShowOrderSuccessModal(true);
 
                                                 } catch (err: any) {
                                                     alert("Erreur: " + err.message);
@@ -267,7 +267,8 @@ export default function CartTab({ ...tabProps }: any) {
                                                     const msg = `🛍️ NOUVELLE COMMANDE\nN°${orderIdStr}\nTotal: ${total.toLocaleString()} FCFA\n*Moyen de paiement :* ${paymentMethod}\nAdmin: https://nutriafro.app/admin/orders/${orderId}`;
                                                     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
 
-                                                    handleTabChange('orders');
+                                                    setCreatedOrderRef(orderIdStr);
+                                                    setShowOrderSuccessModal(true);
 
                                                 } catch (err: any) {
                                                     alert("Erreur: " + err.message);

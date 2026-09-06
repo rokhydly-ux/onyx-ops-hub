@@ -4428,6 +4428,29 @@ const currentHour = new Date().getHours();
       </footer>
 
 
+                 {showOrderSuccessModal && (
+                    <div id="order-success-overlay" className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2rem] w-full max-w-md p-8 flex flex-col items-center text-center shadow-2xl">
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786461202/Succes_commandes_awovvw.png" alt="Success" className="w-32 h-32 object-contain mb-6 drop-shadow-xl" />
+                            <h2 className="text-2xl font-black text-black mb-4 leading-tight">
+                                Félicitations,<br/>votre commande<br/>N°{createdOrderRef}<br/>est enregistrée !
+                            </h2>
+                            <p className="text-zinc-500 font-medium mb-8">
+                                Notre équipe va préparer votre commande très vite.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setShowOrderSuccessModal(false);
+                                    handleTabChange('orders');
+                                }}
+                                className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(57,255,20,0.5)] flex items-center justify-center gap-2"
+                            >
+                                Suivre ma commande <ArrowRight size={18} />
+                            </button>
+                        </motion.div>
+                    </div>
+                 )}
+
                  {selectedProduct && (
               <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in overflow-y-auto">
                  <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col md:flex-row relative shadow-2xl my-auto">
