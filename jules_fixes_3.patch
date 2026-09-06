@@ -1,0 +1,31 @@
+--- src/components/nutrition/tabs/CartTab.tsx
++++ src/components/nutrition/tabs/CartTab.tsx
+@@ -162,33 +162,2 @@
+
+-                                                {/* PAYMENT METHODS */}
+-                                                <div className="mt-4">
+-                                                    <p className="text-sm font-bold text-black mb-2">Moyen de paiement</p>
+-                                                    <div className="grid grid-cols-3 gap-2">
+-                                                        <button onClick={() => setPaymentMethod('Wave')} className={`border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'Wave' ? 'border-[#00a3ff] bg-[#00a3ff]/10 shadow-sm' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+-                                                            <div className="w-8 h-8 rounded bg-[#00a3ff] flex items-center justify-center overflow-hidden">
+-                                                                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsRgMYeeKcAxZzAMzyyiIjwO0N7csTtSMzVEjQ91U79w&s" alt="Wave" className="w-full h-full object-cover"/>
+-                                                            </div>
+-                                                            <span className="text-[10px] font-black uppercase text-center">Wave</span>
+-                                                        </button>
+-                                                        <button onClick={() => setPaymentMethod('Orange Money')} className={`border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'Orange Money' ? 'border-[#ff6600] bg-[#ff6600]/10 shadow-sm' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+-                                                            <div className="w-8 h-8 rounded bg-black flex items-center justify-center overflow-hidden">
+-                                                                <img src="https://dimelo-answers-production.s3-eu-west-1.amazonaws.com/268/6f44dfa59e0bcf0b/om_logo_original.png?09c0932" alt="OM" className="w-full h-full object-contain p-1"/>
+-                                                            </div>
+-                                                            <span className="text-[10px] font-black uppercase text-center">OM</span>
+-                                                        </button>
+-                                                        <button onClick={() => setPaymentMethod('Cash')} className={`border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'Cash' ? 'border-[#39FF14] bg-[#39FF14]/10 shadow-sm' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+-                                                            <div className="w-8 h-8 rounded bg-zinc-100 flex items-center justify-center text-zinc-600">
+-                                                                <Banknote size={20}/>
+-                                                            </div>
+-                                                            <span className="text-[10px] font-black uppercase text-center">Cash</span>
+-                                                        </button>
+-                                                    </div>
+-                                                </div>
+-
+-
+                                             </div>

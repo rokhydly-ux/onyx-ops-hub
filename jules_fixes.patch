@@ -1,0 +1,40 @@
+--- src/app/nutrition/page.tsx
++++ src/app/nutrition/page.tsx
+@@ -700,7 +700,8 @@
+     shopCart, addToCart: storeAddToCart, updateQuantity, removeFromCart, clearCart,
+     savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
+-    setSavedShopProducts
++    setSavedShopProducts,
++    isShopPromoApplied, appliedPromoData, shopPromoCode, applyPromo, removePromo, setShopPromoCode
+   } = useCartStore();
+
+   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
+@@ -3330,7 +3331,7 @@
+               updateQuantity(productId, newQuantity);
+           }
+       }
+   };
+
+   const applyShopPromo = () => {
+@@ -3345,8 +3346,9 @@
+
+      if (codeObj) {
+          if (jongomaXP >= codeObj.min_xp) {
+-             setIsShopPromoApplied(true);
+-             setAppliedPromoData(codeObj);
++             applyPromo(codeObj.code, codeObj);
++             setShowConfetti(true);
++             setTimeout(() => setShowConfetti(false), 8000);
+              alert(`Code ${codeObj.code} appliqué (-${codeObj.discount_pct}%) !`);
+          } else {
+@@ -3858,8 +3860,11 @@
+     updateCartQuantity,
++    isShopPromoApplied,
++    appliedPromoData,
++    shopPromoCode,
++    applyShopPromo,
++    removePromo,
++    setShopPromoCode,
+
+     lvlInfo,
+     openLeaderboard,
