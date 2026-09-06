@@ -699,7 +699,8 @@ export default function NutritionDashboard() {
   const {
     shopCart, addToCart: storeAddToCart, updateQuantity, removeFromCart, clearCart,
     savedShopProducts, toggleSavedProduct: storeToggleSavedProduct, setGlobalShopProducts,
-    setSavedShopProducts
+    setSavedShopProducts,
+    isShopPromoApplied, appliedPromoData, shopPromoCode, applyPromo, removePromo, setShopPromoCode
   } = useCartStore();
 
   const [shopDataDB, setShopDataDB] = useState<any[]>([]);
@@ -3345,8 +3346,9 @@ const currentHour = new Date().getHours();
 
      if (codeObj) {
          if (jongomaXP >= codeObj.min_xp) {
-             setIsShopPromoApplied(true);
-             setAppliedPromoData(codeObj);
+             applyPromo(codeObj.code, codeObj);
+             setShowConfetti(true);
+             setTimeout(() => setShowConfetti(false), 8000);
              alert(`Code ${codeObj.code} appliqué (-${codeObj.discount_pct}%) !`);
          } else {
              alert(`Vous n'avez pas assez d'XP pour utiliser ce code (${codeObj.min_xp} XP requis).`);
@@ -3859,6 +3861,13 @@ const currentHour = new Date().getHours();
     deliveryAddress,
     setDeliveryAddress,
     updateCartQuantity,
+
+    isShopPromoApplied,
+    appliedPromoData,
+    shopPromoCode,
+    applyShopPromo,
+    removePromo,
+    setShopPromoCode,
 
     lvlInfo,
     openLeaderboard,
