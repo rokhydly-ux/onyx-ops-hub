@@ -66,35 +66,65 @@ export default function CartTab({ ...tabProps }: any) {
                                   <h3 className="font-black text-lg uppercase mb-6 flex items-center gap-2"><ShoppingCart size={20} className="text-[#39FF14]"/> Récapitulatif</h3>
 
                                   {(() => {
+                                      const [addressDetails, setAddressDetails] = React.useState('');
+                                      const [paymentMethod, setPaymentMethod] = React.useState('Cash');
                                       const subTotal = shopCart.reduce((acc, item: any) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
+                                      const discountAmount = isShopPromoApplied ? (subTotal * (appliedPromoData?.discount_pct || 0) / 100) : 0;
+                                      const discountedSubTotal = subTotal - discountAmount;
+
                                       // Jauge de livraison
-                                      const progress = Math.min(100, (subTotal / 30000) * 100);
-                                      const remaining = Math.max(0, 30000 - subTotal);
-                                      const isFreeDelivery = subTotal >= 30000;
+                                      const threshold = 15000;
+                                      const progress = Math.min(100, (discountedSubTotal / threshold) * 100);
+                                      const remaining = Math.max(0, threshold - discountedSubTotal);
+                                      const isFreeDelivery = discountedSubTotal >= threshold;
 
                                       // Base delivery
                                       const dCost = deliveryCost || 1500;
-                                      const finalDeliveryCost = isFreeDelivery ? Math.max(0, dCost - 1500) : dCost;
-                                      const total = subTotal + finalDeliveryCost;
+                                      const finalDeliveryCost = isFreeDelivery ? 0 : dCost;
+                                      const total = discountedSubTotal + finalDeliveryCost;
 
                                       return (
                                         <div className="flex flex-col gap-4">
+                                            {/* Code Promo */}
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Code Promo"
+                                                    value={shopPromoCode}
+                                                    onChange={(e) => setShopPromoCode(e.target.value)}
+                                                    className="flex-1 bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black"
+                                                    disabled={isShopPromoApplied}
+                                                />
+                                                {isShopPromoApplied ? (
+                                                    <button onClick={removePromo} className="bg-red-500 text-white px-4 py-3 rounded-xl font-black text-xs uppercase hover:bg-red-600 transition-colors shrink-0">Annuler</button>
+                                                ) : (
+                                                    <button onClick={applyShopPromo} className="bg-black text-white px-4 py-3 rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors shrink-0">Appliquer</button>
+                                                )}
+                                            </div>
+
                                             {/* Delivery Progress Bar */}
                                             <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
                                                 <div className="flex justify-between items-end mb-2">
-                                                    <p className="text-[10px] font-black uppercase text-zinc-500">Subvention Livraison</p>
+                                                    <p className="text-[10px] font-black uppercase text-zinc-500">Livraison Gratuite</p>
                                                     <p className="text-xs font-bold text-black">{isFreeDelivery ? 'Acquise ✅' : `Encore ${remaining.toLocaleString()} F`}</p>
                                                 </div>
                                                 <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
                                                     <div className="h-full bg-[#39FF14] transition-all duration-500" style={{width: `${progress}%`}}></div>
                                                 </div>
-                                                {!isFreeDelivery && <p className="text-[9px] text-zinc-400 mt-2">Atteignez 30 000 F pour obtenir -1500F sur la livraison.</p>}
+                                                {!isFreeDelivery && <p className="text-[9px] text-zinc-400 mt-2">Atteignez {threshold.toLocaleString()} F pour obtenir la livraison offerte.</p>}
                                             </div>
 
                                             <div className="flex justify-between text-sm font-bold text-zinc-600 mt-4">
                                                 <span>Sous-total</span>
-                                                <span>{subTotal.toLocaleString()} F</span>
+                                                <span className={isShopPromoApplied ? 'line-through text-zinc-400' : ''}>{subTotal.toLocaleString()} F</span>
                                             </div>
+
+                                            {isShopPromoApplied && (
+                                                <div className="flex justify-between text-sm font-bold text-[#39FF14]">
+                                                    <span>Remise ({appliedPromoData?.discount_pct}%)</span>
+                                                    <span>- {discountAmount.toLocaleString()} F</span>
+                                                </div>
+                                            )}
 
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex justify-between text-sm font-bold text-zinc-600">
@@ -107,6 +137,12 @@ export default function CartTab({ ...tabProps }: any) {
 <option key={q} value={q}>{q} ({DELIVERY_ZONES[q]} F)</option>
 ))}
 </select>
+                                                <textarea
+                                                    placeholder="Détails de l'adresse (rue, porte, indications...)"
+                                                    value={addressDetails}
+                                                    onChange={(e) => setAddressDetails(e.target.value)}
+                                                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-black mt-2 resize-none h-20"
+                                                />
                                             </div>
 
                                             <div className="h-px bg-zinc-200 my-2"></div>
@@ -116,12 +152,38 @@ export default function CartTab({ ...tabProps }: any) {
                                                 <span className="text-3xl font-black text-[#39FF14]">{total.toLocaleString()} F</span>
                                             </div>
 
+                                            {/* Moyen de Paiement */}
+                                            <div className="flex flex-col gap-2 mb-4">
+                                                <span className="font-bold text-sm text-zinc-600">Moyen de paiement</span>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button onClick={() => setPaymentMethod('Wave')} className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${paymentMethod === 'Wave' ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+                                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsRgMYeeKcAxZzAMzyyiIjwO0N7csTtSMzVEjQ91U79w&s" alt="Wave" className="h-6 object-contain mb-1 rounded-md" />
+                                                        <span className="text-[10px] font-black uppercase text-black">Wave</span>
+                                                    </button>
+                                                    <button onClick={() => setPaymentMethod('Orange Money')} className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${paymentMethod === 'Orange Money' ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+                                                        <img src="https://dimelo-answers-production.s3-eu-west-1.amazonaws.com/268/6f44dfa59e0bcf0b/om_logo_original.png?09c0932" alt="Orange Money" className="h-6 object-contain mb-1 rounded-md" />
+                                                        <span className="text-[10px] font-black uppercase text-black">OM</span>
+                                                    </button>
+                                                    <button onClick={() => setPaymentMethod('Cash')} className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${paymentMethod === 'Cash' ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+                                                        <div className="h-6 flex items-center justify-center mb-1 text-black"><Banknote size={24}/></div>
+                                                        <span className="text-[10px] font-black uppercase text-black">Cash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
                                             <button onClick={async () => {
+                                                if (!paymentMethod) {
+                                                    setToastMessage("Veuillez sélectionner un moyen de paiement");
+                                                    setTimeout(() => setToastMessage(null), 3000);
+                                                    return;
+                                                }
                                                 if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                const finalAddress = addressDetails.trim() ? `${deliveryAddress} - ${addressDetails.trim()}` : deliveryAddress;
 
                                                 try {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
 
+                                                    let orderData;
                                                     const { data, error } = await supabase.from('nutrition_orders').insert({
                                                         client_id: clientProfile?.id || user?.id,
                                                         client_name: user?.user_metadata?.full_name || 'Inconnu',
@@ -129,10 +191,23 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: deliveryAddress
+                                                        address: finalAddress,
+                                                        payment_method: paymentMethod
                                                     }).select();
 
-                                                    if (error) throw error;
+                                                    if (error) {
+                                                        // Fallback in case the column does not exist
+                                                        const { data: fbData, error: fbError } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
+                                                        }).select();
+                                                        if (fbError) throw fbError;
+                                                    }
 
                                                     clearCart();
                                                     setShopPromoCode('');
@@ -147,7 +222,13 @@ export default function CartTab({ ...tabProps }: any) {
                                             </button>
 
                                             <button onClick={async () => {
+                                                if (!paymentMethod) {
+                                                    setToastMessage("Veuillez sélectionner un moyen de paiement");
+                                                    setTimeout(() => setToastMessage(null), 3000);
+                                                    return;
+                                                }
                                                 if (!deliveryAddress.trim()) return alert("Veuillez renseigner votre adresse de livraison.");
+                                                const finalAddress = addressDetails.trim() ? `${deliveryAddress} - ${addressDetails.trim()}` : deliveryAddress;
 
                                                 try {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -159,16 +240,31 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: deliveryAddress
+                                                        address: finalAddress,
+                                                        payment_method: paymentMethod
                                                     }).select();
 
-                                                    if (error) throw error;
+                                                    if (error) {
+                                                        const { data: fbData, error: fbError } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
+                                                        }).select();
+                                                        if (fbError) throw fbError;
+                                                        orderData = fbData;
+                                                    } else {
+                                                        orderData = data;
+                                                    }
 
                                                     const cartText = shopCart.map((item: any) => `- ${item.quantity}x ${item.nom}`).join('\n');
-                                                    const orderId = data[0].id;
+                                                    const orderId = orderData && orderData[0] ? orderData[0].id : orderIdStr;
                                                     clearCart();
 
-                                                    const msg = `🛍️ NOUVELLE COMMANDE\nN°${orderIdStr}\nTotal: ${total.toLocaleString()} FCFA\nAdmin: https://nutriafro.app/admin/orders/${orderId}`;
+                                                    const msg = `🛍️ NOUVELLE COMMANDE\nN°${orderIdStr}\nTotal: ${total.toLocaleString()} FCFA\n*Moyen de paiement :* ${paymentMethod}\nAdmin: https://nutriafro.app/admin/orders/${orderId}`;
                                                     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
 
                                                     handleTabChange('orders');
