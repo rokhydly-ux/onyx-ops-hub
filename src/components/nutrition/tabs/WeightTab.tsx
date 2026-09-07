@@ -266,6 +266,33 @@ export default function WeightTab({ ...tabProps }: any) {
                 )}
             </div>
 
+
+      {/* COACH FEEDBACK POPUP */}
+      <AnimatePresence>
+      {coachFeedback && (
+         <motion.div
+            initial={{ opacity: 0, y: 50, x: 50 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: 50, x: 50 }}
+            className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[500] max-w-sm w-[calc(100%-2rem)]"
+         >
+            <div className="bg-white border-2 border-[#39FF14] p-4 rounded-[2rem] rounded-br-none shadow-2xl flex items-start gap-4 relative">
+               <button onClick={() => setCoachFeedback(null)} className="absolute top-2 right-2 text-zinc-400 hover:text-black transition-colors"><X size={16}/></button>
+               <div className="relative shrink-0">
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" className="w-12 h-12 rounded-full border-2 border-[#39FF14] object-cover" alt="Rokhy" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#39FF14] border-2 border-white rounded-full animate-pulse"></div>
+               </div>
+               <div className="flex-1 min-w-0 pr-4">
+                  <h4 className="font-black uppercase text-xs text-black mb-1">Rokhy <span className="text-[9px] text-zinc-500 tracking-widest">| Coach</span></h4>
+                  <p className="text-xs font-medium text-zinc-700 leading-tight">
+                      {coachFeedback.text}
+                  </p>
+               </div>
+            </div>
+         </motion.div>
+      )}
+      </AnimatePresence>
+
     </>
   );
 }

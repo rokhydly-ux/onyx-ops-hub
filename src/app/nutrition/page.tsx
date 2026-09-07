@@ -2602,13 +2602,45 @@ export default function NutritionDashboard() {
           setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
       }
 
+
+      // Dynamic Coach Feedback Generation
+      let feedbackMsg = "";
+      const diag = clientProfile?.diagnostic_data || {};
+      const isSOPK = diag.femaleSpecific === "SOPK";
+      const isHypo = diag.healthProfile === "Hypothyroïdie";
+      const isPerimeno = diag.femaleSpecific === "Périménopause / Ménopause";
+      const hasMedical = isSOPK || isHypo || isPerimeno;
+
       if (newWeight < prevWeight) {
-          setCoachFeedback({ type: 'success', text: "🎉 Félicitations ! La méthode fonctionne, tes efforts paient de manière incroyable. Continue comme ça !" });
+          const successMsgs = [
+             "🎉 C'est une baisse ! Ton métabolisme réagit super bien au Sama Menu.",
+             "🔥 Boom ! Les efforts paient. Continue à bien t'hydrater pour maintenir ce rythme.",
+             "✅ Superbe évolution. La perte de graisse s'installe durablement."
+          ];
+          feedbackMsg = successMsgs[Math.floor(Math.random() * successMsgs.length)];
+          if (isSOPK) feedbackMsg += " Ton corps gère bien la résistance à l'insuline, tes choix alimentaires sont les bons !";
+          else if (isHypo) feedbackMsg += " Malgré un métabolisme ralenti, tu y arrives ! La régularité est ta meilleure arme.";
       } else if (newWeight > prevWeight) {
-          setCoachFeedback({ type: 'warning', text: "🌱 Ne t'en fais pas ! Une légère hausse est souvent due à de la rétention d'eau. Zéro culpabilité, on garde le cap avec ton Sama Menu !" });
+          const warningMsgs = [
+             "🌱 Pas de panique ! Une fluctuation est normale, souvent due à l'hydratation ou au transit.",
+             "💧 Zéro culpabilité. Le corps stocke parfois de l'eau. Garde le cap sur tes repas Onyx !",
+             "⚖️ Le poids fluctue tous les jours. Ce qui compte c'est la tendance sur la semaine."
+          ];
+          feedbackMsg = warningMsgs[Math.floor(Math.random() * warningMsgs.length)];
+          if (isPerimeno) feedbackMsg += " Avec les variations hormonales, la balance n'est pas toujours le meilleur reflet de ta perte de gras.";
+          else if (isSOPK) feedbackMsg += " Pense à bien surveiller tes pics de glycémie aujourd'hui pour aider ton corps.";
       } else {
-          setCoachFeedback({ type: 'neutral', text: "⚖️ Stabilité parfaite ! Ton corps consolide ses acquis. Reste constante !" });
+          const neutralMsgs = [
+             "⚖️ Stabilité parfaite ! Ton corps consolide ses acquis.",
+             "⚓ Ton poids se maintient. Le corps a besoin de ces phases de palier pour se rééquilibrer.",
+             "🧘‍♀️ Rien n'a bougé et c'est une excellente nouvelle, la constance est la clé."
+          ];
+          feedbackMsg = neutralMsgs[Math.floor(Math.random() * neutralMsgs.length)];
       }
+
+      setCoachFeedback({ type: newWeight < prevWeight ? 'success' : newWeight > prevWeight ? 'warning' : 'neutral', text: feedbackMsg });
+      setTimeout(() => setCoachFeedback(null), 8000); // Auto-close after 8s
+
 
       setToastMessage("Poids enregistré avec succès !");
       setTimeout(() => setToastMessage(null), 3000);
