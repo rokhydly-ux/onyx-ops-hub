@@ -3867,6 +3867,7 @@ const currentHour = new Date().getHours();
     deliveryAddress,
     setDeliveryAddress,
     updateCartQuantity,
+    removeFromCart,
     clearCart,
     setShowConfetti,
 

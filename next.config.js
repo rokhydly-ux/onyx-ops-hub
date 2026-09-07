@@ -5,6 +5,7 @@ const withPWA = require('next-pwa')({
   clientsClaim: true,
   register: true,
   disable: process.env.NODE_ENV === 'development',
+  buildExcludes: [/app-build-manifest\.json$/],
 });
 
 const nextConfig = {
