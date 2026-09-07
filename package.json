@@ -40,7 +40,7 @@
     "react-dom": "19.2.3",
     "react-infinite-scroll-component": "^7.2.1",
     "react-qr-code": "^2.0.18",
-    "react-quill": "^2.0.0",
+    "react-quill-new": "^3.8.3",
     "recharts": "^3.8.1",
     "sharp": "^0.34.5",
     "stripe": "^22.0.2",
