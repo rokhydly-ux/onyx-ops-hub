@@ -86,9 +86,14 @@ export default function AdminFitnessView() {
                 }
 
                 if (parsedExercises.length > 0) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
                     const res = await fetch('/api/fitness/manage-courses', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({ action: 'insert', payload: parsedExercises })
                     });
 
@@ -129,7 +134,16 @@ export default function AdminFitnessView() {
                 { title: "Renforcement Bras", category: "Renforcement Doux", difficulty: "Débutant", duration_minutes: 12, benefits: "Raffermit l'arrière des bras avec le poids du corps.", video_url: null, thumbnail_url: null },
             ];
 
-            const res = await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', payload: freeCatalog }) });
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            const res = await fetch('/api/fitness/manage-courses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ action: 'insert', payload: freeCatalog })
+            });
             const result = await res.json();
             const error = !res.ok ? result : null;
             if (error) throw error;
@@ -148,7 +162,16 @@ export default function AdminFitnessView() {
         const ytId = extractYoutubeId(tempUrl);
         const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
-        const res = await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id, payload: { video_url: tempUrl, thumbnail_url: thumb } }) });
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const res = await fetch('/api/fitness/manage-courses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ action: 'update', id, payload: { video_url: tempUrl, thumbnail_url: thumb } })
+        });
         const result = await res.json();
         const error = !res.ok ? result : null;
 
@@ -163,7 +186,16 @@ export default function AdminFitnessView() {
 
     const handleDeleteCourse = async (id: string) => {
         if(!confirm("Supprimer cet exercice ?")) return;
-        await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) });
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        await fetch('/api/fitness/manage-courses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ action: 'delete', id })
+        });
         fetchCourses();
     };
 
@@ -183,7 +215,16 @@ export default function AdminFitnessView() {
             thumbnail_url: thumb
         };
 
-        const res = await fetch('/api/fitness/manage-courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', payload: [payload] }) });
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const res = await fetch('/api/fitness/manage-courses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ action: 'insert', payload: [payload] })
+        });
         const result = await res.json();
         const error = !res.ok ? result : null;
 
