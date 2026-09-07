@@ -37,7 +37,7 @@ export default function CartTab({ ...tabProps }: any) {
                               {shopCart.map((item: any) => (
                                   <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm z-10">
                                       <div className="absolute top-4 right-4 z-20">
-                                          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromCart(item.id); }} className="text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full relative z-50 cursor-pointer pointer-events-auto">
+                                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromCart(item.id); }} className="text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full relative z-30 cursor-pointer pointer-events-auto">
                                               <Trash2 size={16}/>
                                           </button>
                                       </div>
@@ -53,14 +53,10 @@ export default function CartTab({ ...tabProps }: any) {
                                               <p className="font-black text-lg text-[#39FF14]">
                                                   {((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F
                                               </p>
-                                              <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200 relative z-50 pointer-events-auto">
-                                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(item.id, -1); }} className="p-1 hover:text-[#39FF14] text-black cursor-pointer">
-                                                      <Minus size={14}/>
-                                                  </button>
+                                              <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200">
+                                                  <button onClick={() => updateCartQuantity(item.id, (item.quantity || 1) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
                                                   <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(item.id, 1); }} className="p-1 hover:text-[#39FF14] text-black cursor-pointer">
-                                                      <Plus size={14}/>
-                                                  </button>
+                                                  <button onClick={() => updateCartQuantity(item.id, (item.quantity || 1) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
                                               </div>
                                           </div>
                                       </div>
@@ -192,17 +188,31 @@ export default function CartTab({ ...tabProps }: any) {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
 
                                                     let orderData;
-                                                    const { error } = await supabase.from('nutrition_orders').insert({
+                                                    const { data, error } = await supabase.from('nutrition_orders').insert({
                                                         client_id: clientProfile?.id || user?.id,
                                                         client_name: user?.user_metadata?.full_name || 'Inconnu',
                                                         phone: clientProfile?.phone || '',
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
-                                                        status: 'NOUVEAU',
-                                                        address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
+                                                        status: 'Nouveau',
+                                                        address: finalAddress,
+                                                        payment_method: paymentMethod
                                                     }).select();
 
-                                                    if (error) throw error;
+                                                    if (error) {
+                                                        // Fallback in case the column does not exist
+                                                        const { data: fbData, error: fbError } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            payment_method: paymentMethod,
+                                                            address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
+                                                        }).select();
+                                                        if (fbError) throw fbError;
+                                                    }
 
                                                     clearCart();
                                                     setShopPromoCode('');
@@ -234,12 +244,27 @@ export default function CartTab({ ...tabProps }: any) {
                                                         phone: clientProfile?.phone || '',
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
-                                                        status: 'NOUVEAU',
-                                                        address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
+                                                        status: 'Nouveau',
+                                                        address: finalAddress,
+                                                        payment_method: paymentMethod
                                                     }).select();
 
-                                                    if (error) throw error;
-                                                    orderData = data;
+                                                    if (error) {
+                                                        const { data: fbData, error: fbError } = await supabase.from('nutrition_orders').insert({
+                                                            client_id: clientProfile?.id || user?.id,
+                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
+                                                            phone: clientProfile?.phone || '',
+                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                            total: total,
+                                                            status: 'Nouveau',
+                                                            payment_method: paymentMethod,
+                                                            address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
+                                                        }).select();
+                                                        if (fbError) throw fbError;
+                                                        orderData = fbData;
+                                                    } else {
+                                                        orderData = data;
+                                                    }
 
                                                     const cartText = shopCart.map((item: any) => `- ${item.quantity}x ${item.nom}`).join('\n');
                                                     const orderId = orderData && orderData[0] ? orderData[0].id : orderIdStr;
