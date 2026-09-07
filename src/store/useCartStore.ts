@@ -87,14 +87,14 @@ export const useCartStore = create<CartState>()(
                     return {
                         shopCart: state.shopCart.map(p =>
                             p.id === product.id
-                                ? { ...p, quantity: parseInt(String(p.quantity || 1), 10) + parseInt(String(quantity), 10) }
+                                ? { ...p, quantity: (p.quantity || 1) + quantity }
                                 : p
                         )
                     };
                 }
                 const finalPrice = product.finalPrice;
                 return {
-                    shopCart: [...state.shopCart, { ...product, quantity: parseInt(String(quantity), 10), finalPrice }]
+                    shopCart: [...state.shopCart, { ...product, quantity, finalPrice }]
                 };
             }),
 

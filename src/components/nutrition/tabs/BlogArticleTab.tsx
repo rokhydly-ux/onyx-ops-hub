@@ -4,6 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { YAxis, ResponsiveContainer, AreaChart, PieChart, Pie, LineChart, XAxis, ReferenceLine, Cell, Bar, Line, BarChart, Tooltip as RechartsTooltip, CartesianGrid, Area } from 'recharts';
 import BentoDashboardView from '@/components/dashboard/BentoDashboardView';
 import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+
 
 // @ts-nocheck
 export default function BlogArticleTab({ ...tabProps }: any) {
@@ -30,7 +35,24 @@ export default function BlogArticleTab({ ...tabProps }: any) {
                   </div>
                   <h1 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase text-zinc-900 dark:text-white tracking-tight leading-tight mb-6`}>{selectedArticle.title}</h1>
 
-                  {selectedArticle.image_url && (
+                  {selectedArticle.gallery && Array.isArray(selectedArticle.gallery) && selectedArticle.gallery.length > 0 ? (
+                    <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm relative group">
+                        <Swiper
+                            modules={[Autoplay, Pagination]}
+                            spaceBetween={0}
+                            slidesPerView={1}
+                            autoplay={{ delay: 3000, disableOnInteraction: false }}
+                            pagination={{ clickable: true }}
+                            className="w-full h-full"
+                        >
+                            {selectedArticle.gallery.map((url: string, index: number) => (
+                                <SwiperSlide key={index}>
+                                    <img src={url} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </div>
+                  ) : selectedArticle.image_url && (
                     <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm">
                       <img src={selectedArticle.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={selectedArticle.title} className="w-full h-full object-cover" />
                     </div>

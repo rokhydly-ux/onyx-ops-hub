@@ -15,6 +15,10 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsToolti
 import Papa from 'papaparse';
 
 import autoTable from 'jspdf-autotable';
+import dynamic from 'next/dynamic';
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -2546,12 +2550,37 @@ export default function AdminNutritionAfricaine() {
                                 <p className="font-bold text-black">{selectedOrderDetails.client_name}</p>
                                 <p className="text-sm font-bold text-zinc-600">{selectedOrderDetails.phone}</p>
                             </div>
-                            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Détails livraison / Paiement</h4>
-                                <p className="font-bold text-black text-sm">{selectedOrderDetails.address || selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
-                                <div className="mt-2 flex items-center gap-2">
-                                    <span className="px-2 py-1 bg-black text-[#39FF14] text-[10px] font-black rounded uppercase">Statut: {selectedOrderDetails.status}</span>
-                                </div>
+<div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Adresse de livraison & Paiement</h4>
+                                {(() => {
+                                    const rawAddress = selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée';
+                                    let addressText = rawAddress;
+                                    let paymentMethod = null;
+
+                                    const paymentMatch = rawAddress.match(/\[Paiement\s*:\s*(.*?)\]/i) || rawAddress.match(/Paiement\s*:\s*([A-Za-z]+)/i);
+                                    if (paymentMatch) {
+                                        paymentMethod = paymentMatch[1].trim();
+                                        addressText = rawAddress.replace(paymentMatch[0], '').replace(/^ - /, '').trim();
+                                    } else if (selectedOrderDetails.notes) {
+                                        const notesMatch = selectedOrderDetails.notes.match(/\[Paiement\s*:\s*(.*?)\]/i) || selectedOrderDetails.notes.match(/Paiement\s*:\s*([A-Za-z]+)/i);
+                                        if (notesMatch) paymentMethod = notesMatch[1].trim();
+                                    }
+
+                                    return (
+                                        <>
+                                            <p className="font-bold text-black text-sm mb-2">{addressText}</p>
+                                            {paymentMethod && (
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                    paymentMethod.toLowerCase().includes('wave') ? 'bg-blue-100 text-blue-700' :
+                                                    paymentMethod.toLowerCase().includes('om') || paymentMethod.toLowerCase().includes('orange') ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-green-100 text-green-700'
+                                                }`}>
+                                                    💳 {paymentMethod}
+                                                </span>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -2560,13 +2589,12 @@ export default function AdminNutritionAfricaine() {
                             <div className="space-y-3">
                                 {selectedOrderDetails.parsedItems?.length > 0 ? (
                                     selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex items-center gap-4 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
-                                            <img src={item.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/placeholder.jpg"} alt={item.nom || item.product_name} className="w-16 h-16 object-cover rounded-lg" />
-                                            <div className="flex-1">
-                                                <p className="font-bold text-sm text-black">{item.nom || item.name || item.product_name || 'Produit'}</p>
-                                                <p className="text-xs text-zinc-500">Quantité: {item.quantity || 1}</p>
+                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
+                                            <div>
+                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
+                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
                                             </div>
-                                            <p className="font-black text-[#39FF14]">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
+                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
                                         </div>
                                     ))
                                 ) : (
@@ -3245,6 +3273,18 @@ export default function AdminNutritionAfricaine() {
             <h3 className="text-2xl font-black uppercase text-black dark:text-white tracking-tighter mb-6">Éditer l'Article</h3>
             
             <div className="space-y-4">
+              <div className="flex gap-4">
+                  <div className="flex-1">
+                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest pl-4 block mb-1">Date de publication</label>
+                      <input
+                        type="date"
+                        value={editingArticle.created_at ? new Date(editingArticle.created_at).toISOString().split('T')[0] : ''}
+                        onChange={e => setEditingArticle({...editingArticle, created_at: e.target.value ? new Date(e.target.value).toISOString() : null})}
+                        className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14]"
+                      />
+                  </div>
+              </div>
+
               <input 
                 type="text" 
                 placeholder="Titre de l'article"
@@ -3311,12 +3351,15 @@ export default function AdminNutritionAfricaine() {
                        </button>
                    </div>
                 </div>
-                <textarea 
-                  value={editingArticle.content || ''} 
-                  onChange={e => setEditingArticle({...editingArticle, content: e.target.value})} 
-                  className="w-full p-5 bg-transparent font-medium text-sm outline-none min-h-[200px] resize-y"
-                  placeholder="Contenu complet de l'article..."
-                />
+                <div className="w-full bg-transparent min-h-[300px]">
+                    <ReactQuill
+                      theme="snow"
+                      value={editingArticle.content || ''}
+                      onChange={(content) => setEditingArticle({...editingArticle, content})}
+                      className="h-[250px] mb-12"
+                      placeholder="Contenu complet de l'article..."
+                    />
+                </div>
               </div>
               <input type="url" placeholder="URL de l'image principale" value={editingArticle.image_url || ''} onChange={e => setEditingArticle({...editingArticle, image_url: e.target.value})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
               <textarea value={(editingArticle.gallery || []).join('\n')} onChange={e => setEditingArticle({...editingArticle, gallery: e.target.value.split('\n').filter(Boolean)})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14] min-h-[80px]" placeholder="Galerie d'images (1 URL par ligne)..." />
