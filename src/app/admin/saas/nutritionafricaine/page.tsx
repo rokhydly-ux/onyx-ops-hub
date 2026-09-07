@@ -16,8 +16,8 @@ import Papa from 'papaparse';
 
 import autoTable from 'jspdf-autotable';
 import dynamic from 'next/dynamic';
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-import 'react-quill/dist/quill.snow.css';
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
+import 'react-quill-new/dist/quill.snow.css';
 
 
 const spaceGrotesk = { className: "font-sans" };
