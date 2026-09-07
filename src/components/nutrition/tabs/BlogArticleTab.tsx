@@ -30,33 +30,49 @@ export default function BlogArticleTab({ ...tabProps }: any) {
                 <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-6 md:p-10 lg:p-12 shadow-sm space-y-6">
                   <div className="flex items-center gap-3 mb-4">
                     <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{selectedArticle.category || 'Nutrition'}</span>
-                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={12}/> {selectedArticle.readTime || `${Math.max(1, Math.ceil(((selectedArticle.content || selectedArticle.desc || '').split(' ').length) / 200))} min`}</span>
+                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={12}/> {selectedArticle.read_time || selectedArticle.readTime || `${Math.max(1, Math.ceil(((selectedArticle.content?.replace(/<[^>]+>/g, '') || selectedArticle.desc || '').split(' ').length) / 200))} min`}</span>
                     <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Eye size={12}/> {selectedArticle.views_count || 0} vues</span>
                   </div>
                   <h1 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase text-zinc-900 dark:text-white tracking-tight leading-tight mb-6`}>{selectedArticle.title}</h1>
 
-                  {selectedArticle.gallery && Array.isArray(selectedArticle.gallery) && selectedArticle.gallery.length > 0 ? (
-                    <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm relative group">
-                        <Swiper
-                            modules={[Autoplay, Pagination]}
-                            spaceBetween={0}
-                            slidesPerView={1}
-                            autoplay={{ delay: 3000, disableOnInteraction: false }}
-                            pagination={{ clickable: true }}
-                            className="w-full h-full"
-                        >
-                            {selectedArticle.gallery.map((url: string, index: number) => (
-                                <SwiperSlide key={index}>
-                                    <img src={url} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
-                                </SwiperSlide>
-                            ))}
-                        </Swiper>
-                    </div>
-                  ) : selectedArticle.image_url && (
+                  {(() => {
+                    let parsedGallery = [];
+                    try {
+                        parsedGallery = typeof selectedArticle.gallery === 'string'
+                            ? JSON.parse(selectedArticle.gallery)
+                            : selectedArticle.gallery || [];
+                    } catch (e) {
+                        parsedGallery = [];
+                    }
+
+                    if (parsedGallery.length > 0) {
+                        return (
+                            <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm relative group">
+                                <Swiper
+                                    modules={[Autoplay, Pagination]}
+                                    spaceBetween={0}
+                                    slidesPerView={1}
+                                    autoplay={{ delay: 3000, disableOnInteraction: false }}
+                                    pagination={{ clickable: true }}
+                                    className="w-full h-full"
+                                >
+                                    {parsedGallery.map((url: string, index: number) => (
+                                        <SwiperSlide key={index}>
+                                            <img src={url} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
+                                        </SwiperSlide>
+                                    ))}
+                                </Swiper>
+                            </div>
+                        );
+                    } else if (selectedArticle.image_url) {
+                        return (
                     <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm">
                       <img src={selectedArticle.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={selectedArticle.title} className="w-full h-full object-cover" />
                     </div>
-                  )}
+                        );
+                    }
+                    return null;
+                  })()}
 
                   <div className="prose prose-zinc dark:prose-invert max-w-none font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
 {(() => {

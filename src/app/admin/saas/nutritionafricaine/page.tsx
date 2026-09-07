@@ -3354,6 +3354,15 @@ export default function AdminNutritionAfricaine() {
                 <div className="w-full bg-transparent min-h-[300px]">
                     <ReactQuill
                       theme="snow"
+                      modules={{
+                          toolbar: [
+                              [{ 'header': [1, 2, 3, false] }],
+                              ['bold', 'italic', 'underline', 'strike'],
+                              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                              ['link', 'image'],
+                              ['clean']
+                          ]
+                      }}
                       value={editingArticle.content || ''}
                       onChange={(content) => setEditingArticle({...editingArticle, content})}
                       className="h-[250px] mb-12"
@@ -3383,7 +3392,9 @@ export default function AdminNutritionAfricaine() {
 
             <button onClick={async () => {
                 const isNew = !editingArticle.id;
-                const payload = { ...editingArticle };
+                const readingTime = Math.ceil((editingArticle.content || editingArticle.desc || '').replace(/<[^>]+>/g, '').split(' ').length / 200);
+                const payload = { ...editingArticle, read_time: `${readingTime} min` };
+                delete payload.readTime; // Remove camelCase if it exists
                 if (isNew) {
                    payload.id = Date.now().toString();
                 }
