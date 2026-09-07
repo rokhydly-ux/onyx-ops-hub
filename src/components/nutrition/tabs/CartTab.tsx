@@ -198,7 +198,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         phone: clientProfile?.phone || '',
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
-                                                        status: 'Nouveau',
+                                                        status: 'NOUVEAU',
                                                         address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
                                                     }).select();
 
@@ -234,7 +234,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         phone: clientProfile?.phone || '',
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
-                                                        status: 'Nouveau',
+                                                        status: 'NOUVEAU',
                                                         address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
                                                     }).select();
 
