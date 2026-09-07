@@ -2547,8 +2547,11 @@ export default function AdminNutritionAfricaine() {
                                 <p className="text-sm font-bold text-zinc-600">{selectedOrderDetails.phone}</p>
                             </div>
                             <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Adresse de livraison</h4>
-                                <p className="font-bold text-black text-sm">{selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Détails livraison / Paiement</h4>
+                                <p className="font-bold text-black text-sm">{selectedOrderDetails.address || selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}</p>
+                                <div className="mt-2 flex items-center gap-2">
+                                    <span className="px-2 py-1 bg-black text-[#39FF14] text-[10px] font-black rounded uppercase">Statut: {selectedOrderDetails.status}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -2557,12 +2560,13 @@ export default function AdminNutritionAfricaine() {
                             <div className="space-y-3">
                                 {selectedOrderDetails.parsedItems?.length > 0 ? (
                                     selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
-                                            <div>
-                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
-                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
+                                        <div key={idx} className="flex items-center gap-4 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                                            <img src={item.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/placeholder.jpg"} alt={item.nom || item.product_name} className="w-16 h-16 object-cover rounded-lg" />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-sm text-black">{item.nom || item.name || item.product_name || 'Produit'}</p>
+                                                <p className="text-xs text-zinc-500">Quantité: {item.quantity || 1}</p>
                                             </div>
-                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
+                                            <p className="font-black text-[#39FF14]">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
                                         </div>
                                     ))
                                 ) : (
