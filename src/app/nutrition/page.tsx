@@ -719,6 +719,8 @@ export default function NutritionDashboard() {
   const [productActiveImage, setProductActiveImage] = useState<string>('');
   const [showZoneSuggestions, setShowZoneSuggestions] = useState(false);
   const [clientOrders, setClientOrders] = useState<any[]>([]);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const [scratchedBlocks, setScratchedBlocks] = useState<number[]>([]);
@@ -3326,7 +3328,7 @@ const currentHour = new Date().getHours();
   const updateCartQuantity = (productId: string, delta: number) => {
       const existingItem = shopCart.find((p: any) => p.id === productId);
       if (existingItem) {
-          const newQuantity = Number(existingItem.quantity || 1) + Number(delta);
+          const newQuantity = parseInt(String(existingItem.quantity || 1), 10) + parseInt(String(delta), 10);
           if (newQuantity < 1) {
               removeFromCart(productId);
           } else {
@@ -3809,6 +3811,10 @@ const currentHour = new Date().getHours();
     setShowZoneSuggestions,
     clientOrders,
     setClientOrders,
+    selectedOrderDetails,
+    setSelectedOrderDetails,
+    showOrderDetailsModal,
+    setShowOrderDetailsModal,
     hasTriggeredCartExit,
     setHasTriggeredCartExit,
     isCartBouncing,

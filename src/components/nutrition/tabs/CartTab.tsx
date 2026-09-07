@@ -35,9 +35,13 @@ export default function CartTab({ ...tabProps }: any) {
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                           <div className="lg:col-span-8 flex flex-col gap-6">
                               {shopCart.map((item: any) => (
-                                  <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm">
-                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromCart(item.id); }} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full"><Trash2 size={16}/></button>
-                                      <div className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
+                                  <div key={item.id} className="flex gap-4 p-4 border border-zinc-100 rounded-2xl relative shadow-sm z-10">
+                                      <div className="absolute top-4 right-4 z-20">
+                                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromCart(item.id); }} className="text-zinc-400 hover:text-red-500 transition-colors p-2 bg-zinc-50 rounded-full relative z-30 cursor-pointer pointer-events-auto">
+                                              <Trash2 size={16}/>
+                                          </button>
+                                      </div>
+                                      <div className="w-24 h-24 bg-zinc-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center pointer-events-none">
                                           {item.image_url ? <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover"/> : <Box size={32} className="text-zinc-300"/>}
                                       </div>
                                       <div className="flex-1 flex flex-col justify-between py-1 pr-8">
@@ -204,6 +208,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                             items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                             total: total,
                                                             status: 'Nouveau',
+                                                            payment_method: paymentMethod,
                                                             address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
                                                         }).select();
                                                         if (fbError) throw fbError;
@@ -252,6 +257,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                             items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                             total: total,
                                                             status: 'Nouveau',
+                                                            payment_method: paymentMethod,
                                                             address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
                                                         }).select();
                                                         if (fbError) throw fbError;
