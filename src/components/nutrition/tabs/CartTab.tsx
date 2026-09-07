@@ -54,11 +54,11 @@ export default function CartTab({ ...tabProps }: any) {
                                                   {((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F
                                               </p>
                                               <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200 relative z-50 pointer-events-auto">
-                                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(item.id, parseInt(String(item.quantity || 1), 10) - 1); }} className="p-1 hover:text-[#39FF14] text-black cursor-pointer">
+                                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(item.id, -1); }} className="p-1 hover:text-[#39FF14] text-black cursor-pointer">
                                                       <Minus size={14}/>
                                                   </button>
                                                   <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(item.id, parseInt(String(item.quantity || 1), 10) + 1); }} className="p-1 hover:text-[#39FF14] text-black cursor-pointer">
+                                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateCartQuantity(item.id, 1); }} className="p-1 hover:text-[#39FF14] text-black cursor-pointer">
                                                       <Plus size={14}/>
                                                   </button>
                                               </div>
@@ -198,7 +198,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         phone: clientProfile?.phone || '',
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
-                                                        status: 'Nouveau',
+                                                        status: 'NOUVEAU',
                                                         address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
                                                     }).select();
 
@@ -234,7 +234,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         phone: clientProfile?.phone || '',
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
-                                                        status: 'Nouveau',
+                                                        status: 'NOUVEAU',
                                                         address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
                                                     }).select();
 
