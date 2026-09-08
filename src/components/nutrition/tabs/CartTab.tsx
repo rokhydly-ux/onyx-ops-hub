@@ -54,9 +54,9 @@ export default function CartTab({ ...tabProps }: any) {
                                                   {((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)).toLocaleString()} F
                                               </p>
                                               <div className="flex items-center gap-4 bg-zinc-100 rounded-xl p-1 px-2 border border-zinc-200">
-                                                  <button onClick={() => updateCartQuantity(item.id, (item.quantity || 1) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
+                                                  <button onClick={() => updateCartQuantity(item.id, parseInt(String(item.quantity || 1), 10) - 1)} className="p-1 hover:text-[#39FF14] text-black"><Minus size={14}/></button>
                                                   <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                                  <button onClick={() => updateCartQuantity(item.id, (item.quantity || 1) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
+                                                  <button onClick={() => updateCartQuantity(item.id, parseInt(String(item.quantity || 1), 10) + 1)} className="p-1 hover:text-[#39FF14] text-black"><Plus size={14}/></button>
                                               </div>
                                           </div>
                                       </div>

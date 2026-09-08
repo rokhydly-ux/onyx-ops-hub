@@ -2253,6 +2253,11 @@ export default function NutritionDashboard() {
     });
   };
 
+  const handleOpenOrderDetails = (order: any) => {
+    setSelectedOrderDetails(order);
+    setShowOrderDetailsModal(true);
+  };
+
   const handleTabChange = (tab: string) => {
       // Exit intent logic: check if user hasn't filled report today and it's past 20:00
       const now = new Date();
@@ -3876,6 +3881,7 @@ const currentHour = new Date().getHours();
     applyShopPromo,
     removePromo,
     setShopPromoCode,
+    handleOpenOrderDetails,
 
     lvlInfo,
     openLeaderboard,
