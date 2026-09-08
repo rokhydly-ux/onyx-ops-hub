@@ -187,7 +187,6 @@ export default function CartTab({ ...tabProps }: any) {
                                                 try {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-                                                    let orderData;
                                                     const { data, error } = await supabase.from('nutrition_orders').insert({
                                                         client_id: clientProfile?.id || user?.id,
                                                         client_name: user?.user_metadata?.full_name || 'Inconnu',
@@ -195,24 +194,10 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: finalAddress,
-                                                        payment_method: paymentMethod
+                                                        address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
                                                     }).select();
 
-                                                    if (error) {
-                                                        // Fallback in case the column does not exist
-                                                        const { data: fbData, error: fbError } = await supabase.from('nutrition_orders').insert({
-                                                            client_id: clientProfile?.id || user?.id,
-                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
-                                                            phone: clientProfile?.phone || '',
-                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
-                                                            total: total,
-                                                            status: 'Nouveau',
-                                                            payment_method: paymentMethod,
-                                                            address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
-                                                        }).select();
-                                                        if (fbError) throw fbError;
-                                                    }
+                                                    if (error) throw error;
 
                                                     clearCart();
                                                     setShopPromoCode('');
@@ -238,6 +223,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                 try {
                                                     const orderIdStr = Math.random().toString(36).substring(2, 10).toUpperCase();
 
+                                                    let orderData;
                                                     const { data, error } = await supabase.from('nutrition_orders').insert({
                                                         client_id: clientProfile?.id || user?.id,
                                                         client_name: user?.user_metadata?.full_name || 'Inconnu',
@@ -245,26 +231,11 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: finalAddress,
-                                                        payment_method: paymentMethod
+                                                        address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
                                                     }).select();
 
-                                                    if (error) {
-                                                        const { data: fbData, error: fbError } = await supabase.from('nutrition_orders').insert({
-                                                            client_id: clientProfile?.id || user?.id,
-                                                            client_name: user?.user_metadata?.full_name || 'Inconnu',
-                                                            phone: clientProfile?.phone || '',
-                                                            items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
-                                                            total: total,
-                                                            status: 'Nouveau',
-                                                            payment_method: paymentMethod,
-                                                            address: `[Paiement: ${paymentMethod}] - ${finalAddress}`
-                                                        }).select();
-                                                        if (fbError) throw fbError;
-                                                        orderData = fbData;
-                                                    } else {
-                                                        orderData = data;
-                                                    }
+                                                    if (error) throw error;
+                                                    orderData = data;
 
                                                     const cartText = shopCart.map((item: any) => `- ${item.quantity}x ${item.nom}`).join('\n');
                                                     const orderId = orderData && orderData[0] ? orderData[0].id : orderIdStr;

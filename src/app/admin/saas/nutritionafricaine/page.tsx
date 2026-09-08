@@ -3392,19 +3392,21 @@ export default function AdminNutritionAfricaine() {
 
             <button onClick={async () => {
                 const isNew = !editingArticle.id;
-                const readingTime = Math.ceil((editingArticle.content || editingArticle.desc || '').replace(/<[^>]+>/g, '').split(' ').length / 200);
-                const payload = { ...editingArticle, read_time: `${readingTime} min` };
-                delete payload.readTime; // Remove camelCase if it exists
+
+                const payloadToSave = { ...editingArticle };
+                delete payloadToSave.readTime;
+                delete payloadToSave.read_time;
+
                 if (isNew) {
-                   payload.id = Date.now().toString();
+                   payloadToSave.id = Date.now().toString();
                 }
                 
                 if (isNew) { 
-                   const { data, error } = await supabase.from('marketing_articles').insert([payload]).select().single(); 
+                   const { data, error } = await supabase.from('marketing_articles').insert([payloadToSave]).select().single();
                    if (!error && data) { setArticles([data, ...articles]); setEditingArticle(null); } else alert("Erreur : " + error?.message);
                 } else { 
-                   const { error } = await supabase.from('marketing_articles').update(payload).eq('id', editingArticle.id); 
-                   if (!error) { setArticles(articles.map(a => a.id === editingArticle.id ? payload : a)); setEditingArticle(null); } else alert("Erreur : " + error.message);
+                   const { error } = await supabase.from('marketing_articles').update(payloadToSave).eq('id', editingArticle.id);
+                   if (!error) { setArticles(articles.map(a => a.id === editingArticle.id ? payloadToSave : a)); setEditingArticle(null); } else alert("Erreur : " + error.message);
                 }
               }} className="w-full mt-6 bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all shadow-lg flex justify-center items-center gap-2">
               <CheckCircle size={18}/> Sauvegarder l'article
