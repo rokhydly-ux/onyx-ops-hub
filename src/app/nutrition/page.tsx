@@ -4360,10 +4360,9 @@ const currentHour = new Date().getHours();
                 {activeTab === 'today' && (<TodayTab {...tabProps} />)}
                 {activeTab === 'week' && (<WeekTab {...tabProps} />)}
                 {activeTab === 'cart' && (<CartTab {...tabProps} />)}
-                {activeTab === 'orders' && (<OrdersTab1 {...tabProps} />)}
                 {activeTab === 'profile' && (<ProfileTab {...tabProps} />)}
                 {activeTab === 'favorites' && (<FavoritesTab {...tabProps} />)}
-                {activeTab === 'orders' && (<OrdersTab2 {...tabProps} />)}
+                {activeTab === 'orders' && (<OrdersTab1 {...tabProps} />)}
                 {activeTab === 'shop' && (<ShopTab {...tabProps} />)}
                 {activeTab === 'history' && (<HistoryTab {...tabProps} />)}
                 {activeTab === 'blog' && selectedArticle && (<BlogArticleTab {...tabProps} />)}
