@@ -235,7 +235,8 @@ export default function CartTab({ ...tabProps }: any) {
                                                         total: total,
                                                         status: 'Nouveau',
                                                         address: finalAddress,
-                                                        payment_method: paymentMethod
+                                                        payment_method: paymentMethod,
+                                                        delivery_fee: finalDeliveryCost
                                                     }).select();
 
                                                     if (error) throw error;
@@ -273,7 +274,8 @@ export default function CartTab({ ...tabProps }: any) {
                                                         total: total,
                                                         status: 'Nouveau',
                                                         address: finalAddress,
-                                                        payment_method: paymentMethod
+                                                        payment_method: paymentMethod,
+                                                        delivery_fee: finalDeliveryCost
                                                     }).select();
 
                                                     if (error) throw error;
