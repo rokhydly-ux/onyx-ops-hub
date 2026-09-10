@@ -66,7 +66,7 @@ export default function OrdersTab1({ ...tabProps }: any) {
                                       <span className="text-xs font-bold text-zinc-500">{new Date(order.created_at).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}</span>
                                   </div>
                                   <p className="font-bold text-sm text-black mb-1 line-clamp-1">
-                                      {(order.items || []).map((i: any) => `${i.quantity}x ${i.nom}`).join(', ')}
+                                      {(typeof order.items === 'string' ? JSON.parse(order.items) : order.items || []).map((i: any) => `${i.quantity}x ${i.title || i.name || i.produit_nom || i.nom || 'Produit'}`).join(', ')}
                                   </p>
                                   <p className="font-black text-lg text-[#39FF14]">{order.total?.toLocaleString() || 0} F</p>
                               </div>
