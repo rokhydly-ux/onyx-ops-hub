@@ -5257,6 +5257,45 @@ const currentHour = new Date().getHours();
                               <span className="text-sm dark:text-white block">{selectedOrderDetails.address || 'Aucune adresse renseignée.'}</span>
                           </div>
                       </div>
+
+                    {/* LISTE DES ARTICLES DE LA COMMANDE */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
+                        <span className="text-xs text-gray-500 font-bold block mb-3 uppercase">Articles de la commande :</span>
+
+                        <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {/* Sécurité : on parse les items si c'est une string JSONB venant de Supabase */}
+                            {(typeof selectedOrderDetails.items === 'string'
+                                ? JSON.parse(selectedOrderDetails.items)
+                                : selectedOrderDetails.items || selectedOrderDetails.nutrition_order_items || []
+                            ).map((item: any, index: number) => (
+                                <div
+                                    key={index}
+                                    onClick={() => {
+                                        setShowOrderDetailsModal(false);
+                                        router.push(`/nutrition/product/${item.id || item.product_id}`);
+                                    }}
+                                    className="flex items-center gap-3 p-3 bg-white dark:bg-[#1A1A1A] rounded-xl border border-gray-100 dark:border-white/10 cursor-pointer hover:border-[#39FF14]/50 transition-colors"
+                                >
+                                    <div className="w-12 h-12 bg-gray-100 dark:bg-[#0A0A0A] rounded-lg overflow-hidden flex-shrink-0">
+                                        <img
+                                            src={item.image || item.image_url || '/placeholder.png'}
+                                            alt={item.title || item.name || item.nom || item.product_name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-bold dark:text-white line-clamp-1">
+                                            {item.title || item.name || item.nom || item.product_name}
+                                        </h4>
+                                        <span className="text-xs text-gray-500 font-bold">
+                                            {item.quantity}x • {(item.price || item.prix || item.finalPrice || item.price_at_time || 0).toLocaleString()} FCFA
+                                        </span>
+                                    </div>
+                                    <span className="text-gray-300 dark:text-gray-600">›</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                   </div>
 
                   {/* BOUTON D'ACTION */}
