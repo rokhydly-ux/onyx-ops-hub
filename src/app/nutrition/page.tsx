@@ -5254,7 +5254,8 @@ const currentHour = new Date().getHours();
                           </div>
                           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
                               <span className="text-xs text-gray-500 font-bold block mb-1">Informations :</span>
-                              <span className="text-sm dark:text-white block">{selectedOrderDetails.address || 'Aucune adresse renseignée.'}</span>
+                              <span className="text-sm dark:text-white block">{selectedOrderDetails.address || selectedOrderDetails.adresse || 'Aucune adresse spécifiée'}</span>
+                              <span className="text-sm dark:text-white block font-bold mt-1">Paiement : {selectedOrderDetails.payment_method || 'Mode de paiement non spécifié'}</span>
                           </div>
                       </div>
 
@@ -5285,7 +5286,7 @@ const currentHour = new Date().getHours();
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="text-sm font-bold dark:text-white line-clamp-1">
-                                            {item.title || item.name || item.nom || item.product_name}
+                                            {item.title || item.name || item.produit_nom || 'Produit inconnu'}
                                         </h4>
                                         <span className="text-xs text-gray-500 font-bold">
                                             {item.quantity}x • {(item.price || item.prix || item.finalPrice || item.price_at_time || 0).toLocaleString()} FCFA
