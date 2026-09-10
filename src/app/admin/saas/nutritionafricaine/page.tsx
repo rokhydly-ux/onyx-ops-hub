@@ -2591,7 +2591,7 @@ export default function AdminNutritionAfricaine() {
                                     selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
                                         <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
                                             <div>
-                                                <p className="font-bold text-black text-sm">{item.name || item.product_name || 'Produit'}</p>
+                                                <h4 className="font-bold text-sm">{item.title || item.name || item.produit_nom || item.product_name || 'Nom indisponible'}</h4>
                                                 <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
                                             </div>
                                             <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>

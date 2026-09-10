@@ -5272,7 +5272,7 @@ const currentHour = new Date().getHours();
                                     key={index}
                                     onClick={() => {
                                         setShowOrderDetailsModal(false);
-                                        router.push(`/nutrition/product/${item.id || item.product_id}`);
+                                        router.push(`/${item.id || item.product_id}`);
                                     }}
                                     className="flex items-center gap-3 p-3 bg-white dark:bg-[#1A1A1A] rounded-xl border border-gray-100 dark:border-white/10 cursor-pointer hover:border-[#39FF14]/50 transition-colors"
                                 >
@@ -5297,6 +5297,17 @@ const currentHour = new Date().getHours();
                         </div>
                     </div>
                   </div>
+
+
+                  {/* BOUTON WHATSAPP */}
+                  <a
+                      href={`https://wa.me/221780000057?text=Bonjour, je vous contacte concernant ma commande N° ${selectedOrderDetails.id?.substring(0, 8)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-3 rounded-xl mb-3 hover:bg-[#128C7E] transition-colors"
+                  >
+                      Contacter le support via WhatsApp
+                  </a>
 
                   {/* BOUTON D'ACTION */}
                   <button
