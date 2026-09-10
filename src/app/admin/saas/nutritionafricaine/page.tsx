@@ -1306,14 +1306,10 @@ export default function AdminNutritionAfricaine() {
       if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  const handleOpenOrderDetails = async (order: any) => {
+  const handleOpenOrderDetails = (order: any) => {
       let items = order.items || [];
       if (typeof items === 'string') {
           try { items = JSON.parse(items); } catch(e) { items = []; }
-      }
-      const { data: dbItems } = await supabase.from('nutrition_order_items').select('*').eq('order_id', order.id);
-      if (dbItems && dbItems.length > 0) {
-          items = dbItems;
       }
       setSelectedOrderDetails({ ...order, parsedItems: items });
       setShowOrderDetailsModal(true);
@@ -2586,23 +2582,28 @@ export default function AdminNutritionAfricaine() {
 
                         <div className="mb-8">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 pb-2">Articles commandés</h4>
-                            <div className="space-y-3">
-                                {selectedOrderDetails.parsedItems?.length > 0 ? (
-                                    selectedOrderDetails.parsedItems.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white border border-zinc-200 p-3 rounded-xl">
-                                            <div>
-                                                <h4 className="font-bold text-sm">{item.title || item.name || item.produit_nom || item.product_name || 'Nom indisponible'}</h4>
-                                                <p className="text-xs font-bold text-zinc-500">Quantité: {item.quantity || 1}</p>
-                                            </div>
-                                            <p className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{(item.finalPrice || item.price || item.price_at_time || 0).toLocaleString()} F</p>
+                            {/* LISTE DES ARTICLES - MODALE ADMIN */}
+                            <div className="space-y-3 mt-4 mb-8">
+                                {/* Sécurité : Parsing du JSON comme sur la PWA */}
+                                {(typeof selectedOrderDetails.items === 'string'
+                                    ? JSON.parse(selectedOrderDetails.items)
+                                    : selectedOrderDetails.items || []
+                                ).map((item: any, index: number) => (
+                                    <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl mb-2 border border-gray-100">
+                                        <div>
+                                            <h4 className="font-bold text-sm text-gray-900">
+                                                {/* Fallbacks multiples pour garantir l'affichage du nom */}
+                                                {item.title || item.name || item.produit_nom || item.product_name || 'Nom du produit introuvable'}
+                                            </h4>
+                                            <span className="text-xs text-gray-500 font-medium">Quantité: {item.quantity}</span>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-zinc-500 font-bold">Aucun article détaillé trouvé.</p>
-                                )}
+                                        <div className="font-black bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-sm">
+                                            {item.price || item.prix || item.finalPrice || item.price_at_time || 0} F
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-
                         <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6 space-y-2">
                             <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
                                 <span>Sous-total Produits</span>
