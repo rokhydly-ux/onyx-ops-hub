@@ -2582,26 +2582,43 @@ export default function AdminNutritionAfricaine() {
 
                         <div className="mb-8">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 border-b border-zinc-100 pb-2">Articles commandés</h4>
-                            {/* LISTE DES ARTICLES - MODALE ADMIN */}
+                            {/* LISTE DES ARTICLES - MODALE ADMIN (BLINDÉE) */}
                             <div className="space-y-3 mt-4 mb-8">
-                                {/* Sécurité : Parsing du JSON comme sur la PWA */}
                                 {(typeof selectedOrderDetails.items === 'string'
                                     ? JSON.parse(selectedOrderDetails.items)
                                     : selectedOrderDetails.items || []
-                                ).map((item: any, index: number) => (
-                                    <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl mb-2 border border-gray-100">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-gray-900">
-                                                {/* Fallbacks multiples pour garantir l'affichage du nom */}
-                                                {item.title || item.name || item.produit_nom || item.product_name || 'Nom du produit introuvable'}
-                                            </h4>
-                                            <span className="text-xs text-gray-500 font-medium">Quantité: {item.quantity}</span>
+                                ).map((item: any, index: number) => {
+
+                                    // 🔍 DEBUG OBLIGATOIRE : Ouvre ta console F12 pour voir la structure exacte de l'item !
+                                    console.log("🔍 OBJET ITEM DEBUG ADMIN :", item);
+
+                                    // On teste toutes les clés possibles imaginables dans ton écosystème
+                                    const realName = item.title
+                                        || item.name
+                                        || item.produit_nom
+                                        || item.product_name
+                                        || item.nom
+                                        || item.label
+                                        || (item.product && (item.product.name || item.product.title))
+                                        || `Produit #${item.id || index}`; // Dernier recours : affiche l'ID au lieu d'un texte vide
+
+                                    const realPrice = item.price || item.prix || item.amount || item.finalPrice || item.price_at_time || 0;
+                                    const realQty = item.quantity || item.qte || 1;
+
+                                    return (
+                                        <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl mb-2 border border-gray-100">
+                                            <div>
+                                                <h4 className="font-bold text-sm text-gray-900">
+                                                    {realName}
+                                                </h4>
+                                                <span className="text-xs text-gray-500 font-medium">Quantité: {realQty}</span>
+                                            </div>
+                                            <div className="font-black bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-sm">
+                                                {realPrice} F
+                                            </div>
                                         </div>
-                                        <div className="font-black bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-sm">
-                                            {item.price || item.prix || item.finalPrice || item.price_at_time || 0} F
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                         <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6 space-y-2">
