@@ -4362,7 +4362,7 @@ const currentHour = new Date().getHours();
                 {activeTab === 'cart' && (<CartTab {...tabProps} />)}
                 {activeTab === 'profile' && (<ProfileTab {...tabProps} />)}
                 {activeTab === 'favorites' && (<FavoritesTab {...tabProps} />)}
-                {activeTab === 'orders' && (<OrdersTab1 {...tabProps} />)}
+                {activeTab === 'orders' && (<OrdersTab1 {...tabProps} handleOpenOrderDetails={handleOpenOrderDetails} />)}
                 {activeTab === 'shop' && (<ShopTab {...tabProps} />)}
                 {activeTab === 'history' && (<HistoryTab {...tabProps} />)}
                 {activeTab === 'blog' && selectedArticle && (<BlogArticleTab {...tabProps} />)}
