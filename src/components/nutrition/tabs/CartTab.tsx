@@ -231,7 +231,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         client_id: clientProfile?.id || user?.id,
                                                         client_name: user?.user_metadata?.full_name || 'Inconnu',
                                                         phone: clientProfile?.phone || '',
-                                                        items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                        items: shopCart.map((p: any) => ({ id: p.id, title: p.nom || p.title, price: Number(p.finalPrice || p.prix_premium || p.prix_standard || 0), quantity: Number(p.quantity || 1), image: p.image || p.image_url })),
                                                         total: total,
                                                         status: 'Nouveau',
                                                         address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
@@ -268,7 +268,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         client_id: clientProfile?.id || user?.id,
                                                         client_name: user?.user_metadata?.full_name || 'Inconnu',
                                                         phone: clientProfile?.phone || '',
-                                                        items: shopCart.map((p: any) => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
+                                                        items: shopCart.map((p: any) => ({ id: p.id, title: p.nom || p.title, price: Number(p.finalPrice || p.prix_premium || p.prix_standard || 0), quantity: Number(p.quantity || 1), image: p.image || p.image_url })),
                                                         total: total,
                                                         status: 'Nouveau',
                                                         address: `[Paiement : ${paymentMethod}] - ${finalAddress}`
