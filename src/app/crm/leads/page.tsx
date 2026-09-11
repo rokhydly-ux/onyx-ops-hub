@@ -570,7 +570,7 @@ export default function LeadsKanbanPage() {
              delete r['status'];
 
              const name = r['full_name'] || r['name'] || r['nom'] || r['nom complet'] || 'Lead Facebook';
-             let rawPhone = r['whatsapp_number'] || r['phone_number'] || r['phone number'] || r['phone'] || r['téléphone'] || r['numero'] || r['numéro'] || r['mobile'] || r['contact'] || '';
+             const rawPhone = r['whatsapp_number'] || r['phone_number'] || r['phone number'] || r['phone'] || r['téléphone'] || r['numero'] || r['numéro'] || r['mobile'] || r['contact'] || '';
              let phone = String(rawPhone).replace(/[^0-9+]/g, '');
              if (phone && !phone.startsWith('+')) {
                  phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
@@ -616,7 +616,7 @@ export default function LeadsKanbanPage() {
                  });
 
                  if (dateKey && r[dateKey]) {
-                     let rawDate = String(r[dateKey]).trim();
+                     const rawDate = String(r[dateKey]).trim();
                      let parsedDate = new Date(rawDate); 
                      
                      if (isNaN(parsedDate.getTime())) {

@@ -92,8 +92,8 @@ export default function CRMContactsPage() {
                   const clientName = row['Client/Nom'] || row['Client'] || row['nom'] || row['client/nom'] || row['customer_name'] || 'Client Odoo';
 
                   // Règle 2: Nettoyage blindé du téléphone (et séparation si plusieurs numéros)
-                  let rawField = String(row['Client/Téléphone'] || row['Téléphone'] || row['client/téléphone'] || row['client/téléphone/mobile'] || row.telephone || row.Telephone || row.phone || row.Phone || '');
-                  let rawPhone = rawField.split(/[/,-]/)[0]; // Sépare s'il y a un slash ou tiret
+                  const rawField = String(row['Client/Téléphone'] || row['Téléphone'] || row['client/téléphone'] || row['client/téléphone/mobile'] || row.telephone || row.Telephone || row.phone || row.Phone || '');
+                  const rawPhone = rawField.split(/[/,-]/)[0]; // Sépare s'il y a un slash ou tiret
                   let phone = rawPhone.replace(/['"\s\u00A0]/g, '').replace(/[^0-9+]/g, '');
                   
                   // Formatage Sénégal auto
@@ -111,10 +111,10 @@ export default function CRMContactsPage() {
 
                   const contactId = contactMap.get(getBasePhone(phone));
 
-                  let rawTotal = row.total || row.Total || row.Montant || row.amount_total || row['Total'] || 0;
+                  const rawTotal = row.total || row.Total || row.Montant || row.amount_total || row['Total'] || 0;
                   let parsedTotal = 0;
                   if (rawTotal !== undefined && String(rawTotal).trim() !== '') {
-                      let strTotal = String(rawTotal).replace(/\s/g, '').replace(',', '.');
+                      const strTotal = String(rawTotal).replace(/\s/g, '').replace(',', '.');
                       parsedTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
                   }
 

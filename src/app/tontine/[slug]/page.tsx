@@ -358,13 +358,13 @@ function SlugPageContent({ slug }: { slug: string }) {
       let debugDbPin = "Aucun";
 
       const matchedMember = membersList.find(m => {
-        let rawPhone = String(m.telephone || '').split('.')[0]; 
+        const rawPhone = String(m.telephone || '').split('.')[0];
         let dbPhone = rawPhone.replace(/[^0-9]/g, '');
         if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
         if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
         
-        let rawPin = String(m.code_secret || '').trim();
-        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
+        const rawPin = String(m.code_secret || '').trim();
+        const dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
         
         if (dbPhone === cleanPhoneUser || dbPhone.includes(cleanPhoneUser)) {
            debugDbPhone = dbPhone;

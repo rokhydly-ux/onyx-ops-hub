@@ -186,7 +186,7 @@ function CRMSettingsContent() {
                   if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
               });
 
-              let phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone number'] || r['phone'] || r['téléphone'] || r['numero'] || r['numéro'] || r['mobile'] || r['contact'] || '';
+              const phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone number'] || r['phone'] || r['téléphone'] || r['numero'] || r['numéro'] || r['mobile'] || r['contact'] || '';
               let phone = String(phoneRaw).replace(/[^0-9+]/g, ''); 
               if (phone && !phone.startsWith('+')) {
                   phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
@@ -227,7 +227,7 @@ function CRMSettingsContent() {
                   });
 
                   if (dateKey && r[dateKey]) {
-                      let rawDate = String(r[dateKey]).trim();
+                      const rawDate = String(r[dateKey]).trim();
                       let parsedDate = new Date(rawDate); 
                       
                       if (isNaN(parsedDate.getTime())) {
@@ -327,14 +327,14 @@ function CRMSettingsContent() {
             if (ref) {
               currentOrderRef = ref;
               currentCustomerName = r['client/nom'] || r['client'] || r['customer'] || '';
-              let rawPhone = r['client/téléphone/mobile'] || r['client/téléphone'] || r['téléphone'] || r['phone'] || '';
+              const rawPhone = r['client/téléphone/mobile'] || r['client/téléphone'] || r['téléphone'] || r['phone'] || '';
               currentCustomerPhone = String(rawPhone).replace(/['\s]/g, '').replace(/[^0-9+]/g, '');
               currentDate = r['date de la commande'] || r['order date'] || r['date de création'] || r['date'] || '';
               currentVendor = r['vendeur/nom'] || r['vendeur'] || r['salesperson'] || '';
 
-              let orderTotalRaw = r['total'] || r['amount_total'] || r['total ttc'] || r['montant total'];
+              const orderTotalRaw = r['total'] || r['amount_total'] || r['total ttc'] || r['montant total'];
               if (orderTotalRaw !== undefined && String(orderTotalRaw).trim() !== '') {
-                  let strTotal = String(orderTotalRaw).replace(/\s/g, '').replace(',', '.');
+                  const strTotal = String(orderTotalRaw).replace(/\s/g, '').replace(',', '.');
                   currentOrderTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
               } else {
                   currentOrderTotal = 0;
@@ -358,26 +358,26 @@ function CRMSettingsContent() {
 
             const productName = r['lignes de commande/produit/nom'] || r['produit'] || r['product'] || '';
             
-            let unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'];
+            const unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'];
             let unitPrice = 0;
             if (unitPriceRaw !== undefined && String(unitPriceRaw).trim() !== '') {
-                let cleaned = String(unitPriceRaw).replace(/\s/g, '').replace(',', '.');
+                const cleaned = String(unitPriceRaw).replace(/\s/g, '').replace(',', '.');
                 unitPrice = parseFloat(cleaned.replace(/[^0-9.-]+/g, '')) || 0;
             }
 
             const quantityRaw = r['lignes de commande/quantité'] || r['quantité'] || r['quantity'] || '1';
             let quantity = 1;
             if (quantityRaw !== undefined && String(quantityRaw).trim() !== '') {
-                let cleanedQty = String(quantityRaw).replace(/\s/g, '').replace(',', '.');
+                const cleanedQty = String(quantityRaw).replace(/\s/g, '').replace(',', '.');
                 quantity = parseFloat(cleanedQty.replace(/[^0-9.-]+/g, '')) || 1;
             }
 
-            let orderTotal = r['montant_total_assure'] || 0;
+            const orderTotal = r['montant_total_assure'] || 0;
 
-            let lineSubtotalRaw = r['lignes de commande/sous-total'] || r['sous-total'] || r['lignes de commande/total'] || '';
+            const lineSubtotalRaw = r['lignes de commande/sous-total'] || r['sous-total'] || r['lignes de commande/total'] || '';
             let lineSubtotal = 0;
             if (lineSubtotalRaw !== undefined && String(lineSubtotalRaw).trim() !== '') {
-                let strSubtotal = String(lineSubtotalRaw).replace(/\s/g, '').replace(',', '.');
+                const strSubtotal = String(lineSubtotalRaw).replace(/\s/g, '').replace(',', '.');
                 lineSubtotal = parseFloat(strSubtotal.replace(/[^0-9.-]+/g, '')) || 0;
             } else {
                 lineSubtotal = unitPrice * quantity;
@@ -608,7 +608,7 @@ function CRMSettingsContent() {
           const summaryMsg = `✅ *Rapport d'Importation Odoo - OnyxCRM*\n\nL'importation et la synchronisation de votre fichier de ventes sont terminées avec succès !\n\n📊 *Résumé des opérations :*\n📦 Commandes traitées : ${pendingOdooFile.ordersCount}\n👥 Clients mis à jour : ${pendingOdooFile.clientsCount}\n🛍️ Produits catalogue : ${pendingOdooFile.productsCount}\n\n_Vos indicateurs financiers et tableaux de bord sont désormais à jour._`;
           
           // Utilisation du numéro administrateur configuré
-          let adminPhone = settings.admin_whatsapp ? String(settings.admin_whatsapp).replace(/[^0-9]/g, '') : '';
+          const adminPhone = settings.admin_whatsapp ? String(settings.admin_whatsapp).replace(/[^0-9]/g, '') : '';
           if (adminPhone) {
               window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(summaryMsg)}`, '_blank');
           } else {

@@ -1202,7 +1202,7 @@ export default function DynamicShopPage() {
 
     let message = `👋 Bonjour ! Je souhaite passer commande sur ${shopInfo.name} :\n\n📦 *Numéro de suivi :* ${trackingNumber}\n\n`;
     cart.forEach(item => { 
-        let variantInfo = item.selectedVariant ? ` (${[item.selectedVariant.size, item.selectedVariant.color].filter(Boolean).join(', ')})` : '';
+        const variantInfo = item.selectedVariant ? ` (${[item.selectedVariant.size, item.selectedVariant.color].filter(Boolean).join(', ')})` : '';
         message += `- ${item.name}${variantInfo} (x${item.quantity}) : ${displayPrice(item.price * item.quantity, shopInfo.currency)}\n`; 
     });
     message += `\nSous-total : ${displayPrice(subTotal, shopInfo.currency)}`;

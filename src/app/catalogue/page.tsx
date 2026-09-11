@@ -144,8 +144,8 @@ function CatalogueViewer() {
         doc.text(settings.crm_name.toUpperCase(), 14, 16);
 
         const pageProducts = products.slice(i, i + productsPerPage);
-        let startY = 35;
-        let startX = 14;
+        const startY = 35;
+        const startX = 14;
         const colWidth = 85;
         const rowHeight = 80;
         

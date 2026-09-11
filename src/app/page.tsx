@@ -579,7 +579,7 @@ export default function OnyxOpsElite() {
     setBotMessages(newMsgs);
     setUserReply("");
 
-    let currentData = { ...botUserData };
+    const currentData = { ...botUserData };
 
     if (botStep === 0) {
       currentData.name = reply;

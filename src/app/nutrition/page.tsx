@@ -1957,7 +1957,7 @@ export default function NutritionDashboard() {
 
     let carbRatio = 0.50;
     let proteinRatio = 0.20;
-    let fatRatio = 0.30;
+    const fatRatio = 0.30;
 
     if (data.healthProfile === "Diabète" || data.healthProfile === "Pré-diabète" || data.femaleSpecific === "SOPK") {
         carbRatio = 0.40;
@@ -4330,7 +4330,7 @@ const currentHour = new Date().getHours();
             </button>
 
             {/* Suivi des commandes */}
-            <button onClick={() => handleTabChange('orders')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-black transition-colors shadow-sm ml-2 hidden sm:flex items-center justify-center" title="Suivi des commandes">
+            <button onClick={() => handleTabChange('orders')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-black transition-colors shadow-sm ml-2 flex items-center justify-center" title="Suivi des commandes">
                 <Package size={16} />
             </button>
 
@@ -4356,10 +4356,6 @@ const currentHour = new Date().getHours();
                 </div>
             </div>
 
-            {/* Theme Toggle */}
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 text-zinc-700 hover:text-black hover:bg-zinc-100 rounded-full transition-colors hidden md:flex">
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
             {/* Mobile Menu Toggle */}
             <button onClick={() => { setShowMobileHub(prev => !prev); setIsMobileMenuOpen(prev => !prev); setIsSidebarOpen(prev => !prev); }} className="lg:hidden p-2 text-zinc-700 z-50 cursor-pointer relative"><MenuIcon size={24}/></button>
         </div>
@@ -5334,7 +5330,7 @@ const currentHour = new Date().getHours();
                           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
                               <span className="text-xs text-gray-500 font-bold block mb-1">Informations de livraison :</span>
                               <p className="text-sm dark:text-white block">
-                                  Adresse : {selectedOrderDetails.delivery_address || selectedOrderDetails.address || selectedOrderDetails.adresse || 'Aucune adresse spécifiée'}
+                                  Adresse : {selectedOrderDetails.delivery_address || 'Aucune adresse spécifiée'}
                               </p>
                               <p className="text-sm dark:text-white block font-bold mt-1 text-[#39FF14]">
                                   Paiement : {selectedOrderDetails.payment_method || selectedOrderDetails.mode_paiement || 'Non spécifié'}
