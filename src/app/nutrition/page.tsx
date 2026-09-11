@@ -724,6 +724,8 @@ export default function NutritionDashboard() {
   const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
   const [isCartBouncing, setIsCartBouncing] = useState(false);
   const [scratchedBlocks, setScratchedBlocks] = useState<number[]>([]);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [upsellProduct, setUpsellProduct] = useState<any>(null);
 
   // Shop dynamic additions
   const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
@@ -2093,6 +2095,14 @@ export default function NutritionDashboard() {
           }
           return newEx;
       });
+  };
+
+  const handleAddToCartAndUpsell = (product: any) => {
+      addToCart(product);
+      setUpsellProduct(product);
+      setShowUpsellModal(true);
+      // On ferme la modale du produit car on affiche l'upsell par dessus/à la place
+      setSelectedProduct(null);
   };
 
   const openProductModal = async (product: any) => {
@@ -4319,8 +4329,13 @@ const currentHour = new Date().getHours();
                 {isExpertMode ? <Eye size={16}/> : <EyeOff size={16}/>}
             </button>
 
+            {/* Suivi des commandes */}
+            <button onClick={() => handleTabChange('orders')} className="p-2 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-black transition-colors shadow-sm ml-2 hidden sm:flex items-center justify-center" title="Suivi des commandes">
+                <Package size={16} />
+            </button>
+
             {/* Cart */}
-            <button onClick={() => handleTabChange('cart')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
+            <button onClick={() => handleTabChange('cart')} className={`relative p-2 rounded-full bg-white border transition-all shadow-sm ml-2 ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'border-zinc-200 text-zinc-400 hover:text-black'}`}>
                 <ShoppingCart size={16} />
                 {shopCart.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black animate-pulse shadow-md">
@@ -4546,7 +4561,7 @@ const currentHour = new Date().getHours();
                                            );
                                        }
                                        return (
-                                           <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(selectedProduct); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
+                                           <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCartAndUpsell(selectedProduct); }} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
                                        );
                                    })()}
                                    <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
@@ -4566,12 +4581,15 @@ const currentHour = new Date().getHours();
                                          <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-4">Souvent acheté ensemble</p>
                                          <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
                                              {similarShopProducts.map((simProd: any) => (
-                                                 <div key={simProd.id} onClick={() => setSelectedProduct(simProd)} className="flex items-center gap-3 bg-zinc-50 p-2 rounded-xl border border-zinc-100 cursor-pointer hover:border-[#39FF14] transition-colors shrink-0 w-64">
-                                                     <img src={simProd.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-12 h-12 rounded-lg object-cover bg-zinc-200" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                                                     <div className="flex-1 min-w-0">
-                                                         <p className="font-bold text-xs truncate text-black">{simProd.nom}</p>
+                                                 <div key={simProd.id} className="flex items-center gap-3 bg-zinc-50 p-2 rounded-xl border border-zinc-100 hover:border-[#39FF14] transition-colors shrink-0 w-[280px]">
+                                                     <img onClick={() => setSelectedProduct(simProd)} src={simProd.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-12 h-12 rounded-lg object-cover bg-zinc-200 cursor-pointer" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                                                     <div className="flex-1 min-w-0" onClick={() => setSelectedProduct(simProd)}>
+                                                         <p className="font-bold text-xs truncate text-black cursor-pointer">{simProd.nom}</p>
                                                          <p className="text-[#39FF14] font-black text-xs mt-0.5">{simProd.prix_premium.toLocaleString()} F</p>
                                                      </div>
+                                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(simProd); setToastMessage('Produit ajouté !'); setTimeout(()=>setToastMessage(''), 2000); }} className="bg-black text-white p-2 rounded-lg hover:bg-[#39FF14] hover:text-black transition-colors shrink-0">
+                                                         <Plus size={14} />
+                                                     </button>
                                                  </div>
                                              ))}
                                          </div>
@@ -5218,6 +5236,67 @@ const currentHour = new Date().getHours();
       )}
 
 
+      {/* MODALE D'UPSELL COACH ROKHY */}
+      {showUpsellModal && upsellProduct && (
+          <div id="upsell-overlay" onClick={(e: any) => e.target.id === 'upsell-overlay' && setShowUpsellModal(false)} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+              <div className="bg-white dark:bg-[#151515] w-full max-w-lg rounded-[2.5rem] p-6 sm:p-8 relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95">
+                  <button onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-zinc-100 dark:bg-white/10 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-50">
+                      <X size={20} className="dark:text-white" />
+                  </button>
+
+                  <div className="flex flex-col items-center text-center mb-6 mt-4">
+                      <div className="relative mb-4">
+                          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Coach Rokhy" className="w-20 h-20 rounded-full border-2 border-[#39FF14] object-cover shadow-lg" />
+                          <div className="absolute -bottom-2 -right-2 bg-black text-[#39FF14] px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border border-[#39FF14]/30">
+                              <Sparkles size={10} /> Conseil Coach
+                          </div>
+                      </div>
+                      <h3 className="font-black text-2xl uppercase tracking-tighter text-black dark:text-white mb-2">Excellent choix !</h3>
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Pour atteindre vos objectifs plus vite, le coach vous recommande de l'associer avec :</p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6 space-y-4">
+                      {(() => {
+                          const suggestedProducts = (Array.isArray(shopDataDB) ? shopDataDB : [])
+                              .flatMap(cat => cat.produits || [])
+                              .filter((p: any) => p.id !== upsellProduct.id && p.stock !== 0)
+                              .sort(() => 0.5 - Math.random())
+                              .slice(0, 2);
+
+                          if (suggestedProducts.length === 0) return <p className="text-center text-xs text-zinc-500">Aucune suggestion pour le moment.</p>;
+
+                          return suggestedProducts.map((simProd: any) => (
+                              <div key={simProd.id} className="flex flex-col sm:flex-row items-center sm:items-stretch gap-4 bg-zinc-50 dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/10 hover:border-[#39FF14] transition-colors group">
+                                  <div className="w-24 h-24 sm:w-20 sm:h-20 shrink-0 bg-white dark:bg-[#111] rounded-xl overflow-hidden shadow-sm relative">
+                                      <img src={simProd.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                                  </div>
+                                  <div className="flex-1 flex flex-col justify-between items-center sm:items-start text-center sm:text-left min-w-0">
+                                      <div>
+                                          <h4 className="font-bold text-sm text-black dark:text-white line-clamp-1 mb-1">{simProd.nom}</h4>
+                                          <p className="text-[#39FF14] font-black text-sm">{simProd.prix_premium.toLocaleString()} F</p>
+                                      </div>
+                                      <button onClick={(e) => { e.preventDefault(); addToCart(simProd); setToastMessage('Produit ajouté !'); setTimeout(()=>setToastMessage(''), 2000); }} className="mt-3 sm:mt-0 bg-black dark:bg-white dark:text-black text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors flex items-center gap-2 w-full sm:w-auto justify-center">
+                                          <Plus size={14} /> Ajouter
+                                      </button>
+                                  </div>
+                              </div>
+                          ));
+                      })()}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-100 dark:border-white/10 shrink-0">
+                      <button onClick={() => { setShowUpsellModal(false); handleTabChange('cart'); }} className="flex-1 bg-[#39FF14] text-black px-4 py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                          <ShoppingCart size={16} /> Voir mon panier
+                      </button>
+                      <button onClick={() => setShowUpsellModal(false)} className="flex-1 bg-zinc-100 dark:bg-white/10 text-black dark:text-white px-4 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-zinc-200 dark:hover:bg-white/20 transition-colors flex items-center justify-center">
+                          Continuer
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+
       {/* MODALE DE DÉTAILS DE COMMANDE (À PLACER À LA FIN DE page.tsx) */}
       {showOrderDetailsModal && selectedOrderDetails && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -5255,7 +5334,7 @@ const currentHour = new Date().getHours();
                           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
                               <span className="text-xs text-gray-500 font-bold block mb-1">Informations de livraison :</span>
                               <p className="text-sm dark:text-white block">
-                                  Adresse : {selectedOrderDetails.address || selectedOrderDetails.adresse || 'Aucune adresse spécifiée'}
+                                  Adresse : {selectedOrderDetails.delivery_address || selectedOrderDetails.address || selectedOrderDetails.adresse || 'Aucune adresse spécifiée'}
                               </p>
                               <p className="text-sm dark:text-white block font-bold mt-1 text-[#39FF14]">
                                   Paiement : {selectedOrderDetails.payment_method || selectedOrderDetails.mode_paiement || 'Non spécifié'}

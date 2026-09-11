@@ -121,15 +121,15 @@ export default function OrdersTab1({ ...tabProps }: any) {
                     </div>
                     <div className="flex overflow-x-auto space-x-4 px-4 pb-4 scrollbar-hide">
                         {_savedShopProducts.map((product) => (
-                            <div key={product.id} onClick={() => { handleTabChange('shop'); }} className="min-w-[140px] bg-white dark:bg-[#151515] rounded-xl shadow-sm border border-zinc-100 overflow-hidden cursor-pointer group hover:border-black transition-colors flex flex-col">
-                                <div className="h-24 bg-zinc-50 relative overflow-hidden flex items-center justify-center">
+                            <div key={product.id} className="min-w-[140px] bg-white dark:bg-[#151515] rounded-xl shadow-sm border border-zinc-100 overflow-hidden group hover:border-black transition-colors flex flex-col">
+                                <div onClick={() => openProductModal && openProductModal(product)} className="cursor-pointer h-24 bg-zinc-50 relative overflow-hidden flex items-center justify-center">
                                     {product.image_url ? <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/> : <Box size={24} className="text-zinc-300"/>}
                                 </div>
                                 <div className="p-3 flex flex-col flex-1">
-                                    <h4 className="font-bold text-xs text-black mb-1 line-clamp-1">{product.nom}</h4>
+                                    <h4 onClick={() => openProductModal && openProductModal(product)} className="cursor-pointer font-bold text-xs text-black mb-1 line-clamp-1">{product.nom}</h4>
                                     <div className="mt-auto">
                                         <p className="text-[#39FF14] font-black text-xs mb-2">{(product.prix_standard || 0).toLocaleString()} F</p>
-                                        <button className="w-full bg-black text-white py-2 rounded-lg font-black text-[9px] uppercase tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors">Acheter</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(addToCart){ addToCart(product); setToastMessage && setToastMessage('Produit ajouté !'); setTimeout(()=>setToastMessage && setToastMessage(''), 2000); } }} className="w-full bg-black text-white py-2 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Acheter</button>
                                     </div>
                                 </div>
                             </div>

@@ -308,12 +308,13 @@ export default function CartTab({ ...tabProps }: any) {
                       <h3 className="font-black text-xl uppercase mb-6 flex items-center gap-2 text-black"><Eye size={20} className="text-black"/> Récemment vus</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           {savedShopProducts.slice(0, 4).map((p: any) => (
-                             <div key={p.id} onClick={() => { handleTabChange('shop'); }} className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-black transition-colors">
-                                 <div className="w-20 h-20 rounded-xl overflow-hidden mb-3 bg-white flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                             <div key={p.id} className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100 shadow-sm flex flex-col items-center text-center group hover:border-black transition-colors relative">
+                                 <div onClick={() => openProductModal && openProductModal(p)} className="cursor-pointer w-20 h-20 rounded-xl overflow-hidden mb-3 bg-white flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                                      {p.image_url ? <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover"/> : <Box size={24} className="text-zinc-300"/>}
                                  </div>
-                                 <h3 className="font-bold text-xs text-black mb-1 line-clamp-1">{p.nom}</h3>
-                                 <p className="text-[#39FF14] font-black text-xs mb-2">{(p.prix_standard || 0).toLocaleString()} F</p>
+                                 <h3 onClick={() => openProductModal && openProductModal(p)} className="cursor-pointer font-bold text-xs text-black mb-1 line-clamp-1">{p.nom}</h3>
+                                 <p className="text-[#39FF14] font-black text-xs mb-3">{(p.prix_standard || 0).toLocaleString()} F</p>
+                                 <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(addToCart){ addToCart(p); setToastMessage && setToastMessage('Produit ajouté !'); setTimeout(()=>setToastMessage && setToastMessage(''), 2000); } }} className="w-full mt-auto bg-black text-white py-2 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors z-10">Acheter</button>
                              </div>
                           ))}
                       </div>
