@@ -5253,9 +5253,13 @@ const currentHour = new Date().getHours();
                               </span>
                           </div>
                           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
-                              <span className="text-xs text-gray-500 font-bold block mb-1">Informations :</span>
-                              <span className="text-sm dark:text-white block">{selectedOrderDetails.address || selectedOrderDetails.adresse || 'Aucune adresse spécifiée'}</span>
-                              <span className="text-sm dark:text-white block font-bold mt-1">Paiement : {selectedOrderDetails.payment_method || 'Mode de paiement non spécifié'}</span>
+                              <span className="text-xs text-gray-500 font-bold block mb-1">Informations de livraison :</span>
+                              <p className="text-sm dark:text-white block">
+                                  Adresse : {selectedOrderDetails.address || selectedOrderDetails.adresse || 'Aucune adresse spécifiée'}
+                              </p>
+                              <p className="text-sm dark:text-white block font-bold mt-1 text-[#39FF14]">
+                                  Paiement : {selectedOrderDetails.payment_method || selectedOrderDetails.mode_paiement || 'Non spécifié'}
+                              </p>
                           </div>
                       </div>
 
@@ -5279,8 +5283,8 @@ const currentHour = new Date().getHours();
                                 >
                                     <div className="w-12 h-12 bg-gray-100 dark:bg-[#0A0A0A] rounded-lg overflow-hidden flex-shrink-0">
                                         <img
-                                            src={item.image || item.image_url || '/placeholder.png'}
-                                            alt={item.title || item.name || item.nom || item.product_name}
+                                            src={item.image || item.image_url || item.product_image || '/placeholder.png'}
+                                            alt="Produit"
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
