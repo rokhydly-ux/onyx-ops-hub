@@ -54,7 +54,7 @@ export default function OnyxModernizePage() {
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
         let nextStep = botStep;
-        let currentData = { ...botData };
+        const currentData = { ...botData };
 
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();

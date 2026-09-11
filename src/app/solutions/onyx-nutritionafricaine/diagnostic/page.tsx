@@ -81,7 +81,7 @@ export default function NutritionDiagnostic() {
   
   const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
-  let proteinRatio = age >= 50 ? 0.35 : 0.30;
+  const proteinRatio = age >= 50 ? 0.35 : 0.30;
   const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
   const protein = (dailyCalories * proteinRatio) / 4;
   const fats = (dailyCalories * 0.30) / 9;
@@ -145,7 +145,7 @@ export default function NutritionDiagnostic() {
         message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Profil Santé: ${formData.healthConditions.join(', ') || '-'}`
       }]);
       
-      let welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+      const welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
       setStep(10);

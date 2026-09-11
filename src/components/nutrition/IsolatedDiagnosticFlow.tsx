@@ -57,7 +57,7 @@ export default function IsolatedDiagnosticFlow({ onComplete }: { onComplete?: (d
     }
 
     // Default NAP, isolated flow doesn't have activityLevel yet, assume moderate
-    let nap = 1.375;
+    const nap = 1.375;
     let tdee = bmr * nap;
 
     if (!isMale && (isPregnant || isBreastfeeding)) {

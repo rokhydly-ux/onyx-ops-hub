@@ -36,7 +36,7 @@ export default function CRMDashboard() {
     let mounted = true;
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, sessionAuth) => {
-      let currentUser = sessionAuth?.user;
+      const currentUser = sessionAuth?.user;
       
       if (!currentUser && mounted) {
         const customSession = localStorage.getItem('onyx_custom_session');

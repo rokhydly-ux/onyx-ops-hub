@@ -106,7 +106,7 @@ export default function OrdersTab1({ ...tabProps }: any) {
                                   <h4 className="font-bold text-xs text-black mb-1 line-clamp-1">{product.nom}</h4>
                                   <div className="mt-auto">
                                       <p className="text-[#39FF14] font-black text-xs mb-2">{(product.prix_standard || 0).toLocaleString()} F</p>
-                                      <button className="w-full bg-black text-white py-2 rounded-lg font-black text-[9px] uppercase tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors">Acheter</button>
+                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(addToCart){ addToCart(product); setToastMessage && setToastMessage('Produit ajouté !'); setTimeout(()=>setToastMessage && setToastMessage(''), 2000); } }} className="w-full bg-black text-white py-2 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors z-10">Acheter</button>
                                   </div>
                               </div>
                           </div>

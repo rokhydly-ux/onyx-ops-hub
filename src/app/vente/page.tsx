@@ -930,7 +930,7 @@ export default function OnyxJaayShop() {
               supabase.from('products').select('id, category').eq('shop_id', shopId).ilike('category', `${oldCat}%`).then(({ data: prods }) => {
                   if (prods && prods.length > 0) {
                       for (const p of prods) {
-                          let updatedCat = p.category === oldCat ? newCatFull : (!oldCat.includes(' / ') && p.category.startsWith(oldCat + ' / ')) ? p.category.replace(oldCat + ' / ', newCatFull + ' / ') : p.category;
+                          const updatedCat = p.category === oldCat ? newCatFull : (!oldCat.includes(' / ') && p.category.startsWith(oldCat + ' / ')) ? p.category.replace(oldCat + ' / ', newCatFull + ' / ') : p.category;
                           if (updatedCat !== p.category) supabase.from('products').update({ category: updatedCat }).eq('id', p.id).then();
                       }
                   }
@@ -1708,7 +1708,7 @@ export default function OnyxJaayShop() {
 
   const confirmOrder = async (skipWhatsApp: boolean = false) => {
     // Validation assouplie pour les commandes "Sur place"
-    let finalName = skipWhatsApp && !customerInfo.name ? "Client en boutique" : customerInfo.name;
+    const finalName = skipWhatsApp && !customerInfo.name ? "Client en boutique" : customerInfo.name;
     let finalPhone = skipWhatsApp && !customerInfo.phone ? "Sur place" : customerInfo.phone;
 
     if (!skipWhatsApp) {
@@ -5312,7 +5312,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     const TClients = new Set(currentOrders.map(o => o.customer?.phone).filter(Boolean)).size;
     const avgOrder = TOrders > 0 ? revenue / TOrders : 0;
 
-    let trends: {
+    const trends: {
       revenueTrend: number | null;
       ordersTrend: number | null;
       clientsTrend: number | null;
@@ -6843,7 +6843,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
           const { data: prods } = await supabase.from('products').select('id, category').eq('shop_id', shopId).ilike('category', `${oldCat}%`);
           if (prods && prods.length > 0) {
               for (const p of prods) {
-                  let updatedCat = p.category === oldCat ? newCatFull : (!isSub && p.category.startsWith(oldCat + ' / ')) ? p.category.replace(oldCat + ' / ', newCatFull + ' / ') : p.category;
+                  const updatedCat = p.category === oldCat ? newCatFull : (!isSub && p.category.startsWith(oldCat + ' / ')) ? p.category.replace(oldCat + ' / ', newCatFull + ' / ') : p.category;
                   if (updatedCat !== p.category) await supabase.from('products').update({ category: updatedCat }).eq('id', p.id);
               }
           }

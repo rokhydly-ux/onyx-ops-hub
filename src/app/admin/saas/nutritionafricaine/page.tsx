@@ -193,7 +193,7 @@ export default function AdminNutritionAfricaine() {
 
         const fetchAll = async () => {
             try {
-              let clientsQuery = supabase.from('clients').select('*').ilike('saas', '%utrition%').order('created_at', { ascending: false });
+              const clientsQuery = supabase.from('clients').select('*').ilike('saas', '%utrition%').order('created_at', { ascending: false });
               
               const { data: clientsData, error: clientsError } = await clientsQuery;
 

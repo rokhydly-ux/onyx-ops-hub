@@ -1518,7 +1518,7 @@ export default function AdminDashboard() {
       newExpDate.setMonth(newExpDate.getMonth() + 1);
       const expDateStr = newExpDate.toISOString().split('T')[0];
       let msg = "";
-      let saasToRemove: string[] = [];
+      const saasToRemove: string[] = [];
       
       if (newSaas === 'OnyxTekki (Resto)' && currentActive.includes('Onyx Menu')) {
           saasToRemove.push('Onyx Menu');
@@ -5372,7 +5372,7 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
 
     const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year: number, month: number) => {
-        let day = new Date(year, month, 1).getDay();
+        const day = new Date(year, month, 1).getDay();
         return day === 0 ? 6 : day - 1; // Lundi = 0
     };
 

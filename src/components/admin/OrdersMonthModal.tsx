@@ -56,7 +56,7 @@ export default function OrdersMonthModal({ orders, setShowOrdersWidgetModal }: {
             `${(item.quantity || item.qty || 1) * (item.price || item.prix || 0)} F`
         ]);
 
-        let startY = 85 + (addrLines.length * 5);
+        const startY = 85 + (addrLines.length * 5);
 
         autoTable(doc, {
             startY: startY,

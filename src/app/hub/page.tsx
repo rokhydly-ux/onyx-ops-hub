@@ -55,7 +55,7 @@ export default function OnyxHubPortal() {
       // 1. Récupération de l'utilisateur authentifié (Supabase ou Session Locale)
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const customSessionStr = localStorage.getItem('onyx_custom_session');
-      let customUser = customSessionStr ? JSON.parse(customSessionStr) : null;
+      const customUser = customSessionStr ? JSON.parse(customSessionStr) : null;
       
       const user = authUser || customUser;
       
@@ -107,7 +107,7 @@ export default function OnyxHubPortal() {
       setUser(profileData ? { ...user, ...(profileData as any), role } : { ...user, role });
 
       // 3. Déterminer les modules achetés
-      let achats: string[] = [];
+      const achats: string[] = [];
       if (profileData) {
           const activeSaas = profileData.active_saas || [];
           const allSaas = [profileData.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());

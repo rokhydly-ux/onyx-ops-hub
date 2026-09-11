@@ -344,7 +344,7 @@ export default function CRMCatalogPage() {
         if (fullSettings && isMounted) {
           if (fullSettings.category_covers) setCategoryCovers(fullSettings.category_covers);
           
-          let loadedCats = fullSettings.categories || [];
+          const loadedCats = fullSettings.categories || [];
           let hasChanges = false;
           const existingNames = new Set(loadedCats.map((c: any) => c.name));
 
@@ -577,7 +577,7 @@ export default function CRMCatalogPage() {
       rawDesc.split('\n').forEach((line: string) => {
           const trimmed = line.trim();
           if (!trimmed || trimmed.toLowerCase().startsWith('caracteristiques') || trimmed.toLowerCase() === 'details :') return;
-          let cleanLine = trimmed.replace(/^[-•*]\s*/, '').trim();
+          const cleanLine = trimmed.replace(/^[-•*]\s*/, '').trim();
           if (cleanLine.includes(':')) {
               const [key, ...rest] = cleanLine.split(':');
               tableRows.push([key.trim(), rest.join(':').trim()]);
@@ -802,8 +802,8 @@ export default function CRMCatalogPage() {
               doc.text(catalogConfig.coverTitle.toUpperCase(), 40, 16);
 
               const pageProducts = selectedProducts.slice(i, i + productsPerPage);
-              let startY = 35;
-              let startX = 14;
+              const startY = 35;
+              const startX = 14;
               const colWidth = 85;
               const rowHeight = 85;
               
@@ -1093,7 +1093,7 @@ export default function CRMCatalogPage() {
   // --- HELPER DE GÉNÉRATION DU DEVIS ---
   const buildQuotePdf = async (client: any, items: any[], totalAmount: number) => {
       const doc = new jsPDF();
-      let startY = 50;
+      const startY = 50;
 
       // Ajout du logo si disponible
       if (crmSettings.logo_url) {

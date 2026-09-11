@@ -367,7 +367,7 @@ export default function TontineAdminPage() {
     try {
       if (!tontine) throw new Error("Tontine non chargée.");
       
-      let isChangingToAdmin = memberForm.is_admin && (!editingMember || !editingMember.is_admin);
+      const isChangingToAdmin = memberForm.is_admin && (!editingMember || !editingMember.is_admin);
       if (isChangingToAdmin) {
          const currentAdmins = membres.filter(member => member.is_admin && member.id !== editingMember?.id);
          if (currentAdmins.length >= 2) {
@@ -377,7 +377,7 @@ export default function TontineAdminPage() {
 
       const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url, poste: memberForm.poste, is_admin: memberForm.is_admin, mois_exclus: memberForm.mois_exclus };
 
-      let updatedMembers = membres;
+      const updatedMembers = membres;
 
       let memberId = editingMember?.id;
       if (editingMember) {

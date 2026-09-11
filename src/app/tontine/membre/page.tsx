@@ -220,7 +220,7 @@ function TontineMembreDashboard() {
       if (fetchErr) throw fetchErr;
 
       const matchedMember = membersList.find(m => {
-        let rawPhone = String(m.telephone || '').split('.')[0]; 
+        const rawPhone = String(m.telephone || '').split('.')[0];
         let dbPhone = rawPhone.replace(/[^0-9]/g, '');
         if (dbPhone.length === 9 && /^(7[05678]\d{7})$/.test(dbPhone)) {
             dbPhone = `+221${dbPhone}`;
@@ -228,8 +228,8 @@ function TontineMembreDashboard() {
             dbPhone = `+${dbPhone}`;
         }
         
-        let rawPin = String(m.code_secret || '').trim();
-        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
+        const rawPin = String(m.code_secret || '').trim();
+        const dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
         
         return dbPhone === cleanPhone && dbPin === pin;
       });
