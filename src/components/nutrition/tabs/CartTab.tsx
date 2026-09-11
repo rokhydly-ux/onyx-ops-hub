@@ -234,8 +234,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, title: p.nom || p.title, price: Number(p.finalPrice || p.prix_premium || p.prix_standard || 0), quantity: Number(p.quantity || 1), image: p.image || p.image_url })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: finalAddress,
-                                                        payment_method: paymentMethod,
+                                                        address: `[Paiement : ${paymentMethod}] - ${finalAddress}`,
                                                         delivery_fee: finalDeliveryCost
                                                     }).select();
 
@@ -273,8 +272,7 @@ export default function CartTab({ ...tabProps }: any) {
                                                         items: shopCart.map((p: any) => ({ id: p.id, title: p.nom || p.title, price: Number(p.finalPrice || p.prix_premium || p.prix_standard || 0), quantity: Number(p.quantity || 1), image: p.image || p.image_url })),
                                                         total: total,
                                                         status: 'Nouveau',
-                                                        address: finalAddress,
-                                                        payment_method: paymentMethod,
+                                                        address: `[Paiement : ${paymentMethod}] - ${finalAddress}`,
                                                         delivery_fee: finalDeliveryCost
                                                     }).select();
 
