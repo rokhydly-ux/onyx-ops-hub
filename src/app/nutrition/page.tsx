@@ -4126,10 +4126,87 @@ const currentHour = new Date().getHours();
               ? ['🎉', '⚖️', '💪', '🔥', '🏆', '✨']
               : ['🎉', '✨', '🏆', '🥬', '🎯', '🥑'];
 
+  const handleToggleComments = async (postId: string) => {
+      if (showCommentsPostId === postId) {
+          setShowCommentsPostId(null);
+          setPostComments([]);
+      } else {
+          setShowCommentsPostId(postId);
+          // Try to load comments from Supabase
+          try {
+              const { data, error } = await supabase
+                  .from('nutrition_community_comments')
+                  .select('*, clients!client_id(full_name, avatar_url)')
+                  .eq('post_id', postId)
+                  .order('created_at', { ascending: true });
+
+              if (!error && data) {
+                  setPostComments(data);
+              }
+          } catch (e) {
+              console.error(e);
+          }
+      }
+  };
+
+  const handlePostComment = async (postId: string) => {
+      if (!newCommentText.trim() || !clientProfile) return;
+      setIsSaving(true);
+      try {
+          const { data, error } = await supabase.from('nutrition_community_comments').insert({
+              post_id: postId,
+              client_id: clientProfile.id,
+              content: newCommentText.trim()
+          }).select('*, clients!client_id(full_name, avatar_url)').single();
+
+          if (error) throw error;
+
+          if (data) {
+              setPostComments([...postComments, data]);
+              setNewCommentText("");
+
+              // Update comment count on post
+              setCommunityPosts(prevPosts => prevPosts.map(post => {
+                  if (post.id === postId) {
+                      return { ...post, comments_count: (post.comments_count || 0) + 1 };
+                  }
+                  return post;
+              }));
+
+              // Notification silent
+              const post = communityPosts.find(p => p.id === postId);
+              if (post && post.client_id && post.client_id !== clientProfile.id) {
+                 await supabase.from('nutrition_notifications').insert({
+                     client_id: post.client_id,
+                     actor_id: clientProfile.id,
+                     type: 'comment',
+                     target_id: postId,
+                     message: `a commenté votre publication.`
+                 });
+              }
+          }
+      } catch (err: any) {
+          alert("Erreur lors de l'envoi du commentaire");
+      } finally {
+          setIsSaving(false);
+      }
+  };
+
+  const handleLikeComment = async (commentId: string, action: 'like' | 'dislike') => {
+       // Simple implementation for demo/memory
+       setPostComments(prev => prev.map(c => {
+           if (c.id === commentId) {
+               return {
+                   ...c,
+                   likes_count: action === 'like' ? (c.likes_count || 0) + 1 : c.likes_count,
+                   dislikes_count: action === 'dislike' ? (c.dislikes_count || 0) + 1 : c.dislikes_count
+               };
+           }
+           return c;
+       }));
+  };
+
   // Dummy functions to prevent ReferenceErrors
-  const handleToggleComments = (...args: any[]) => console.log('handleToggleComments', ...args);
-  const handleLikeComment = (...args: any[]) => console.log('handleLikeComment', ...args);
-  const handlePostComment = (...args: any[]) => console.log('handlePostComment', ...args);
   const setShowFoodSearch = (val: any) => console.log('setShowFoodSearch', val);
 
   return (

@@ -164,11 +164,11 @@ export default function CommunityTab({ ...tabProps }: any) {
                              </div>
                          </div>
 
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm cursor-pointer active:scale-95 transition-transform" onClick={() => setToastMessage("Fonctionnalité à venir")}>
                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Favoris</p>
                              <div className="space-y-4">
                                  {['Coach Rokhy', 'Dr. Thierno', 'Amina Fall'].map((name, i) => (
-                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group pointer-events-none">
                                          <div className="flex items-center gap-3">
                                              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-10 h-10 rounded-full border border-zinc-200" alt={name} />
                                              <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
@@ -179,11 +179,11 @@ export default function CommunityTab({ ...tabProps }: any) {
                              </div>
                          </div>
 
-                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm">
+                         <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm cursor-pointer active:scale-95 transition-transform" onClick={() => setToastMessage("Fonctionnalité à venir")}>
                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Abonnements</p>
                              <div className="space-y-4">
                                  {['Sophie Diop', 'Marietou Sall', 'Ndeye Ndiaye'].map((name, i) => (
-                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group">
+                                     <div key={i} className="flex items-center justify-between cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-colors group pointer-events-none">
                                          <div className="flex items-center gap-3">
                                              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 grayscale group-hover:grayscale-0 transition-all" alt={name} />
                                              <p className="text-xs font-bold text-black group-hover:text-[#39FF14] transition-colors">{name}</p>
@@ -434,23 +434,34 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                                  <div className="flex items-center justify-between pt-4 border-t border-zinc-100 relative">
                                      <div className="flex items-center gap-6">
-                                         <div className="relative" onMouseEnter={() => setActiveReactionPostId(post.id)} onMouseLeave={() => setActiveReactionPostId(null)}>
+                                         <div className="relative flex items-center gap-1">
                                              {activeReactionPostId === post.id && (
-                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-50 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in">
-                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Like">👍</button>
-                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Amour">❤️</button>
-                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Contane">😄</button>
-                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Faché">😡</button>
-                                                     <button onPointerDown={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Fier">🔥</button>
+                                                 <div className="absolute bottom-10 left-0 bg-white dark:bg-zinc-800 shadow-lg rounded-full p-2 flex gap-3 z-50 border border-zinc-100 dark:border-zinc-700 animate-in slide-in-from-bottom-2 fade-in" onMouseLeave={() => setActiveReactionPostId(null)}>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Like'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Like">👍</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Amour'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Amour">❤️</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Contane'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Contane">😄</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Faché'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Faché">😡</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); handleLikePost(post.id, 'Fier'); }} className="hover:scale-125 transition-transform cursor-pointer" title="Fier">🔥</button>
+                                                     <button onClick={(e) => { e.stopPropagation(); setActiveReactionPostId(null); }} className="hover:scale-125 transition-transform cursor-pointer" title="Fermer"><X size={14} className="text-zinc-500"/></button>
                                                  </div>
                                              )}
-                                             <button onClick={() => handleLikePost(post.id, 'Like')} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors ${post._likedByMe ? (post._myReaction?.color || 'text-blue-500') : 'text-zinc-400 hover:text-blue-500'}`}>
+                                             <button
+                                                 onClick={() => handleLikePost(post.id, 'Like')}
+                                                 className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors ${post._likedByMe ? (post._myReaction?.color || 'text-blue-500') : 'text-zinc-400 hover:text-blue-500'}`}
+                                             >
                                                  {post._myReaction ? (
                                                      <span className="text-lg leading-none">{post._myReaction.icon}</span>
                                                  ) : (
                                                      <Heart size={16} className={post._likedByMe ? 'fill-blue-500 text-blue-500' : ''} />
                                                  )}
                                                  {post.likes_count || post.reactions?.top || post.reactions?.length || 0}
+                                             </button>
+                                             <button
+                                                 onClick={() => setActiveReactionPostId(activeReactionPostId === post.id ? null : post.id)}
+                                                 className="text-zinc-400 hover:text-black p-1 rounded-full hover:bg-zinc-100"
+                                                 title="Choisir une réaction"
+                                             >
+                                                 <Plus size={14} />
                                              </button>
                                          </div>
                                          <button onClick={() => handleToggleComments(post.id)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
@@ -567,8 +578,8 @@ export default function CommunityTab({ ...tabProps }: any) {
                          )}
 
                          {/* Notifications / Reminders */}
-                         <div className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm flex-1 flex flex-col max-h-96">
-                             <div className="flex justify-between items-center mb-6">
+                         <div className="bg-white border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm flex-1 flex flex-col max-h-96 cursor-pointer active:scale-95 transition-transform" onClick={() => setToastMessage("Fonctionnalité à venir")}>
+                             <div className="flex justify-between items-center mb-6 pointer-events-none">
                                  <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Notifications</p>
                                  <button className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest hover:text-black dark:hover:text-white transition-colors">See All</button>
                              </div>
@@ -761,6 +772,46 @@ export default function CommunityTab({ ...tabProps }: any) {
                   </div>
 
                 </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* STORY PREVIEW MODAL */}
+          <AnimatePresence>
+            {storyPreviewUrl && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[200] flex items-center justify-center p-4">
+                <div className="bg-zinc-900 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl relative border border-zinc-800 flex flex-col">
+                   <div className="absolute top-4 right-4 z-10">
+                       <button onClick={() => { setStoryPreviewFile(null); setStoryPreviewUrl(null); setStoryCaption(""); }} className="w-10 h-10 bg-black/50 hover:bg-black text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-md">
+                          <X size={20} />
+                       </button>
+                   </div>
+
+                   <div className="w-full aspect-[9/16] bg-black relative flex items-center justify-center overflow-hidden">
+                       {storyPreviewFile?.type.startsWith('video/') ? (
+                           <video src={storyPreviewUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                       ) : (
+                           <img src={storyPreviewUrl} alt="Story Preview" className="w-full h-full object-contain" />
+                       )}
+                   </div>
+
+                   <div className="p-4 bg-zinc-900 border-t border-zinc-800 flex items-center gap-3">
+                       <input
+                          type="text"
+                          placeholder="Ajouter une légende..."
+                          value={storyCaption}
+                          onChange={(e) => setStoryCaption(e.target.value)}
+                          className="flex-1 bg-black text-white placeholder-zinc-500 text-sm rounded-full px-4 py-3 outline-none border border-zinc-800 focus:border-[#39FF14]/50 transition-colors"
+                       />
+                       <button
+                          onClick={handleStoryUpload}
+                          disabled={isUploadingStory}
+                          className="bg-[#39FF14] text-black w-12 h-12 rounded-full flex items-center justify-center shrink-0 hover:bg-[#32e612] transition-colors disabled:opacity-50"
+                       >
+                          {isUploadingStory ? <Activity size={20} className="animate-spin" /> : <Send size={20} className="ml-1" />}
+                       </button>
+                   </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
