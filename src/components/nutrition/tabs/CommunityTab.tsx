@@ -8,6 +8,7 @@ import ClientFitnessView from "@/components/nutrition/ClientFitnessView";
 // @ts-nocheck
 export default function CommunityTab({ ...tabProps }: any) {
   const [activeFeedFilter, setActiveFeedFilter] = React.useState("all");
+  const [replyToCommentId, setReplyToCommentId] = React.useState<string | null>(null);
 
 
 
@@ -486,7 +487,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                                  <p className="text-xs text-zinc-400 text-center py-4">Aucun commentaire pour l'instant. Soyez le premier !</p>
                                              ) : (
                                                  postComments.map((c: any, idx: number) => (
-                                                     <div key={idx} className="flex gap-3">
+                                                     <div key={idx} className={`flex gap-3 ${c.parent_id ? 'ml-8 mt-2 border-l-2 border-zinc-100 dark:border-zinc-800 pl-3' : 'mt-4'}`}>
                                                          <img src={c.clients?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.clients?.full_name || 'Utilisateur')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Avatar"/>
                                                          <div className="flex-1">
                                                              <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl rounded-tl-none">
@@ -499,7 +500,9 @@ export default function CommunityTab({ ...tabProps }: any) {
                                                              <div className="flex items-center gap-4 mt-2 px-2 text-[10px] font-black uppercase text-zinc-400">
                                                                  <button onClick={() => handleLikeComment(c.id, 'like')} className="hover:text-black transition-colors flex items-center gap-1">👍 {c.likes_count || 0}</button>
                                                                  <button onClick={() => handleLikeComment(c.id, 'dislike')} className="hover:text-black transition-colors flex items-center gap-1">👎 {c.dislikes_count || 0}</button>
-                                                                 <button onClick={() => setNewCommentText(`@${c.clients?.full_name?.split(' ')[0]} `)} className="hover:text-black transition-colors">Répondre</button>
+                                                                 {!c.parent_id && (
+                                                                     <button onClick={() => { setReplyToCommentId(c.id); setNewCommentText(`@${c.clients?.full_name?.split(' ')[0]} `); }} className="hover:text-black transition-colors">Répondre</button>
+                                                                 )}
                                                              </div>
                                                          </div>
                                                      </div>
@@ -508,8 +511,16 @@ export default function CommunityTab({ ...tabProps }: any) {
                                          </div>
                                          <div className="flex items-center gap-3">
                                              <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Moi')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Moi"/>
-                                             <input type="text" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} placeholder="Écrire un commentaire..." className="flex-1 bg-zinc-50 dark:bg-zinc-800 border-none rounded-full px-4 py-2 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-[#39FF14] transition-shadow placeholder:text-zinc-400" onKeyDown={e => e.key === 'Enter' && handlePostComment(post.id)} />
-                                             <button onClick={() => handlePostComment(post.id)} disabled={!newCommentText.trim() || isSaving} className="p-2 bg-black text-[#39FF14] rounded-full hover:scale-105 transition-transform disabled:opacity-50"><Send size={16}/></button>
+                                             <div className="flex-1 flex flex-col relative">
+                                                {replyToCommentId && (
+                                                    <div className="text-[10px] text-zinc-500 mb-1 flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-t-xl -mb-2 z-0 pt-2 pb-3">
+                                                        <span>En réponse à un commentaire</span>
+                                                        <button onClick={() => { setReplyToCommentId(null); setNewCommentText(""); }} className="hover:text-red-500 font-bold">Annuler</button>
+                                                    </div>
+                                                )}
+                                                <input type="text" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} placeholder="Écrire un commentaire..." className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-full px-4 py-2 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-[#39FF14] transition-shadow placeholder:text-zinc-400 z-10" onKeyDown={e => { if (e.key === 'Enter') { handlePostComment(post.id, newCommentText, replyToCommentId); setReplyToCommentId(null); setNewCommentText(""); } }} />
+                                             </div>
+                                             <button onClick={() => { handlePostComment(post.id, newCommentText, replyToCommentId); setReplyToCommentId(null); setNewCommentText(""); }} disabled={!newCommentText.trim() || isSaving} className="p-2 bg-black text-[#39FF14] rounded-full hover:scale-105 transition-transform disabled:opacity-50 shrink-0 mt-auto mb-1"><Send size={16}/></button>
                                          </div>
                                      </div>
                                  )}
@@ -780,7 +791,7 @@ export default function CommunityTab({ ...tabProps }: any) {
           <AnimatePresence>
             {storyPreviewUrl && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[200] flex items-center justify-center p-4">
-                <div className="bg-zinc-900 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl relative border border-zinc-800 flex flex-col">
+                <div className="bg-zinc-900 rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto overflow-hidden shadow-2xl relative border border-zinc-800 flex flex-col custom-scrollbar">
                    <div className="absolute top-4 right-4 z-10">
                        <button onClick={() => { setStoryPreviewFile(null); setStoryPreviewUrl(null); setStoryCaption(""); }} className="w-10 h-10 bg-black/50 hover:bg-black text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-md">
                           <X size={20} />
@@ -811,6 +822,113 @@ export default function CommunityTab({ ...tabProps }: any) {
                           {isUploadingStory ? <Activity size={20} className="animate-spin" /> : <Send size={20} className="ml-1" />}
                        </button>
                    </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+
+          {/* STORY VIEWER FULL SCREEN */}
+          <AnimatePresence>
+            {viewerActiveGroupIndex !== null && groupedStories[viewerActiveGroupIndex] && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black z-[300] flex flex-col items-center justify-center touch-none">
+
+                {/* Progress Bars */}
+                <div className="absolute top-4 left-0 w-full px-4 flex gap-1 z-50">
+                    {groupedStories[viewerActiveGroupIndex].stories.map((s: any, i: number) => (
+                        <div key={i} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                            <div className={`h-full bg-white transition-all duration-100 ease-linear ${i < viewerActiveStoryIndex ? 'w-full' : (i === viewerActiveStoryIndex ? 'w-[' + viewerProgress + '%]' : 'w-0')}`} style={{ width: i === viewerActiveStoryIndex ? `${viewerProgress}%` : (i < viewerActiveStoryIndex ? '100%' : '0%') }} />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Header Profile */}
+                <div className="absolute top-8 left-4 right-4 z-50 flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                       <img src={groupedStories[viewerActiveGroupIndex].client.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(groupedStories[viewerActiveGroupIndex].client.full_name || 'Membre')}&background=random`} className="w-10 h-10 rounded-full border border-white" alt="Avatar" />
+                       <div>
+                           <p className="text-white font-bold text-sm leading-none drop-shadow-md">{groupedStories[viewerActiveGroupIndex].client.full_name}</p>
+                           <p className="text-white/70 text-xs font-medium drop-shadow-md">{new Date(groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                       </div>
+                   </div>
+                   <button onClick={handleCloseViewer} className="text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors backdrop-blur-md">
+                       <X size={24} />
+                   </button>
+                </div>
+
+                {/* Tap Zones for Navigation */}
+                <div className="absolute inset-y-0 left-0 w-1/3 z-40" onClick={handlePrevStory} />
+                <div className="absolute inset-y-0 right-0 w-1/3 z-40" onClick={handleNextStory} />
+
+                {/* Hold to pause zone */}
+                <div className="absolute inset-0 z-30" onPointerDown={pauseStory} onPointerUp={resumeStory} onPointerLeave={resumeStory} />
+
+                {/* Main Media */}
+                <div className="w-full h-full flex items-center justify-center max-w-lg mx-auto relative overflow-hidden bg-zinc-900">
+                    {groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].media_type === 'video' ? (
+                        <video src={groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].media_url} autoPlay playsInline muted={isVideoMuted} onEnded={handleNextStory} className="w-full h-full object-cover" />
+                    ) : (
+                        <img src={groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].media_url} alt="Story" className="w-full h-full object-contain" />
+                    )}
+
+                    {/* Caption Overlay */}
+                    {groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].caption && (
+                       <div className="absolute bottom-24 left-4 right-4 z-40 text-center">
+                           <span className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-medium inline-block max-w-full break-words shadow-lg border border-white/10">
+                               {groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].caption}
+                           </span>
+                       </div>
+                    )}
+                </div>
+
+                {/* Footer Actions (Reaction Bar) */}
+                <div className="absolute bottom-0 left-0 w-full p-4 z-50 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-4">
+                    <input type="text" placeholder="Répondre..." className="flex-1 bg-black/40 border border-white/30 rounded-full px-4 py-3 text-white text-sm outline-none placeholder:text-white/50 focus:border-white transition-colors backdrop-blur-md" onClick={(e) => { e.stopPropagation(); setToastMessage("Réponses en DM bientôt !"); }} />
+                    <button onClick={async (e) => {
+                        e.stopPropagation();
+                        if(clientProfile && groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex]) {
+                            try {
+                                await supabase.from('nutrition_story_reactions').insert({
+                                    story_id: groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].id,
+                                    client_id: clientProfile.id,
+                                    reaction_type: 'heart'
+                                });
+                                setToastMessage("❤️ Réaction envoyée !");
+                            } catch(err) { console.error(err); }
+                        }
+                        }} className="p-3 text-white hover:text-red-500 hover:bg-white/10 rounded-full transition-colors backdrop-blur-md">
+                        <Heart size={28} />
+                    </button>
+                    <button onClick={async (e) => {
+                        e.stopPropagation();
+                        if(clientProfile && groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex]) {
+                            try {
+                                await supabase.from('nutrition_story_reactions').insert({
+                                    story_id: groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].id,
+                                    client_id: clientProfile.id,
+                                    reaction_type: 'fire'
+                                });
+                                setToastMessage("🔥 Réaction envoyée !");
+                            } catch(err) { console.error(err); }
+                        }
+                        }} className="p-3 text-white hover:text-orange-500 hover:bg-white/10 rounded-full transition-colors backdrop-blur-md">
+                        <Flame size={28} />
+                    </button>
+                    <button onClick={async (e) => {
+                        e.stopPropagation();
+                        if(clientProfile && groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex]) {
+                            try {
+                                await supabase.from('nutrition_story_reactions').insert({
+                                    story_id: groupedStories[viewerActiveGroupIndex].stories[viewerActiveStoryIndex].id,
+                                    client_id: clientProfile.id,
+                                    reaction_type: 'laugh'
+                                });
+                                setToastMessage("😂 Réaction envoyée !");
+                            } catch(err) { console.error(err); }
+                        }
+                        }} className="p-3 text-white hover:text-yellow-500 hover:bg-white/10 rounded-full transition-colors backdrop-blur-md text-2xl leading-none">
+                        😂
+                    </button>
                 </div>
               </motion.div>
             )}
