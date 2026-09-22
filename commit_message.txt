@@ -1,8 +1,7 @@
 feat(community): fix comments crash, nested replies and full-screen story viewer
 
-- Resolved TypeError by destructuring handlePostComment properly from props and passing it the right arguments from CommunityTab.
-- Implemented nested comments capability using `parent_id` parameter directly in `nutrition_community_comments` insertion.
-- Added visual indentation (`ml-8`, `border-l-2`) for children comments in the UI.
-- Corrected CSS overflow issue for the Story Preview Modal by adding `max-h-[90vh]` and `overflow-y-auto` making the publish button accessible on smaller screens.
-- Created the full-screen immersive Story Viewer Modal from scratch in `CommunityTab.tsx`. Conditioned via `viewerActiveGroupIndex !== null`.
-- Added the Reaction Bar to the Story Viewer connecting directly to Supabase (`nutrition_story_reactions` inserts for heart, fire, laugh).
+- Resolved TypeError by ensuring `handlePostComment` accepts the correct parameters directly from the component rather than relying exclusively on global scope/destructuring gaps in `page.tsx` vs `CommunityTab.tsx`.
+- Refactored `handlePostComment` to properly handle and forward `parent_id` making the backend Supabase integration work out of the box.
+- Indented child replies within the UI with `ml-8` and `border-l-2`.
+- Corrected CSS overflow issue for the Story Preview Modal by applying `max-h-[90vh] overflow-y-auto`, ensuring mobile usability and the visibility of the Publish button.
+- Built a completely new Full-Screen immersive Story Viewer within `CommunityTab.tsx` directly linked to the user's interaction state (`viewerActiveGroupIndex`). Includes logic for progress tracking, pausing/resuming stories, and interacting via Reactions which are now fully linked to Supabase database.
