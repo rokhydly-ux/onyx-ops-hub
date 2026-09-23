@@ -894,7 +894,7 @@ export default function NutritionDashboard() {
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
                 // Fetch Community Posts
-                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, profiles!user_id(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
                 if (cPosts && cPosts.length > 0) {
                     setCommunityPosts(cPosts.map((p: any) => {
                         const myReactionObj = p.nutrition_reactions?.find((r: any) => r.client_id === profileData?.id);
@@ -912,7 +912,7 @@ export default function NutritionDashboard() {
                 // Fetch Stories actives
                 const { data: rawStories } = await supabase
                     .from('nutrition_community_stories')
-                    .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+                    .select('*, profiles!user_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
                     .order('created_at', { ascending: true });
                 if (rawStories && rawStories.length > 0) {
                     // Fusionner avec les seed stories pour ne jamais avoir un mur vide, en évitant les doublons
@@ -1076,7 +1076,7 @@ export default function NutritionDashboard() {
 
           // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
-              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
+              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, profiles!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
           }
 
@@ -1348,7 +1348,7 @@ export default function NutritionDashboard() {
   const fetchLeaderboard = async () => {
     const { data } = await supabase
       .from('nutrition_profiles')
-      .select('jongoma_xp, client:clients(id, full_name, avatar_url)')
+      .select('jongoma_xp, client:profiles!user_id(id, full_name, avatar_url)')
       .order('jongoma_xp', { ascending: false, nullsFirst: false })
       .limit(10);
 
@@ -2772,7 +2772,7 @@ export default function NutritionDashboard() {
               alert("Erreur de publication. Veuillez vérifier les permissions de la base de données.");
           } else {
               // Re-fetch to ensure sync with real IDs and potential triggers
-              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
+              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, profiles!user_id(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
               if (cPosts && cPosts.length > 0) {
                   setCommunityPosts(cPosts.map((p: any) => {
                       const myReactionObj = p.nutrition_reactions?.find((r: any) => r.client_id === clientProfile.id);
@@ -3190,7 +3190,7 @@ export default function NutritionDashboard() {
   useEffect(() => {
     if (selectedRecipeDetail?.id) {
         const fetchReviews = async () => {
-            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!user_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
             if (data) {
                 setRecipeReviews(data);
                 const userReview = data.find(r => r.client_id === user?.id);
@@ -3264,7 +3264,7 @@ export default function NutritionDashboard() {
 
           setHasUserReviewed(true);
           // Refetch reviews
-          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!user_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
           if (data) setRecipeReviews(data);
       } catch (e) {
           console.error(e);
@@ -3551,7 +3551,7 @@ const handleToggleComments = async (postId: string) => {
           try {
               const { data, error } = await supabase
                   .from('nutrition_community_comments')
-                  .select('*, clients(full_name, avatar_url)')
+                  .select('*, profiles!user_id(full_name, avatar_url)')
                   .eq('post_id', postId)
                   .order('created_at', { ascending: true });
 
@@ -3574,7 +3574,7 @@ const handleToggleComments = async (postId: string) => {
               content: commentText.trim()
           };
           if (parentId) payload.parent_id = parentId;
-          const { data, error } = await supabase.from('nutrition_community_comments').insert(payload).select('*, clients(full_name, avatar_url)').single();
+          const { data, error } = await supabase.from('nutrition_community_comments').insert(payload).select('*, profiles!user_id(full_name, avatar_url)').single();
 
           if (error) throw error;
 
