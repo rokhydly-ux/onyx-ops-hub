@@ -894,12 +894,17 @@ export default function NutritionDashboard() {
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
                 // Fetch Community Posts
-                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients!client_id(id, full_name, avatar_url)').order('created_at', { ascending: false });
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
                 if (cPosts && cPosts.length > 0) {
-                    setCommunityPosts(cPosts.map((p: any) => ({
-                        ...p,
-                        client: p.clients?.full_name || 'Membre'
-                    })));
+                    setCommunityPosts(cPosts.map((p: any) => {
+                        const myReactionObj = p.nutrition_reactions?.find((r: any) => r.client_id === profileData?.id);
+                        return {
+                            ...p,
+                            client: p.clients?.full_name || 'Membre',
+                            _likedByMe: !!myReactionObj,
+                            _myReaction: myReactionObj ? reactionIcons[myReactionObj.reaction_type as keyof typeof reactionIcons] || reactionIcons['Like'] : undefined
+                        };
+                    }));
                 } else {
                     setCommunityPosts(DEFAULT_SEED_POSTS);
                 }
@@ -907,7 +912,7 @@ export default function NutritionDashboard() {
                 // Fetch Stories actives
                 const { data: rawStories } = await supabase
                     .from('nutrition_community_stories')
-                    .select('*, clients!client_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+                    .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
                     .order('created_at', { ascending: true });
                 if (rawStories && rawStories.length > 0) {
                     // Fusionner avec les seed stories pour ne jamais avoir un mur vide, en évitant les doublons
@@ -2687,7 +2692,7 @@ export default function NutritionDashboard() {
           // Re-fetch stories to ensure persistence and correct grouped IDs
           const { data: rawStories } = await supabase
               .from('nutrition_community_stories')
-              .select('*, clients!client_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+              .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
               .order('created_at', { ascending: true });
           if (rawStories && rawStories.length > 0) {
               const mergedStories = [...rawStories];
@@ -2767,26 +2772,33 @@ export default function NutritionDashboard() {
               alert("Erreur de publication. Veuillez vérifier les permissions de la base de données.");
           } else {
               // Re-fetch to ensure sync with real IDs and potential triggers
-              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients!client_id(id, full_name, avatar_url)').order('created_at', { ascending: false });
+              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
               if (cPosts && cPosts.length > 0) {
-                  setCommunityPosts(cPosts.map((p: any) => ({
-                      ...p,
-                      client: p.clients?.full_name || 'Membre'
-                  })));
+                  setCommunityPosts(cPosts.map((p: any) => {
+                      const myReactionObj = p.nutrition_reactions?.find((r: any) => r.client_id === clientProfile.id);
+                      return {
+                          ...p,
+                          client: p.clients?.full_name || 'Membre',
+                          _likedByMe: !!myReactionObj,
+                          _myReaction: myReactionObj ? reactionIcons[myReactionObj.reaction_type as keyof typeof reactionIcons] || reactionIcons['Like'] : undefined
+                      };
+                  }));
               }
           }
       }
   };
 
+
+  // Mapping the reaction to display emoji/color
+  const reactionIcons: Record<string, { icon: string, color: string }> = {
+      'Like': { icon: '👍', color: 'text-blue-500' },
+      'Amour': { icon: '❤️', color: 'text-red-500' },
+      'Contane': { icon: '😄', color: 'text-yellow-500' },
+      'Faché': { icon: '😡', color: 'text-orange-600' },
+      'Fier': { icon: '🔥', color: 'text-orange-500' }
+  };
+
   const handleLikePost = async (postId: string, reactionType: string = 'Like') => {
-      // Mapping the reaction to display emoji/color
-      const reactionIcons: Record<string, { icon: string, color: string }> = {
-          'Like': { icon: '👍', color: 'text-blue-500' },
-          'Amour': { icon: '❤️', color: 'text-red-500' },
-          'Contane': { icon: '😄', color: 'text-yellow-500' },
-          'Faché': { icon: '😡', color: 'text-orange-600' },
-          'Fier': { icon: '🔥', color: 'text-orange-500' }
-      };
 
       setCommunityPosts(prevPosts => prevPosts.map(post => {
           if (post.id === postId) {
@@ -3539,7 +3551,7 @@ const handleToggleComments = async (postId: string) => {
           try {
               const { data, error } = await supabase
                   .from('nutrition_community_comments')
-                  .select('*, clients!client_id(full_name, avatar_url)')
+                  .select('*, clients(full_name, avatar_url)')
                   .eq('post_id', postId)
                   .order('created_at', { ascending: true });
 
@@ -3562,7 +3574,7 @@ const handleToggleComments = async (postId: string) => {
               content: commentText.trim()
           };
           if (parentId) payload.parent_id = parentId;
-          const { data, error } = await supabase.from('nutrition_community_comments').insert(payload).select('*, clients!client_id(full_name, avatar_url)').single();
+          const { data, error } = await supabase.from('nutrition_community_comments').insert(payload).select('*, clients(full_name, avatar_url)').single();
 
           if (error) throw error;
 
