@@ -341,8 +341,8 @@ export default function CommunityTab({ ...tabProps }: any) {
 <div key={post.id || idx} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm flex flex-col group">
                                  <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-3">
-                                        {post.clients?.avatar_url && !post.clients.avatar_url.includes('ui-avatars') ? (
-                                           <img src={post.clients.avatar_url} alt={post.client} className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-inner" />
+                                        {post.profiles?.avatar_url && !post.profiles.avatar_url.includes('ui-avatars') ? (
+                                           <img src={post.profiles.avatar_url} alt={post.client} className="w-12 h-12 rounded-full border border-zinc-200 object-cover shadow-inner" onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(post.client || 'Membre')}&background=random`; }} />
                                         ) : (
                                            <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-xl shadow-inner">{post.client?.charAt(0) || 'M'}</div>
                                         )}
@@ -361,18 +361,18 @@ export default function CommunityTab({ ...tabProps }: any) {
                                                         <button className="text-zinc-400 hover:text-[#39FF14] transition-colors" title="Message Privé" onClick={() => alert("La messagerie privée arrive bientôt !")}>
                                                             <MessageSquare size={14} />
                                                         </button>
-                                                        {post.clients?.nutrition_profiles?.[0]?.diagnostic_data?.instagram && (
-                                                            <a href={`https://instagram.com/${post.clients.nutrition_profiles[0].diagnostic_data.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-pink-500 transition-colors" title="Instagram">
+                                                        {post.profiles?.nutrition_profiles?.[0]?.diagnostic_data?.instagram && (
+                                                            <a href={`https://instagram.com/${post.profiles.nutrition_profiles[0].diagnostic_data.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-pink-500 transition-colors" title="Instagram">
                                                                 <Instagram size={14} />
                                                             </a>
                                                         )}
-                                                        {post.clients?.nutrition_profiles?.[0]?.diagnostic_data?.facebook && (
-                                                            <a href={`https://facebook.com/${post.clients.nutrition_profiles[0].diagnostic_data.facebook.replace('/','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-blue-500 transition-colors" title="Facebook">
+                                                        {post.profiles?.nutrition_profiles?.[0]?.diagnostic_data?.facebook && (
+                                                            <a href={`https://facebook.com/${post.profiles.nutrition_profiles[0].diagnostic_data.facebook.replace('/','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-blue-500 transition-colors" title="Facebook">
                                                                 <Facebook size={14} />
                                                             </a>
                                                         )}
-                                                        {post.clients?.nutrition_profiles?.[0]?.diagnostic_data?.twitter && (
-                                                            <a href={`https://twitter.com/${post.clients.nutrition_profiles[0].diagnostic_data.twitter.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-sky-500 transition-colors" title="Twitter / X">
+                                                        {post.profiles?.nutrition_profiles?.[0]?.diagnostic_data?.twitter && (
+                                                            <a href={`https://twitter.com/${post.profiles.nutrition_profiles[0].diagnostic_data.twitter.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-sky-500 transition-colors" title="Twitter / X">
                                                                 <Twitter size={14} />
                                                             </a>
                                                         )}
@@ -488,11 +488,11 @@ export default function CommunityTab({ ...tabProps }: any) {
                                              ) : (
                                                  postComments.map((c: any, idx: number) => (
                                                      <div key={idx} className={`flex gap-3 ${c.parent_id ? 'ml-8 mt-2 border-l-2 border-zinc-100 dark:border-zinc-800 pl-3' : 'mt-4'}`}>
-                                                         <img src={c.clients?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.clients?.full_name || 'Utilisateur')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Avatar"/>
+                                                         <img src={c.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.profiles?.full_name || 'Utilisateur')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Avatar" onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.profiles?.full_name || 'Utilisateur')}&background=random`; }}/>
                                                          <div className="flex-1">
                                                              <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl rounded-tl-none">
                                                                  <div className="flex justify-between items-start mb-1">
-                                                                     <span className="text-xs font-bold text-black dark:text-white">{c.clients?.full_name || 'Membre NXA'}</span>
+                                                                     <span className="text-xs font-bold text-black dark:text-white">{c.profiles?.full_name || 'Membre NXA'}</span>
                                                                      <span className="text-[10px] text-zinc-400">{new Date(c.created_at).toLocaleDateString()}</span>
                                                                  </div>
                                                                  <p className="text-sm text-zinc-700 dark:text-zinc-300">{c.content}</p>
@@ -501,7 +501,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                                                  <button onClick={() => handleLikeComment(c.id, 'like')} className="hover:text-black transition-colors flex items-center gap-1">👍 {c.likes_count || 0}</button>
                                                                  <button onClick={() => handleLikeComment(c.id, 'dislike')} className="hover:text-black transition-colors flex items-center gap-1">👎 {c.dislikes_count || 0}</button>
                                                                  {!c.parent_id && (
-                                                                     <button onClick={() => { setReplyToCommentId(c.id); setNewCommentText(`@${c.clients?.full_name?.split(' ')[0]} `); }} className="hover:text-black transition-colors">Répondre</button>
+                                                                     <button onClick={() => { setReplyToCommentId(c.id); setNewCommentText(`@${c.profiles?.full_name?.split(' ')[0]} `); }} className="hover:text-black transition-colors">Répondre</button>
                                                                  )}
                                                              </div>
                                                          </div>
@@ -613,7 +613,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                              }}
                                          >
                                              {notif.clients ? (
-                                                <img src={notif.clients.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notif.clients.full_name || 'U')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Actor" />
+                                                <img src={notif.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notif.profiles?.full_name || 'U')}&background=random`} className="w-8 h-8 rounded-full border border-zinc-200 object-cover shrink-0" alt="Actor" />
                                              ) : (
                                                 <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
                                                     <Bell size={14}/>

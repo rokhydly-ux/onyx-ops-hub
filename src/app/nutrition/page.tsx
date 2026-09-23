@@ -894,13 +894,13 @@ export default function NutritionDashboard() {
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
                 // Fetch Community Posts
-                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
+                const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, profiles!client_id(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
                 if (cPosts && cPosts.length > 0) {
                     setCommunityPosts(cPosts.map((p: any) => {
                         const myReactionObj = p.nutrition_reactions?.find((r: any) => r.client_id === profileData?.id);
                         return {
                             ...p,
-                            client: p.clients?.full_name || 'Membre',
+                            client: p.profiles?.full_name || 'Membre',
                             _likedByMe: !!myReactionObj,
                             _myReaction: myReactionObj ? reactionIcons[myReactionObj.reaction_type as keyof typeof reactionIcons] || reactionIcons['Like'] : undefined
                         };
@@ -912,7 +912,7 @@ export default function NutritionDashboard() {
                 // Fetch Stories actives
                 const { data: rawStories } = await supabase
                     .from('nutrition_community_stories')
-                    .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+                    .select('*, profiles!client_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
                     .order('created_at', { ascending: true });
                 if (rawStories && rawStories.length > 0) {
                     // Fusionner avec les seed stories pour ne jamais avoir un mur vide, en évitant les doublons
@@ -1076,7 +1076,7 @@ export default function NutritionDashboard() {
 
           // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
-              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, clients!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
+              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, profiles!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
           }
 
@@ -1348,7 +1348,7 @@ export default function NutritionDashboard() {
   const fetchLeaderboard = async () => {
     const { data } = await supabase
       .from('nutrition_profiles')
-      .select('jongoma_xp, client:clients(id, full_name, avatar_url)')
+      .select('jongoma_xp, client:profiles!client_id(id, full_name, avatar_url)')
       .order('jongoma_xp', { ascending: false, nullsFirst: false })
       .limit(10);
 
@@ -1571,11 +1571,11 @@ export default function NutritionDashboard() {
       const groups: Record<string, any> = {};
 
       stories.forEach((story: any) => {
-          if (!story.clients) return;
-          const uId = story.clients.id;
+          if (!story.profiles) return;
+          const uId = story.profiles.id;
           if (!groups[uId]) {
               groups[uId] = {
-                  client: story.clients,
+                  client: story.profiles,
                   stories: [],
                   allViewed: true // on assume vrai, on mettra false si on trouve une non-vue
               };
@@ -2692,7 +2692,7 @@ export default function NutritionDashboard() {
           // Re-fetch stories to ensure persistence and correct grouped IDs
           const { data: rawStories } = await supabase
               .from('nutrition_community_stories')
-              .select('*, clients(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
+              .select('*, profiles!client_id(id, full_name, avatar_url), nutrition_story_views(viewer_id)')
               .order('created_at', { ascending: true });
           if (rawStories && rawStories.length > 0) {
               const mergedStories = [...rawStories];
@@ -2772,13 +2772,13 @@ export default function NutritionDashboard() {
               alert("Erreur de publication. Veuillez vérifier les permissions de la base de données.");
           } else {
               // Re-fetch to ensure sync with real IDs and potential triggers
-              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
+              const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, profiles!client_id(id, full_name, avatar_url), nutrition_reactions(reaction_type, client_id)').order('created_at', { ascending: false });
               if (cPosts && cPosts.length > 0) {
                   setCommunityPosts(cPosts.map((p: any) => {
                       const myReactionObj = p.nutrition_reactions?.find((r: any) => r.client_id === clientProfile.id);
                       return {
                           ...p,
-                          client: p.clients?.full_name || 'Membre',
+                          client: p.profiles?.full_name || 'Membre',
                           _likedByMe: !!myReactionObj,
                           _myReaction: myReactionObj ? reactionIcons[myReactionObj.reaction_type as keyof typeof reactionIcons] || reactionIcons['Like'] : undefined
                       };
@@ -2921,7 +2921,7 @@ export default function NutritionDashboard() {
           client: user?.full_name || 'Membre',
           clients: { full_name: user?.full_name, avatar_url: user?.avatar_url },
           ...repostPayload,
-          original_author: post.clients?.full_name || post.client,
+          original_author: post.profiles?.full_name || post.client,
           created_at: new Date().toISOString()
       };
 
@@ -3190,7 +3190,7 @@ export default function NutritionDashboard() {
   useEffect(() => {
     if (selectedRecipeDetail?.id) {
         const fetchReviews = async () => {
-            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!client_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
             if (data) {
                 setRecipeReviews(data);
                 const userReview = data.find(r => r.client_id === user?.id);
@@ -3264,7 +3264,7 @@ export default function NutritionDashboard() {
 
           setHasUserReviewed(true);
           // Refetch reviews
-          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, clients(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!client_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
           if (data) setRecipeReviews(data);
       } catch (e) {
           console.error(e);
@@ -3551,7 +3551,7 @@ const handleToggleComments = async (postId: string) => {
           try {
               const { data, error } = await supabase
                   .from('nutrition_community_comments')
-                  .select('*, clients(full_name, avatar_url)')
+                  .select('*, profiles!client_id(full_name, avatar_url)')
                   .eq('post_id', postId)
                   .order('created_at', { ascending: true });
 
@@ -3574,7 +3574,7 @@ const handleToggleComments = async (postId: string) => {
               content: commentText.trim()
           };
           if (parentId) payload.parent_id = parentId;
-          const { data, error } = await supabase.from('nutrition_community_comments').insert(payload).select('*, clients(full_name, avatar_url)').single();
+          const { data, error } = await supabase.from('nutrition_community_comments').insert(payload).select('*, profiles!client_id(full_name, avatar_url)').single();
 
           if (error) throw error;
 
@@ -4172,9 +4172,9 @@ const handleToggleComments = async (postId: string) => {
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-8 h-8 rounded-full bg-zinc-200 overflow-hidden">
-                                                        <img src={review.clients?.avatar_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt={review.clients?.prenom} className="w-full h-full object-cover" />
+                                                        <img src={review.profiles?.avatar_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt={review.profiles?.prenom} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'; }} />
                                                     </div>
-                                                    <span className="font-bold text-sm">{review.clients?.prenom || 'Utilisateur'}</span>
+                                                    <span className="font-bold text-sm">{review.profiles?.prenom || 'Utilisateur'}</span>
                                                 </div>
                                                 <div className="flex">
                                                     {[1,2,3,4,5].map(star => (
