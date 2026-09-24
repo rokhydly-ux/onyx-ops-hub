@@ -507,7 +507,7 @@ export default function OnyxFormationPage() {
         </div>
       )}
           <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowProfileModal(true)}>
-            <img src={user?.avatar_url || 'https://via.placeholder.com/150'} className="w-10 h-10 rounded-full object-cover border-2 border-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.3)] bg-zinc-800" alt="Profil" />
+            <img src={user?.avatar_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg'} className="w-10 h-10 rounded-full object-cover border-2 border-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.3)] bg-zinc-800" alt="Profil" />
             <span className="font-black uppercase text-xs hidden md:block text-white">{user?.full_name}</span>
           </div>
 
@@ -861,7 +861,7 @@ export default function OnyxFormationPage() {
             
             <div className="text-center mb-8">
                <div className="w-24 h-24 mx-auto mb-4 relative">
-                  <img src={editProfileForm.avatar_url || 'https://via.placeholder.com/150'} alt="Avatar" className="w-full h-full rounded-full object-cover border-4 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)] bg-zinc-800" />
+                  <img src={editProfileForm.avatar_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg'} alt="Avatar" className="w-full h-full rounded-full object-cover border-4 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)] bg-zinc-800" />
                </div>
                <h3 className="text-2xl font-black uppercase text-white tracking-tighter">Mon Profil</h3>
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Espace Onyx Academy</p>
