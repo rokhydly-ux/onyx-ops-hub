@@ -119,6 +119,11 @@ export default function TodayTab({ ...tabProps }: any) {
 
                        return (
                            <div className="bg-white rounded-[2.5rem] shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
+                              <div className="flex flex-row justify-between items-center p-4 bg-white z-10 w-full shrink-0 relative">
+                                 <div className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">
+                                    Aujourd'hui
+                                 </div>
+                              </div>
                               <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
                                  <img src={todayMenu.meals?.['Déjeuner']?.image_url || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg'} alt="Repas" className="w-full h-full object-cover" />
                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">

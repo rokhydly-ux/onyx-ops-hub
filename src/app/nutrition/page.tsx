@@ -792,49 +792,7 @@ export default function NutritionDashboard() {
 
 
 
-  useEffect(() => {
-    if (!clientProfile?.id) return;
 
-    const realtimeChannel = supabase.channel('custom-daily-logs-channel')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'nutrition_daily_logs',
-                filter: `client_id=eq.${clientProfile.id}`
-            },
-            (payload: any) => {
-                const newData = payload.new;
-
-                if (newData && newData.log_date === todayStr) {
-                    setCalories(newData.calories_consumed || 0);
-                    setProteins(newData.proteins_consumed || 0);
-                    setCarbs(newData.carbs_consumed || 0);
-                    setFats(newData.fats_consumed || 0);
-                    setWaterGlasses(newData.water_glasses || 0);
-
-                    if (newData.report_data) {
-                        setReportData(newData.report_data);
-                        if (newData.report_data.consumedMeals) {
-                            setConsumedMeals(newData.report_data.consumedMeals);
-                        }
-                        if (newData.report_data.moods) {
-                            setMoods(newData.report_data.moods);
-                        }
-                        if (newData.report_data.moodNotes) {
-                            setMoodNotes(newData.report_data.moodNotes);
-                        }
-                    }
-                }
-            }
-        )
-        .subscribe();
-
-    return () => {
-        supabase.removeChannel(realtimeChannel);
-    };
-  }, [clientProfile?.id, todayStr]);
 
   useEffect(() => {
     // Gestion PWA Hors-Ligne & Sync
@@ -1266,12 +1224,12 @@ export default function NutritionDashboard() {
       }
   }, [loading, clientProfile, weeklyGeneratedMenu.length]);
 
-  // Synchronisation en temps réel (Supabase Realtime) des données journalières
+  // Synchronisation en temps réel (Supabase Realtime) des données journalières et du profil de santé
   useEffect(() => {
     if (!clientProfile?.id) return;
 
     const channel = supabase
-      .channel(`realtime_logs_${clientProfile.id}`)
+      .channel(`realtime_sync_${clientProfile.id}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -1299,12 +1257,23 @@ export default function NutritionDashboard() {
           return [...filtered, newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
         });
       })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'nutrition_profiles',
+        filter: `client_id=eq.${clientProfile.id}`
+      }, (payload) => {
+        const updatedProfile = payload.new as any;
+        if (updatedProfile) {
+          setClientProfile(updatedProfile);
+        }
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [clientProfile?.id]);
+  }, [clientProfile?.id, todayStr]);
 
   const updateXP = async (amount: number, reason: string) => {
       const newXP = jongomaXP + amount;
