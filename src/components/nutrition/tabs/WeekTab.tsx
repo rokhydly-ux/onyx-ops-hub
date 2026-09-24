@@ -87,39 +87,40 @@ export default function WeekTab({ ...tabProps }: any) {
                                  console.log("🔍 OBJET MEAL COMPLET :", JSON.stringify(recipe, null, 2));
                                  return (
                                     <React.Fragment key={mealType}>
-                                    <div className={`flex flex-col gap-3 h-auto p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
-                                       <div className="cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
+                                    <div className={`flex flex-col gap-2 p-3 h-auto min-h-min rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
+                                       <div className="flex flex-col cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
-                                       <div className="flex flex-row justify-between items-center flex-wrap gap-2">
-                                          {isExpertMode ? (
-                                             <div className="flex flex-wrap gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
-                                             </div>
-                                          ) : (
-                                             <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md`}>
-                                                 {recipe.ux_unit ? recipe.ux_unit : guessVisualPortion(recipe.calories || 300, mealType)}
-                                             </span>
-                                          )}
 
-                                          <div className="flex items-center gap-2 mt-0.5">
-                                             {isToday && !isConsumed && (
-                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
-                                             )}
-                                             {isConsumed && (
-                                                <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-3 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️ Supprimer</button>
-                                             )}
-                                             {!isConsumed && !isToday && (
-                                                <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
-                                             )}
-                                             {!isConsumed && isToday && (
-                                                <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
-                                             )}
+                                       {isExpertMode ? (
+                                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
                                           </div>
+                                       ) : (
+                                          <div className="flex">
+                                             <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md`}>
+                                                {recipe.ux_unit ? recipe.ux_unit : guessVisualPortion(recipe.calories || 300, mealType)}
+                                             </span>
+                                          </div>
+                                       )}
+
+                                       <div className="flex flex-wrap items-center gap-2 mt-auto self-end">
+                                          {isToday && !isConsumed && (
+                                            <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
+                                          )}
+                                          {isConsumed && (
+                                             <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-3 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️ Supprimer</button>
+                                          )}
+                                          {!isConsumed && !isToday && (
+                                             <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
+                                          )}
+                                          {!isConsumed && isToday && (
+                                             <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
+                                          )}
                                        </div>
                                     </div>
                                     {isBolCommun && (

@@ -139,33 +139,31 @@ export default function TodayTab({ ...tabProps }: any) {
                                     const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
 
                                     return (
-                                       <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
-                                          <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10), proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
+                                       <div key={mealType} className={`flex flex-col gap-2 p-3 h-auto min-h-min rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white border border-zinc-100'}`}>
+                                          <div className="flex flex-col cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10), proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')}>
                                              <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                             <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
+                                             <p className={`text-xs font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                           </div>
-                                          <div className="text-right shrink-0 flex flex-col items-end gap-1">
 
-                                             <div className="flex gap-2">
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
-                                                <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
+                                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
+                                          </div>
+
+                                          {!isConsumed ? (
+                                             <div className="flex flex-wrap gap-2 mt-auto self-end">
+                                                 <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10), recipe.proteins || recipe.prots || Math.round(((parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10)) * 0.2)/4), recipe.carbs || Math.round(((parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10)) * 0.5)/4), recipe.fats || Math.round(((parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10)) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
+                                                 <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(0, mealType, recipe.id || ''); }} className="bg-zinc-200 text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Swap</button>
+                                                 <button onClick={(e) => { e.stopPropagation(); setConsumedMeals(prev => prev.filter((m: any) => m.name !== recipe.nom || m.type !== mealType)); }} className="bg-red-500 text-white px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">🗑️</button>
                                              </div>
-
-                                             {!isConsumed ? (
-                                                <div className="flex gap-2">
-                                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10), recipe.proteins || recipe.prots || Math.round(((parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10)) * 0.2)/4), recipe.carbs || Math.round(((parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10)) * 0.5)/4), recipe.fats || Math.round(((parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10)) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Valider</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(0, mealType, recipe.id || ''); }} className="bg-zinc-200 text-black px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">Swap</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); setConsumedMeals(prev => prev.filter((m: any) => m.name !== recipe.nom || m.type !== mealType)); }} className="bg-red-500 text-white px-2 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm hover:scale-105 transition-transform">🗑️</button>
-                                                </div>
-                                             ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
-                                                    <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-2 py-1 rounded-lg text-[9px] font-black shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️</button>
-                                                </div>
-                                             )}
-                                          </div>
+                                          ) : (
+                                             <div className="flex items-center gap-2 mt-auto self-end">
+                                                 <span className="bg-[#39FF14] text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm">Validé ✅</span>
+                                                 <button onClick={(e) => { e.stopPropagation(); const mealToDelete = consumedMeals.find((m: any) => m.name === recipe.nom && m.type === mealType); if (mealToDelete) deleteMealLog(mealToDelete); }} className="bg-red-500 text-white px-2 py-1 rounded-lg text-[9px] font-black shadow-sm hover:scale-105 transition-transform" title="Annuler">🗑️</button>
+                                             </div>
+                                          )}
                                        </div>
                                     )
                                  })}
