@@ -61,8 +61,11 @@ export default function WeekTab({ ...tabProps }: any) {
                              const isToday = dayPlan.day === formattedCurrentDay;
                              return (
                         <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className={`bg-white rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.06)] border-0 overflow-hidden flex flex-col group relative animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 ${isToday ? 'ring-4 ring-[#39FF14]' : 'opacity-80 grayscale-[20%] hover:grayscale-0 hover:opacity-100 transition-all'}`} style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
-                           <div className={`absolute top-4 left-4 ${isToday ? 'bg-[#39FF14] text-black' : 'bg-black text-white'} px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg`}>
-                              {dayPlan.day} {isToday && '(Auj.)'}
+                           <div className="flex flex-row justify-between items-center p-4 bg-white z-10 w-full shrink-0 relative">
+                              <div className={`${isToday ? 'bg-[#39FF14] text-black' : 'bg-black text-white'} px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-lg`}>
+                                 {dayPlan.day} {isToday && '(Auj.)'}
+                              </div>
+                              {dayPlan.meals?.['Déjeuner']?.is_boutique && <span className="bg-[#39FF14] text-black px-2 py-1 rounded text-[9px] font-black uppercase shadow-md">Boutique</span>}
                            </div>
 
                            <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
@@ -70,7 +73,6 @@ export default function WeekTab({ ...tabProps }: any) {
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
                                  <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
                                  <p className="text-white font-bold text-lg leading-tight line-clamp-1">{dayPlan.meals?.['Déjeuner']?.nom || 'Repas'}</p>
-                                 {dayPlan.meals?.['Déjeuner']?.is_boutique && <span className="absolute top-4 right-4 bg-[#39FF14] text-black px-2 py-1 rounded text-[9px] font-black uppercase shadow-md">Boutique</span>}
                               </div>
                            </div>
 
@@ -85,15 +87,14 @@ export default function WeekTab({ ...tabProps }: any) {
                                  console.log("🔍 OBJET MEAL COMPLET :", JSON.stringify(recipe, null, 2));
                                  return (
                                     <React.Fragment key={mealType}>
-                                    <div className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
-                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
+                                    <div className={`flex flex-col gap-3 h-auto p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
+                                       <div className="cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                          <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
+                                          <p className={`text-xs font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
-                                       <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
-
+                                       <div className="flex flex-row justify-between items-center flex-wrap gap-2">
                                           {isExpertMode ? (
-                                             <div className="flex gap-2">
+                                             <div className="flex flex-wrap gap-2">
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
                                                 <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
@@ -105,7 +106,7 @@ export default function WeekTab({ ...tabProps }: any) {
                                              </span>
                                           )}
 
-                                          <div className="flex items-center gap-1 mt-0.5">
+                                          <div className="flex items-center gap-2 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.2)/4), recipe.carbs || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.5)/4), recipe.fats || Math.round(((recipe.calories || recipe.cals || recipe.kcal || 0) * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
