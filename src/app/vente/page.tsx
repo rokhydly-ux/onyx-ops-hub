@@ -2016,7 +2016,7 @@ export default function OnyxJaayShop() {
         name: row['Nom'] || row['name'] || 'Produit Importé',
         price: Number(row['Prix'] || row['price'] || 0),
         description: row['Description'] || row['description'] || '',
-        image: row['Image'] || row['image'] || 'https://via.placeholder.com/300',
+        image: row['Image'] || row['image'] || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg',
         category: row['Catégorie'] || row['category'] || 'Importé',
         stock: Number(row['Stock'] || row['stock'] || 0),
         rating: 5,
@@ -5198,7 +5198,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo, recentReviews }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning' | 'reviews'>>, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string, recentReviews?: any[] }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo, recentReviews }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: any, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string, recentReviews?: any[] }) {
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');

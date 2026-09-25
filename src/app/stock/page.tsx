@@ -245,7 +245,7 @@ export default function OnyxStock() {
                        {filteredProducts.map(p => (
                            <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
                                <td className="p-4 flex items-center gap-4">
-                                   <img src={p.image || 'https://via.placeholder.com/50'} alt={p.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-200 shrink-0" />
+                                   <img src={p.image || 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg'} alt={p.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-200 shrink-0" />
                                    <div>
                                        <p className="font-bold text-sm text-black line-clamp-1">{p.name}</p>
                                        <p className="text-[10px] text-zinc-400 font-mono mt-1">Ref: {p.barcode || p.id}</p>
