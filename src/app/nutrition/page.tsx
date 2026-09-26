@@ -616,6 +616,9 @@ export default function NutritionDashboard() {
   const [stories, setStories] = useState<any[]>([]);
   const [groupedStories, setGroupedStories] = useState<any[]>([]);
   const [isUploadingStory, setIsUploadingStory] = useState(false);
+  const [storyBgIndex, setStoryBgIndex] = useState(0);
+  const [showAllStoryBgs, setShowAllStoryBgs] = useState(false);
+  const [storyMode, setStoryMode] = useState<'media' | 'text'>('media');
   const [storyPreviewFile, setStoryPreviewFile] = useState<File | null>(null);
   const [storyPreviewUrl, setStoryPreviewUrl] = useState<string | null>(null);
   const [storyCaption, setStoryCaption] = useState("");
@@ -1610,6 +1613,12 @@ export default function NutritionDashboard() {
           if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
           if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
           if (nom.includes('pâte d\'arachide pure') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('épice')) return false;
+
+          // Exclusion stricte des ingrédients seuls (graines, feuilles, céréales)
+          const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'graines', 'feuille', 'feuilles', 'farine', 'couscous', 'thiéré', 'arraw', 'poudre', 'kinkeliba', 'bissap', 'moringa', 'djar'];
+          if (exclNames.some(e => nom === e || nom.startsWith(e + ' '))) {
+              if (!nom.includes('salade') && !nom.includes('poulet') && !nom.includes('viande') && !nom.includes('poisson')) return false;
+          }
           return true;
       });
 
@@ -1789,6 +1798,12 @@ export default function NutritionDashboard() {
           if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
           if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
           if (nom.includes('pâte d\'arachide pure') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('épice')) return false;
+
+          // Exclusion stricte des ingrédients seuls (graines, feuilles, céréales)
+          const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'graines', 'feuille', 'feuilles', 'farine', 'couscous', 'thiéré', 'arraw', 'poudre', 'kinkeliba', 'bissap', 'moringa', 'djar'];
+          if (exclNames.some(e => nom === e || nom.startsWith(e + ' '))) {
+              if (!nom.includes('salade') && !nom.includes('poulet') && !nom.includes('viande') && !nom.includes('poisson')) return false;
+          }
           return true;
       });
 
@@ -2630,26 +2645,30 @@ export default function NutritionDashboard() {
   };
 
   const handleStoryUpload = async () => {
-      if (!storyPreviewFile || !clientProfile) return;
+      if ((!storyPreviewFile && storyMode === 'media') || !clientProfile) return;
       setIsUploadingStory(true);
       try {
-          const fileExt = storyPreviewFile.name.split('.').pop();
-          const fileName = `${clientProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          let mediaUrl = null;
+          if (storyMode === 'media' && storyPreviewFile) {
+              const fileExt = storyPreviewFile.name.split('.').pop();
+              const fileName = `${clientProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-          const { error: uploadError } = await supabase.storage
-              .from('community-stories')
-              .upload(fileName, storyPreviewFile);
+              const { error: uploadError } = await supabase.storage
+                  .from('community-stories')
+                  .upload(fileName, storyPreviewFile);
 
-          if (uploadError) throw uploadError;
+              if (uploadError) throw uploadError;
 
-          const { data: urlData } = supabase.storage.from('community-stories').getPublicUrl(fileName);
-          const mediaUrl = urlData.publicUrl;
-          const mediaType = storyPreviewFile.type.startsWith('video/') ? 'video' : 'image';
+              const { data: urlData } = supabase.storage.from('community-stories').getPublicUrl(fileName);
+              mediaUrl = urlData.publicUrl;
+          }
+          const mediaType = storyMode === 'text' ? 'text_only' : storyPreviewFile.type.startsWith('video/') ? 'video' : 'image';
 
           const { error: insertError } = await supabase.from('nutrition_community_stories').insert({
               user_id: clientProfile.id,
               media_url: mediaUrl,
               media_type: mediaType,
+              text_bg_index: storyMode === 'text' ? storyBgIndex : null,
               caption: storyCaption || null
           });
 
@@ -2683,20 +2702,16 @@ export default function NutritionDashboard() {
   };
 
   const TEXT_BACKGROUNDS = [
+      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_African_pattern_neon_lines_202607191030_dzkpqx.jpg')",
+      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_luxury_kitchen_countertop_s__202607191030_knxbcx.jpg')",
+      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Man_drinking_from_water_bottle_202607191034_c4ck7p.jpg')",
+      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Woven_fabric_texture_charcoal_green_202607191031_hrc1bw.jpg')",
+      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Baobab_leaves__hibiscus_flowers__2K_202607191031_gfkclt.jpg')",
       "bg-gradient-to-br from-yellow-400 to-orange-500",
       "bg-gradient-to-br from-blue-500 to-purple-600",
       "bg-gradient-to-br from-green-400 to-[#39FF14]",
       "bg-gradient-to-br from-pink-500 to-rose-500",
-      "bg-gradient-to-br from-zinc-800 to-black",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286332/IMG-20250820-WA0117_iegikb.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444564/A_cute__highly_detailed_3D_202606141342_yn2v23.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_African_pattern_neon_lines_202607191030_dzkpqx.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Dark_luxury_kitchen_countertop_s__202607191030_knxbcx.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458141/Woven_fabric_texture_charcoal_green_202607191031_hrc1bw.jpg')",
-      "url('https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Baobab_leaves__hibiscus_flowers__2K_202607191031_gfkclt.jpg')"
+      "bg-gradient-to-br from-zinc-800 to-black"
   ];
 
   const handlePostCommunity = async () => {
@@ -3778,8 +3793,7 @@ const handleToggleComments = async (postId: string) => {
     setStories,
     groupedStories,
     setGroupedStories,
-    isUploadingStory,
-    setIsUploadingStory,
+    isUploadingStory, setIsUploadingStory, storyBgIndex, setStoryBgIndex, showAllStoryBgs, setShowAllStoryBgs, storyMode, setStoryMode,
     storyPreviewFile,
     setStoryPreviewFile,
     storyPreviewUrl,
