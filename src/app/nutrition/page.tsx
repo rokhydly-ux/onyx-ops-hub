@@ -100,7 +100,7 @@ const RECIPE_FILTERS = [
 const DEFAULT_SEED_POSTS = [
   {
     id: 'seed-1',
-    user_id: 'coach-rokhy',
+    client_id: 'coach-rokhy',
     content: '🔥 Alhamdoulillah ! Regardez la transformation incroyable d\'Amina après seulement 4 semaines sur le programme Mode Guidé. Thiéboudienne revisité et zéro sucre raffiné. Qui relève le défi ce mois-ci ? 👇',
     image_url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1782594141/bols_gjqh7n.jpg',
     reactions: { top: 24, sain: 0, courage: 0 },
@@ -111,7 +111,7 @@ const DEFAULT_SEED_POSTS = [
   },
   {
     id: 'seed-2',
-    user_id: 'chef-kofi',
+    client_id: 'chef-kofi',
     content: '🍳 Astuce du Chef : Pour un Fufu léger et digeste, remplacez la moitié de la farine de manioc par de la purée de chou-fleur ou d\'avoine fine. Testé et approuvé par tout le studio ! #Lekkologue #Santé',
     image_url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg',
     reactions: { top: 42, sain: 0, courage: 0 },
@@ -122,7 +122,7 @@ const DEFAULT_SEED_POSTS = [
   },
   {
     id: 'seed-3',
-    user_id: 'dr-fatima',
+    client_id: 'dr-fatima',
     content: '💧 Rappel hydratation : Boire 2 grands verres d\'eau 15 minutes avant votre Thiéboudienne augmente la satiété et facilite la digestion. Combien de verres au compteur aujourd\'hui ?',
     image_url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg',
     reactions: { top: 19, sain: 0, courage: 0 },
@@ -136,7 +136,7 @@ const DEFAULT_SEED_POSTS = [
 const DEFAULT_SEED_STORIES = [
   {
       id: 'story-seed-1',
-      user_id: 'coach-rokhy',
+      client_id: 'coach-rokhy',
       media_url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1783286332/IMG-20250820-WA0117_iegikb.jpg',
       media_type: 'image',
       caption: 'Préparation du batch cooking du dimanche 🥘',
@@ -146,7 +146,7 @@ const DEFAULT_SEED_STORIES = [
   },
   {
       id: 'story-seed-2',
-      user_id: 'chef-kofi',
+      client_id: 'chef-kofi',
       media_url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781221768/Thiebou_dieune_1_hftdhm.jpg',
       media_type: 'image',
       caption: 'Test de recette : Yassa allégé, vous validez ?',
@@ -156,7 +156,7 @@ const DEFAULT_SEED_STORIES = [
   },
   {
       id: 'story-seed-3',
-      user_id: 'dr-fatima',
+      client_id: 'dr-fatima',
       media_url: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1783099524/Woman_drinking_clear_water_2K_202607031724_wuqqco.jpg',
       media_type: 'image',
       caption: 'Un esprit sain dans un corps sain ✨',
@@ -804,7 +804,7 @@ export default function NutritionDashboard() {
        const offlineLogs = JSON.parse(localStorage.getItem('onyx_offline_daily_logs') || '[]');
        if (offlineLogs.length > 0) {
            for (const log of offlineLogs) {
-              await supabase.from('nutrition_daily_logs').upsert(log, { onConflict: 'user_id, log_date' });
+              await supabase.from('nutrition_daily_logs').upsert(log, { onConflict: 'client_id, log_date' });
            }
            localStorage.removeItem('onyx_offline_daily_logs');
            setToastMessage("Mode PWA : Vos bilans hors-ligne ont été synchronisés !");
@@ -1051,7 +1051,7 @@ export default function NutritionDashboard() {
           const { data: logsData } = await supabase
             .from('nutrition_daily_logs')
             .select('*')
-            .eq('user_id', activeProfile.id)
+            .eq('client_id', activeProfile.id)
             .order('log_date', { ascending: true });
 
           if (logsData) {
@@ -1091,7 +1091,7 @@ export default function NutritionDashboard() {
              const { data } = await supabase
                .from('nutrition_profiles')
                .select('*')
-               .eq('user_id', activeProfile.id)
+               .eq('client_id', activeProfile.id)
                .maybeSingle();
              nutritionData = data;
           } catch(e) {
@@ -1132,7 +1132,7 @@ export default function NutritionDashboard() {
           }
 
           // Récupérer le poids
-          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('user_id', activeProfile.id).order('log_date', { ascending: true });
+          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
 
           let fetchedLogs = wLogs || [];
           const diagCurrentWeight = nutritionData?.diagnostic_data?.currentWeight;
@@ -1164,7 +1164,7 @@ export default function NutritionDashboard() {
           if (activeProfile.address) setDeliveryAddress(activeProfile.address);
 
           // Fetch des commandes du client
-          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('user_id', activeProfile.id).order('created_at', { ascending: false });
+          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
           if (ordersData) setClientOrders(ordersData);
           } // Fin if (activeProfile.id)
 
@@ -1237,7 +1237,7 @@ export default function NutritionDashboard() {
         event: '*',
         schema: 'public',
         table: 'nutrition_daily_logs',
-        filter: `user_id=eq.${clientProfile.id}`
+        filter: `client_id=eq.${clientProfile.id}`
       }, (payload) => {
         const newLog = payload.new as any;
         if (!newLog || Object.keys(newLog).length === 0) return;
@@ -1264,7 +1264,7 @@ export default function NutritionDashboard() {
         event: '*',
         schema: 'public',
         table: 'nutrition_profiles',
-        filter: `user_id=eq.${clientProfile.id}`
+        filter: `client_id=eq.${clientProfile.id}`
       }, (payload) => {
         const updatedProfile = payload.new as any;
         if (updatedProfile) {
@@ -1298,13 +1298,13 @@ export default function NutritionDashboard() {
 
       setJongomaXP(newXP);
       if (clientProfile) {
-         await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('client_id', clientProfile.id);
       }
       setXpAnimation({ amount, reason, id: Date.now() });
 
       // Effet sonore de gain d'XP (sauf si on vient de level up pour ne pas superposer les sons)
       if (!leveledUp) {
-          const xpAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3");
+          const xpAudio = new Audio("https://res.cloudinary.com/dtr2wtoty/video/upload/v1731671911/1435-preview_bzvow1.mp3");
           xpAudio.volume = 0.4;
           xpAudio.play().catch(()=>{});
       }
@@ -1320,7 +1320,7 @@ export default function NutritionDashboard() {
   const fetchLeaderboard = async () => {
     const { data } = await supabase
       .from('nutrition_profiles')
-      .select('jongoma_xp, client:profiles!user_id(id, full_name, avatar_url)')
+      .select('jongoma_xp, client:profiles!client_id(id, full_name, avatar_url)')
       .order('jongoma_xp', { ascending: false, nullsFirst: false })
       .limit(10);
 
@@ -1770,7 +1770,7 @@ export default function NutritionDashboard() {
       setWeeklyGeneratedMenu(newMenu);
       if (clientProfile) {
          const safeMenu = JSON.parse(JSON.stringify(newMenu));
-         await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
       }
   };
 
@@ -1862,7 +1862,7 @@ export default function NutritionDashboard() {
           setWeeklyGeneratedMenu(updatedMenu);
           if (clientProfile) {
              const safeMenu = JSON.parse(JSON.stringify(updatedMenu));
-             await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('user_id', clientProfile.id);
+             await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
           }
       } else {
           alert("Aucune alternative disponible pour ce type de repas dans la base de données.");
@@ -2002,7 +2002,7 @@ export default function NutritionDashboard() {
               // Extract phone from diagData so it doesn't get inserted into diagnostic_data column causing 500
               const { phone, ...cleanDiagData } = diagData;
               const payload = {
-                  user_id: clientProfile.id,
+                  client_id: clientProfile.id,
                   daily_calorie_goal: results.calories,
                   carbs_goal: results.carbs,
                   protein_goal: results.protein,
@@ -2014,7 +2014,7 @@ export default function NutritionDashboard() {
                   }
               };
               console.log("Payload du diagnostic (Espace Client):", payload);
-              const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'user_id' });
+              const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
               if (error) {
                  alert("Erreur SQL lors de l'enregistrement : " + error.message);
                  throw error;
@@ -2080,7 +2080,7 @@ export default function NutritionDashboard() {
       setExcludedIngredients(prev => {
           const newEx = prev.includes(nom) ? prev.filter(i => i !== nom) : [...prev, nom];
           if (clientProfile) {
-              supabase.from('nutrition_profiles').update({ excluded_ingredients: newEx }).eq('user_id', clientProfile.id);
+              supabase.from('nutrition_profiles').update({ excluded_ingredients: newEx }).eq('client_id', clientProfile.id);
           }
           return newEx;
       });
@@ -2157,7 +2157,7 @@ export default function NutritionDashboard() {
 
           const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: fileUrl }, ...pdfHistory];
           setPdfHistory(newHistory);
-          await supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('user_id', clientProfile.id);
+          await supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
 
           const text = `Bonjour ! Voici ma liste de courses de la semaine générée par OnyxNutrition 🛒🥦 :\n\n${fileUrl}`;
           window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -2203,7 +2203,7 @@ export default function NutritionDashboard() {
       const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: null }, ...pdfHistory];
       setPdfHistory(newHistory);
       if (clientProfile) {
-          supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('user_id', clientProfile.id);
+          supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
       }
   };
 
@@ -2234,21 +2234,19 @@ export default function NutritionDashboard() {
 
     await supabase.from('nutrition_daily_logs').upsert({
       ...(todayLog?.id ? { id: todayLog.id } : {}),
-      user_id: clientProfile.id,
+      client_id: clientProfile.id,
       tenant_id: clientProfile.tenant_id || null,
       log_date: todayStr,
       water_glasses: newAmount,
       calories_consumed: calories,
       proteins_consumed: proteins,
-      carbs_consumed: carbs,
-      fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-    }, { onConflict: 'user_id, log_date' });
+    }, { onConflict: 'client_id, log_date' });
 
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
       const existing = prev.find(l => l.log_date === todayStr) || {};
-      return [...filtered, { ...existing, user_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins, carbs_consumed: carbs, fats_consumed: fats }];
+      return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins }];
     });
   };
 
@@ -2396,16 +2394,14 @@ export default function NutritionDashboard() {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
             ...(todayLog?.id ? { id: todayLog.id } : {}),
-            user_id: clientProfile.id,
+            client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-            carbs_consumed: newCarbs,
-            fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-          }, { onConflict: 'user_id, log_date' });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -2427,16 +2423,14 @@ export default function NutritionDashboard() {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
             ...(todayLog?.id ? { id: todayLog.id } : {}),
-            user_id: clientProfile.id,
+            client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-            carbs_consumed: newCarbs,
-            fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          }, { onConflict: 'user_id, log_date' });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -2589,12 +2583,12 @@ export default function NutritionDashboard() {
 
       if (clientProfile) {
           const payload = {
-            user_id: clientProfile.id,
+            client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             weight: newWeight
           };
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload as any, { onConflict: 'user_id, log_date' });
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload as any, { onConflict: 'client_id, log_date' });
 
           if (insertErr) {
               alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
@@ -2605,7 +2599,7 @@ export default function NutritionDashboard() {
               ...(clientProfile.diagnostic_data || {}),
               currentWeight: newWeight.toString()
           };
-          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('user_id', clientProfile.id);
+          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
           setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
       }
 
@@ -2630,7 +2624,7 @@ export default function NutritionDashboard() {
         const { error } = await supabase
             .from('nutrition_weight_logs')
             .delete()
-            .eq('user_id', clientProfile.id)
+            .eq('client_id', clientProfile.id)
             .eq('log_date', logDate);
 
         if (error) throw error;
@@ -2665,7 +2659,7 @@ export default function NutritionDashboard() {
           const mediaType = storyMode === 'text' ? 'text_only' : storyPreviewFile.type.startsWith('video/') ? 'video' : 'image';
 
           const { error: insertError } = await supabase.from('nutrition_community_stories').insert({
-              user_id: clientProfile.id,
+              client_id: clientProfile.id,
               media_url: storyMode === 'text' ? null : mediaUrl,
               media_type: mediaType,
               text_bg_index: storyMode === 'text' ? storyBgIndex : null,
@@ -2721,7 +2715,7 @@ export default function NutritionDashboard() {
       const mediaType = postMode === 'text_only' ? 'text_only' : newPostVideo ? 'video' : newPostImage ? 'image' : 'text_only';
 
       const payload = {
-          user_id: clientProfile?.id || null,
+          client_id: clientProfile?.id || null,
           content: newPostText,
           image_url: newPostImage || newPostVideo || null,
           media_type: mediaType,
@@ -2842,7 +2836,7 @@ export default function NutritionDashboard() {
       try {
           await supabase.from('nutrition_challenge_participants').insert({
               challenge_id: activeChallenge.id,
-              user_id: clientProfile.id
+              client_id: clientProfile.id
           });
       } catch (err) {
           console.warn("Erreur inscription challenge", err);
@@ -2889,7 +2883,7 @@ export default function NutritionDashboard() {
       if (!confirm("Voulez-vous repartager cette publication sur votre mur ?")) return;
 
       const repostPayload = {
-          user_id: clientProfile.id,
+          client_id: clientProfile.id,
           content: post.content,
           image_url: post.image_url,
           media_type: post.media_type,
@@ -3012,15 +3006,13 @@ export default function NutritionDashboard() {
 
     const payload = {
        ...(targetLog?.id ? { id: targetLog.id } : {}),
-       user_id: clientProfile.id,
+       client_id: clientProfile.id,
        tenant_id: clientProfile.tenant_id || null,
        log_date: selectedReportDate,
        report_data: { ...reportData, consumedMeals, moods, moodNotes },
        water_glasses: waterGlasses,
        calories_consumed: currentCals || 0,
-       proteins_consumed: currentProts || 0,
-       carbs_consumed: carbs || 0,
-       fats_consumed: fats || 0
+       proteins_consumed: currentProts || 0
     };
 
     if (!navigator.onLine) {
@@ -3038,7 +3030,7 @@ export default function NutritionDashboard() {
     }
 
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'user_id, log_date' });
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
 
        if (error) throw error;
 
@@ -3048,10 +3040,10 @@ export default function NutritionDashboard() {
        audio.volume = 0.5;
        audio.play().catch(()=>{});
        setShowDailyReport(false);
-       const updatedLog = { user_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       const updatedLog = { client_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== selectedReportDate), updatedLog]);
     } catch (err: any) {
-       alert("Erreur lors de l'enregistrement : " + err.message + "\nVeuillez vérifier que les colonnes carbs_consumed et fats_consumed existent dans nutrition_daily_logs.");
+       alert("Erreur lors de l'enregistrement : " + err.message);
     } finally {
        setIsSubmittingReport(false);
     }
@@ -3095,7 +3087,7 @@ export default function NutritionDashboard() {
 
       await supabase.from('nutrition_profiles').update({
           diagnostic_data: updatedDiagData
-      }).eq('user_id', clientProfile.id);
+      }).eq('client_id', clientProfile.id);
 
       // 4. Update local state
       setUser({ ...user, full_name, avatar_url: profileForm.avatar_url });
@@ -3146,10 +3138,10 @@ export default function NutritionDashboard() {
      setTrackingMode(mode);
      // Note: `tracking_mode` might not be a real column in `nutrition_profiles`.
      // If it's part of diagnostic_data or just doesn't exist, we save it there.
-     // Also `phone` column doesn't exist in `nutrition_profiles`. Use user_id.
+     // Also `phone` column doesn't exist in `nutrition_profiles`. Use client_id.
      if (clientProfile?.id) {
          const updatedDiag = { ...(clientProfile.diagnostic_data || {}), tracking_mode: mode };
-         await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiag }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiag }).eq('client_id', clientProfile.id);
          setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiag } : prev);
      }
   };
@@ -3159,7 +3151,7 @@ export default function NutritionDashboard() {
      setIsFastingMode(newMode);
      if (clientProfile) {
          const newDiag = { ...clientProfile.diagnostic_data, fasting_mode: newMode };
-         await supabase.from('nutrition_profiles').update({ diagnostic_data: newDiag }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ diagnostic_data: newDiag }).eq('client_id', clientProfile.id);
      }
      alert(newMode ? "Mode Jeûne Intermittent activé. Votre menu va être recalculé sans petit-déjeuner." : "Mode Jeûne désactivé. Le petit-déjeuner est de retour !");
      generateWeeklyMenu(newMode);
@@ -3167,17 +3159,17 @@ export default function NutritionDashboard() {
 
   const handleExpertModeChange = async (mode: boolean) => {
       setIsExpertMode(mode);
-      if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('user_id', clientProfile.id);
+      if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('client_id', clientProfile.id);
   };
 
 
   useEffect(() => {
     if (selectedRecipeDetail?.id) {
         const fetchReviews = async () => {
-            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!user_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+            const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!client_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
             if (data) {
                 setRecipeReviews(data);
-                const userReview = data.find(r => r.user_id === user?.id);
+                const userReview = data.find(r => r.client_id === user?.id);
                 if (userReview) {
                     setHasUserReviewed(true);
                     setUserRating(userReview.rating);
@@ -3215,7 +3207,7 @@ export default function NutritionDashboard() {
       setAllRecipesDB(prev => prev.map(r => r.nom === mealName ? { ...r, likes: Math.max(0, (r.likes || 0) + increment) } : r));
 
       if (clientProfile) {
-          await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('user_id', clientProfile.id);
+          await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('client_id', clientProfile.id);
       }
 
       // Mise à jour du compteur global de likes en base de données
@@ -3241,14 +3233,14 @@ export default function NutritionDashboard() {
       try {
           await supabase.from('nutrition_recipe_reviews').upsert({
               recipe_id: selectedRecipeDetail.id,
-              user_id: user?.id,
+              client_id: user?.id,
               rating: userRating,
               comment: userComment
-          }, { onConflict: 'recipe_id,user_id' });
+          }, { onConflict: 'recipe_id,client_id' });
 
           setHasUserReviewed(true);
           // Refetch reviews
-          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!user_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
+          const { data } = await supabase.from('nutrition_recipe_reviews').select('*, profiles!client_id(full_name, avatar_url)').eq('recipe_id', selectedRecipeDetail.id).order('created_at', { ascending: false });
           if (data) setRecipeReviews(data);
       } catch (e) {
           console.error(e);
@@ -3395,16 +3387,14 @@ const currentHour = new Date().getHours();
          const todayLog = dailyLogs.find(l => l.log_date === todayStr);
          await supabase.from('nutrition_daily_logs').upsert({
            ...(todayLog?.id ? { id: todayLog.id } : {}),
-           user_id: clientProfile.id,
+           client_id: clientProfile.id,
            tenant_id: clientProfile.tenant_id || null,
            log_date: todayStr,
            report_data: { ...reportData, consumedMeals, moods, moodNotes },
            water_glasses: waterGlasses,
            calories_consumed: calories,
-           proteins_consumed: proteins,
-           carbs_consumed: carbs,
-           fats_consumed: fats
-         }, { onConflict: 'user_id, log_date' });
+           proteins_consumed: proteins
+         }, { onConflict: 'client_id, log_date' });
          alert("Notes et humeurs du jour sauvegardées !");
      } catch(e) {
          alert("Erreur de sauvegarde.");

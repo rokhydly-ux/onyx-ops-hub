@@ -239,7 +239,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                    />
                                    {postMode === 'text_only' && (
                                        <>
-                                           <div className="absolute bottom-4 right-4 text-white/50 text-xs font-black tracking-widest">NXA</div>
+                                           <div className="absolute bottom-4 right-4 text-white/50 text-xs font-black tracking-widest">NAX</div>
                                            <div className="absolute top-4 right-4 text-white/80 text-xs font-bold">{280 - newPostText.length}</div>
                                        </>
                                    )}
@@ -419,7 +419,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                  {post.media_type === 'text_only' ? (
                                      <div className={`w-full h-64 rounded-2xl ${TEXT_BACKGROUNDS[post.text_bg_index || 0].startsWith("url") ? "" : TEXT_BACKGROUNDS[post.text_bg_index || 0]} bg-cover bg-center p-6 flex flex-col justify-center items-center relative mb-4`} style={{ backgroundImage: TEXT_BACKGROUNDS[post.text_bg_index || 0].startsWith("url") ? TEXT_BACKGROUNDS[post.text_bg_index || 0] : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
                                          <p className="text-center text-white text-2xl font-black">{post.content || post.texte}</p>
-                                         <div className="absolute bottom-4 right-4 text-white/50 text-xs font-black tracking-widest">NXA</div>
+                                         <div className="absolute bottom-4 right-4 text-white/50 text-xs font-black tracking-widest">NAX</div>
                                      </div>
                                  ) : (
                                      <>
@@ -498,7 +498,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                                                          <div className="flex-1">
                                                              <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl rounded-tl-none">
                                                                  <div className="flex justify-between items-start mb-1">
-                                                                     <span className="text-xs font-bold text-black dark:text-white">{c.profiles?.full_name || 'Membre NXA'}</span>
+                                                                     <span className="text-xs font-bold text-black dark:text-white">{c.profiles?.full_name || 'Membre NAX'}</span>
                                                                      <span className="text-[10px] text-zinc-400">{new Date(c.created_at).toLocaleDateString()}</span>
                                                                  </div>
                                                                  <p className="text-sm text-zinc-700 dark:text-zinc-300">{c.content}</p>
