@@ -1304,7 +1304,7 @@ export default function NutritionDashboard() {
 
       // Effet sonore de gain d'XP (sauf si on vient de level up pour ne pas superposer les sons)
       if (!leveledUp) {
-          const xpAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3");
+          const xpAudio = new Audio("https://res.cloudinary.com/dtr2wtoty/video/upload/v1731671911/1435-preview_bzvow1.mp3");
           xpAudio.volume = 0.4;
           xpAudio.play().catch(()=>{});
       }
@@ -2240,15 +2240,13 @@ export default function NutritionDashboard() {
       water_glasses: newAmount,
       calories_consumed: calories,
       proteins_consumed: proteins,
-      carbs_consumed: carbs,
-      fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
     }, { onConflict: 'user_id, log_date' });
 
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
       const existing = prev.find(l => l.log_date === todayStr) || {};
-      return [...filtered, { ...existing, user_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins, carbs_consumed: carbs, fats_consumed: fats }];
+      return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins }];
     });
   };
 
@@ -2401,8 +2399,6 @@ export default function NutritionDashboard() {
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-            carbs_consumed: newCarbs,
-            fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
           }, { onConflict: 'user_id, log_date' });
@@ -2432,8 +2428,6 @@ export default function NutritionDashboard() {
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-            carbs_consumed: newCarbs,
-            fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
           }, { onConflict: 'user_id, log_date' });
@@ -3018,9 +3012,7 @@ export default function NutritionDashboard() {
        report_data: { ...reportData, consumedMeals, moods, moodNotes },
        water_glasses: waterGlasses,
        calories_consumed: currentCals || 0,
-       proteins_consumed: currentProts || 0,
-       carbs_consumed: carbs || 0,
-       fats_consumed: fats || 0
+       proteins_consumed: currentProts || 0
     };
 
     if (!navigator.onLine) {
@@ -3051,7 +3043,7 @@ export default function NutritionDashboard() {
        const updatedLog = { user_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== selectedReportDate), updatedLog]);
     } catch (err: any) {
-       alert("Erreur lors de l'enregistrement : " + err.message + "\nVeuillez vérifier que les colonnes carbs_consumed et fats_consumed existent dans nutrition_daily_logs.");
+       alert("Erreur lors de l'enregistrement : " + err.message);
     } finally {
        setIsSubmittingReport(false);
     }
@@ -3401,10 +3393,8 @@ const currentHour = new Date().getHours();
            report_data: { ...reportData, consumedMeals, moods, moodNotes },
            water_glasses: waterGlasses,
            calories_consumed: calories,
-           proteins_consumed: proteins,
-           carbs_consumed: carbs,
-           fats_consumed: fats
-         }, { onConflict: 'user_id, log_date' });
+           proteins_consumed: proteins
+         }, { onConflict: 'client_id, log_date' });
          alert("Notes et humeurs du jour sauvegardées !");
      } catch(e) {
          alert("Erreur de sauvegarde.");
