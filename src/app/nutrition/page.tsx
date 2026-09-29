@@ -180,7 +180,7 @@ const SHOP_DATA = [
     "categorie_nom": "Infusions & Détox (Zéro Sucre)",
     "slug": "infusions-detox",
     "produits": [
-      { "id": "prod_006", "nom": "Bissap Rouge Séché (250g)", "description_courte": "Le diurétique naturel par excellence. Grandes fleurs de qualité.", "description_longue": "Infusez à froid ou à chaud sans sucre. Aide à combattre la rétention d'eau et à dégonfler le ventre rapidement.", "prix_standard": 2000, "prix_premium": 1600, "stock": 200, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563472/A_high-end_modern_promotional_poster_202604301536_c7cpzr.jpg", "badge": "Détox", "goal": "detox" },
+      { "id": "prod_006", "nom": "Bissap Rouge Séché (250g)", "description_courte": "Le diurétique naturel par excellence. Grandes fleurs de qualité.", "description_longue": "Infusez à froid ou à chaud sans sucre. Aide à combattre la rétention d&apos;eau et à dégonfler le ventre rapidement.", "prix_standard": 2000, "prix_premium": 1600, "stock": 200, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563472/A_high-end_modern_promotional_poster_202604301536_c7cpzr.jpg", "badge": "Détox", "goal": "detox" },
       { "id": "prod_009", "nom": "Thé Vert Ataya Spécial (200g)", "description_courte": "Les feuilles pures pour un Ataya brûle-graisse.", "description_longue": "Remplacez le thé bas de gamme. Un thé vert riche en antioxydants (EGCG) conçu pour être bu sans sucre.", "prix_standard": 3500, "prix_premium": 2900, "stock": 90, "rating": 4.6, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563485/A_futuristic_and_modern_graphic_202604301528_kon2vz.jpg", "badge": "Ventre Plat", "goal": "detox" }
     ]
   },
@@ -196,7 +196,7 @@ const SHOP_DATA = [
     "categorie_nom": "Équipements",
     "slug": "equipements",
     "produits": [
-      { "id": "prod_016", "nom": "Gourde Motivante 'Jongoma'", "description_courte": "Atteignez votre quota d'eau avec style (1.5L).", "description_longue": "Marqueurs de temps imprimés pour vous rappeler de boire de l'eau fraîche toute la journée. Design Vert Néon.", "prix_standard": 7000, "prix_premium": 5500, "stock": 150, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", "badge": "Best Seller", "goal": "cooking" }
+      { "id": "prod_016", "nom": "Gourde Motivante 'Jongoma'", "description_courte": "Atteignez votre quota d&apos;eau avec style (1.5L).", "description_longue": "Marqueurs de temps imprimés pour vous rappeler de boire de l'eau fraîche toute la journée. Design Vert Néon.", "prix_standard": 7000, "prix_premium": 5500, "stock": 150, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", "badge": "Best Seller", "goal": "cooking" }
     ]
   }
 ];
@@ -582,7 +582,7 @@ export default function NutritionDashboard() {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
        navigator.serviceWorker.ready.then(registration => {
           registration.showNotification("💧 C'est l'heure de s'hydrater !", {
-             body: "N'oublie pas de boire ton verre d'eau pour atteindre ton objectif aujourd'hui. Ton métabolisme te dira merci !",
+             body: "N'oublie pas de boire ton verre d&apos;eau pour atteindre ton objectif aujourd'hui. Ton métabolisme te dira merci !",
              icon: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
              badge: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
              vibrate: [200, 100, 200]
@@ -804,7 +804,7 @@ export default function NutritionDashboard() {
        const offlineLogs = JSON.parse(localStorage.getItem('onyx_offline_daily_logs') || '[]');
        if (offlineLogs.length > 0) {
            for (const log of offlineLogs) {
-              await supabase.from('nutrition_daily_logs').upsert(log, { onConflict: 'user_id, log_date' });
+              await supabase.from('nutrition_daily_logs').upsert(log, { onConflict: 'client_id, log_date' });
            }
            localStorage.removeItem('onyx_offline_daily_logs');
            setToastMessage("Mode PWA : Vos bilans hors-ligne ont été synchronisés !");
@@ -1037,7 +1037,7 @@ export default function NutritionDashboard() {
 
           // Fetch follower count & related notifications conditionally
           if (activeProfile.id) {
-              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, profiles!actor_id(id, full_name, avatar_url)').eq('user_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
+              const { data: myNotifs } = await supabase.from('nutrition_notifications').select('*, profiles!actor_id(id, full_name, avatar_url)').eq('client_id', activeProfile.id).order('created_at', { ascending: false }).limit(20);
               if (myNotifs) setNotifications(myNotifs);
           }
 
@@ -1051,7 +1051,7 @@ export default function NutritionDashboard() {
           const { data: logsData } = await supabase
             .from('nutrition_daily_logs')
             .select('*')
-            .eq('user_id', activeProfile.id)
+            .eq('client_id', activeProfile.id)
             .order('log_date', { ascending: true });
 
           if (logsData) {
@@ -1091,7 +1091,7 @@ export default function NutritionDashboard() {
              const { data } = await supabase
                .from('nutrition_profiles')
                .select('*')
-               .eq('user_id', activeProfile.id)
+               .eq('client_id', activeProfile.id)
                .maybeSingle();
              nutritionData = data;
           } catch(e) {
@@ -1132,7 +1132,7 @@ export default function NutritionDashboard() {
           }
 
           // Récupérer le poids
-          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('user_id', activeProfile.id).order('log_date', { ascending: true });
+          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
 
           let fetchedLogs = wLogs || [];
           const diagCurrentWeight = nutritionData?.diagnostic_data?.currentWeight;
@@ -1164,7 +1164,7 @@ export default function NutritionDashboard() {
           if (activeProfile.address) setDeliveryAddress(activeProfile.address);
 
           // Fetch des commandes du client
-          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('user_id', activeProfile.id).order('created_at', { ascending: false });
+          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
           if (ordersData) setClientOrders(ordersData);
           } // Fin if (activeProfile.id)
 
@@ -1298,15 +1298,15 @@ export default function NutritionDashboard() {
 
       setJongomaXP(newXP);
       if (clientProfile) {
-         await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('client_id', clientProfile.id);
       }
       setXpAnimation({ amount, reason, id: Date.now() });
 
       // Effet sonore de gain d'XP (sauf si on vient de level up pour ne pas superposer les sons)
       if (!leveledUp) {
-          const xpAudio = new Audio("https://res.cloudinary.com/dtr2wtoty/video/upload/v1731671911/1435-preview_bzvow1.mp3");
-          xpAudio.volume = 0.4;
-          xpAudio.play().catch(()=>{});
+          // const xpAudio = new Audio("/assets/sounds/1435-preview.mp3");
+          // xpAudio.volume = 0.4;
+          // xpAudio.play().catch(()=>{});
       }
   };
 
@@ -1397,7 +1397,7 @@ export default function NutritionDashboard() {
                     isFood: true,
                     is_from_off: true,
                     message_coach_ia: (p.nutriments?.sugars_100g > 15) ? `Alerte Sucre (${p.nutriments.sugars_100g}g/100g) ! Attention aux pics d'insuline. Privilégiez des alternatives naturelles.` :
-                                      (p.nutriments?.sodium_100g > 0.6) ? `Trop salé ! Risque de rétention d'eau. Remplacez-le par du Soumbala brut.` :
+                                      (p.nutriments?.sodium_100g > 0.6) ? `Trop salé ! Risque de rétention d&apos;eau. Remplacez-le par du Soumbala brut.` :
                                       (p.nova_group === 4) ? `Produit ultra-transformé. À limiter fortement pour garder un ventre plat.` :
                                       (p.nutriments?.proteins_100g > 15) ? `Excellente source de protéines (${p.nutriments.proteins_100g}g) pour la satiété !` :
                                       `Produit industriel. Essaie de trouver une alternative brute (ex: fruits frais, oléagineux locaux).`
@@ -1770,7 +1770,7 @@ export default function NutritionDashboard() {
       setWeeklyGeneratedMenu(newMenu);
       if (clientProfile) {
          const safeMenu = JSON.parse(JSON.stringify(newMenu));
-         await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
       }
   };
 
@@ -1862,7 +1862,7 @@ export default function NutritionDashboard() {
           setWeeklyGeneratedMenu(updatedMenu);
           if (clientProfile) {
              const safeMenu = JSON.parse(JSON.stringify(updatedMenu));
-             await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('user_id', clientProfile.id);
+             await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
           }
       } else {
           alert("Aucune alternative disponible pour ce type de repas dans la base de données.");
@@ -2002,7 +2002,7 @@ export default function NutritionDashboard() {
               // Extract phone from diagData so it doesn't get inserted into diagnostic_data column causing 500
               const { phone, ...cleanDiagData } = diagData;
               const payload = {
-                  user_id: clientProfile.id,
+                  client_id: clientProfile.id,
                   daily_calorie_goal: results.calories,
                   carbs_goal: results.carbs,
                   protein_goal: results.protein,
@@ -2014,7 +2014,7 @@ export default function NutritionDashboard() {
                   }
               };
               console.log("Payload du diagnostic (Espace Client):", payload);
-              const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'user_id' });
+              const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
               if (error) {
                  alert("Erreur SQL lors de l'enregistrement : " + error.message);
                  throw error;
@@ -2080,7 +2080,7 @@ export default function NutritionDashboard() {
       setExcludedIngredients(prev => {
           const newEx = prev.includes(nom) ? prev.filter(i => i !== nom) : [...prev, nom];
           if (clientProfile) {
-              supabase.from('nutrition_profiles').update({ excluded_ingredients: newEx }).eq('user_id', clientProfile.id);
+              supabase.from('nutrition_profiles').update({ excluded_ingredients: newEx }).eq('client_id', clientProfile.id);
           }
           return newEx;
       });
@@ -2157,7 +2157,7 @@ export default function NutritionDashboard() {
 
           const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: fileUrl }, ...pdfHistory];
           setPdfHistory(newHistory);
-          await supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('user_id', clientProfile.id);
+          await supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
 
           const text = `Bonjour ! Voici ma liste de courses de la semaine générée par OnyxNutrition 🛒🥦 :\n\n${fileUrl}`;
           window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -2203,7 +2203,7 @@ export default function NutritionDashboard() {
       const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: null }, ...pdfHistory];
       setPdfHistory(newHistory);
       if (clientProfile) {
-          supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('user_id', clientProfile.id);
+          supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
       }
   };
 
@@ -2217,7 +2217,7 @@ export default function NutritionDashboard() {
     setWaterGlasses(newAmount);
 
     if (waterGlasses === 7 && newAmount === 8) {
-        updateXP(5, "Objectif d'eau quotidien atteint !");
+        updateXP(5, "Objectif d&apos;eau quotidien atteint !");
     }
 
     // Vérification de la complétion des jauges
@@ -2234,14 +2234,14 @@ export default function NutritionDashboard() {
 
     await supabase.from('nutrition_daily_logs').upsert({
       ...(todayLog?.id ? { id: todayLog.id } : {}),
-      user_id: clientProfile.id,
+      client_id: clientProfile.id,
       tenant_id: clientProfile.tenant_id || null,
       log_date: todayStr,
       water_glasses: newAmount,
       calories_consumed: calories,
       proteins_consumed: proteins,
       report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-    }, { onConflict: 'user_id, log_date' });
+    }, { onConflict: 'client_id, log_date' });
 
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
@@ -2394,14 +2394,14 @@ export default function NutritionDashboard() {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
             ...(todayLog?.id ? { id: todayLog.id } : {}),
-            user_id: clientProfile.id,
+            client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
-          }, { onConflict: 'user_id, log_date' });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -2423,14 +2423,14 @@ export default function NutritionDashboard() {
           const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
             ...(todayLog?.id ? { id: todayLog.id } : {}),
-            user_id: clientProfile.id,
+            client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          }, { onConflict: 'user_id, log_date' });
+          }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -2472,7 +2472,7 @@ export default function NutritionDashboard() {
               },
               flags_ia: { is_local_senegal: false, ig_bas: (nutriments.carbohydrates_100g < 15), high_sodium: (nutriments.sodium_100g > 0.6), ultra_transforme: product.nova_group === 4 || true },
               message_coach_ia: (nutriments.sugars_100g > 15) ? `Alerte Sucre (${nutriments.sugars_100g}g/100g) ! Attention aux pics d'insuline. Privilégiez des alternatives naturelles.` :
-                                (nutriments.sodium_100g > 0.6) ? `Trop salé ! Risque de rétention d'eau. Remplacez-le par du Soumbala brut.` :
+                                (nutriments.sodium_100g > 0.6) ? `Trop salé ! Risque de rétention d&apos;eau. Remplacez-le par du Soumbala brut.` :
                                 (product.nova_group === 4) ? `Produit ultra-transformé. À limiter fortement pour garder un ventre plat.` :
                                 (nutriments.proteins_100g > 15) ? `Excellente source de protéines (${nutriments.proteins_100g}g) pour la satiété !` :
                                 `Produit industriel scanné via OpenFoodFacts. Ajoutez-le à votre journal.`
@@ -2542,7 +2542,7 @@ export default function NutritionDashboard() {
           setFoodUnit("portion");
           setFoodSearchQuery("Plat scanné via IA");
       } catch (err) {
-          alert("Erreur lors de l'analyse de l'image.");
+          alert("Erreur lors de l&apos;analyse de l'image.");
       } finally {
           setIsPhotoScanning(false);
           if (photoInputRef.current) photoInputRef.current.value = '';
@@ -2583,12 +2583,12 @@ export default function NutritionDashboard() {
 
       if (clientProfile) {
           const payload = {
-            user_id: clientProfile.id,
+            client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             weight: newWeight
           };
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload as any, { onConflict: 'user_id, log_date' });
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload as any, { onConflict: 'client_id, log_date' });
 
           if (insertErr) {
               alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
@@ -2599,14 +2599,14 @@ export default function NutritionDashboard() {
               ...(clientProfile.diagnostic_data || {}),
               currentWeight: newWeight.toString()
           };
-          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('user_id', clientProfile.id);
+          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
           setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
       }
 
       if (newWeight < prevWeight) {
           setCoachFeedback({ type: 'success', text: "🎉 Félicitations ! La méthode fonctionne, tes efforts paient de manière incroyable. Continue comme ça !" });
       } else if (newWeight > prevWeight) {
-          setCoachFeedback({ type: 'warning', text: "🌱 Ne t'en fais pas ! Une légère hausse est souvent due à de la rétention d'eau. Zéro culpabilité, on garde le cap avec ton Sama Menu !" });
+          setCoachFeedback({ type: 'warning', text: "🌱 Ne t'en fais pas ! Une légère hausse est souvent due à de la rétention d&apos;eau. Zéro culpabilité, on garde le cap avec ton Sama Menu !" });
       } else {
           setCoachFeedback({ type: 'neutral', text: "⚖️ Stabilité parfaite ! Ton corps consolide ses acquis. Reste constante !" });
       }
@@ -2624,7 +2624,7 @@ export default function NutritionDashboard() {
         const { error } = await supabase
             .from('nutrition_weight_logs')
             .delete()
-            .eq('user_id', clientProfile.id)
+            .eq('client_id', clientProfile.id)
             .eq('log_date', logDate);
 
         if (error) throw error;
@@ -2836,7 +2836,7 @@ export default function NutritionDashboard() {
       try {
           await supabase.from('nutrition_challenge_participants').insert({
               challenge_id: activeChallenge.id,
-              user_id: clientProfile.id
+              client_id: clientProfile.id
           });
       } catch (err) {
           console.warn("Erreur inscription challenge", err);
@@ -3006,7 +3006,7 @@ export default function NutritionDashboard() {
 
     const payload = {
        ...(targetLog?.id ? { id: targetLog.id } : {}),
-       user_id: clientProfile.id,
+       client_id: clientProfile.id,
        tenant_id: clientProfile.tenant_id || null,
        log_date: selectedReportDate,
        report_data: { ...reportData, consumedMeals, moods, moodNotes },
@@ -3030,7 +3030,7 @@ export default function NutritionDashboard() {
     }
 
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'user_id, log_date' });
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
 
        if (error) throw error;
 
@@ -3040,7 +3040,7 @@ export default function NutritionDashboard() {
        audio.volume = 0.5;
        audio.play().catch(()=>{});
        setShowDailyReport(false);
-       const updatedLog = { user_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       const updatedLog = { client_id: clientProfile.id, log_date: selectedReportDate, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== selectedReportDate), updatedLog]);
     } catch (err: any) {
        alert("Erreur lors de l'enregistrement : " + err.message);
@@ -3087,7 +3087,7 @@ export default function NutritionDashboard() {
 
       await supabase.from('nutrition_profiles').update({
           diagnostic_data: updatedDiagData
-      }).eq('user_id', clientProfile.id);
+      }).eq('client_id', clientProfile.id);
 
       // 4. Update local state
       setUser({ ...user, full_name, avatar_url: profileForm.avatar_url });
@@ -3141,7 +3141,7 @@ export default function NutritionDashboard() {
      // Also `phone` column doesn't exist in `nutrition_profiles`. Use client_id.
      if (clientProfile?.id) {
          const updatedDiag = { ...(clientProfile.diagnostic_data || {}), tracking_mode: mode };
-         await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiag }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiag }).eq('client_id', clientProfile.id);
          setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiag } : prev);
      }
   };
@@ -3151,7 +3151,7 @@ export default function NutritionDashboard() {
      setIsFastingMode(newMode);
      if (clientProfile) {
          const newDiag = { ...clientProfile.diagnostic_data, fasting_mode: newMode };
-         await supabase.from('nutrition_profiles').update({ diagnostic_data: newDiag }).eq('user_id', clientProfile.id);
+         await supabase.from('nutrition_profiles').update({ diagnostic_data: newDiag }).eq('client_id', clientProfile.id);
      }
      alert(newMode ? "Mode Jeûne Intermittent activé. Votre menu va être recalculé sans petit-déjeuner." : "Mode Jeûne désactivé. Le petit-déjeuner est de retour !");
      generateWeeklyMenu(newMode);
@@ -3159,7 +3159,7 @@ export default function NutritionDashboard() {
 
   const handleExpertModeChange = async (mode: boolean) => {
       setIsExpertMode(mode);
-      if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('user_id', clientProfile.id);
+      if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('client_id', clientProfile.id);
   };
 
 
@@ -3207,7 +3207,7 @@ export default function NutritionDashboard() {
       setAllRecipesDB(prev => prev.map(r => r.nom === mealName ? { ...r, likes: Math.max(0, (r.likes || 0) + increment) } : r));
 
       if (clientProfile) {
-          await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('user_id', clientProfile.id);
+          await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('client_id', clientProfile.id);
       }
 
       // Mise à jour du compteur global de likes en base de données
@@ -3260,7 +3260,7 @@ const currentHour = new Date().getHours();
   let greetingSubtext = "Prête pour ta journée ?";
   if (isMorning) {
     if (waterGlasses < 2) {
-      greetingSubtext = "N'oublie pas de boire tes premiers verres d'eau ! 💧";
+      greetingSubtext = "N'oublie pas de boire tes premiers verres d&apos;eau ! 💧";
     } else {
       greetingSubtext = "Super début de journée ! Continue comme ça. ☀️";
     }
@@ -3387,7 +3387,7 @@ const currentHour = new Date().getHours();
          const todayLog = dailyLogs.find(l => l.log_date === todayStr);
          await supabase.from('nutrition_daily_logs').upsert({
            ...(todayLog?.id ? { id: todayLog.id } : {}),
-           user_id: clientProfile.id,
+           client_id: clientProfile.id,
            tenant_id: clientProfile.tenant_id || null,
            log_date: todayStr,
            report_data: { ...reportData, consumedMeals, moods, moodNotes },
@@ -3600,7 +3600,7 @@ const handleToggleComments = async (postId: string) => {
   // Dummy functions to prevent ReferenceErrors
   const setShowFoodSearch = (val: any) => console.log('setShowFoodSearch', val);
 
-// @ts-ignore
+// @ts-expect-error
   const tabProps = {
     today,
     todayStr,
@@ -4687,7 +4687,7 @@ const handleToggleComments = async (postId: string) => {
                      {reportData.followedMenu && <Check size={14} className="text-black font-bold"/>}
                   </div>
                   <input type="checkbox" className="hidden" checked={reportData.followedMenu} onChange={(e) => setReportData({...reportData, followedMenu: e.target.checked})} />
-                  <span className="text-sm font-black text-black">J'AI RESPECTÉ 80% DU MENU</span>
+                  <span className="text-sm font-black text-black">J&apos;AI RESPECTÉ 80% DU MENU</span>
                </label>
 
                {/* Checkbox 2: Eau */}
@@ -4696,7 +4696,7 @@ const handleToggleComments = async (postId: string) => {
                      {reportData.drankWater && <Check size={14} className="text-black font-bold"/>}
                   </div>
                   <input type="checkbox" className="hidden" checked={reportData.drankWater} onChange={(e) => setReportData({...reportData, drankWater: e.target.checked})} />
-                  <span className="text-sm font-black text-black">J'AI BU MON OBJECTIF D'EAU</span>
+                  <span className="text-sm font-black text-black">J&apos;AI BU MON OBJECTIF D&apos;EAU</span>
                </label>
 
                {/* Checkbox 3: Sucre */}
@@ -4705,7 +4705,7 @@ const handleToggleComments = async (postId: string) => {
                      {reportData.cravedRice && <Check size={14} className="text-black font-bold"/>}
                   </div>
                   <input type="checkbox" className="hidden" checked={reportData.cravedRice} onChange={(e) => setReportData({...reportData, cravedRice: e.target.checked})} />
-                  <span className="text-sm font-black text-black">J'AI FAIT UN ÉCART DE SUCRE</span>
+                  <span className="text-sm font-black text-black">J&apos;AI FAIT UN ÉCART DE SUCRE</span>
                </label>
             </div>
 
@@ -4756,6 +4756,26 @@ const handleToggleComments = async (postId: string) => {
 
 
       {/* MODALE REFAIRE LE DIAGNOSTIC (ROKHY) */}
+      {/* MODALE DE PAIEMENT */}
+      {showPaymentModal && (
+        <div id="payment-modal-overlay" onClick={(e: any) => { if(e.target.id === "payment-modal-overlay") setShowPaymentModal(false); }} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white p-8 rounded-[2rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 flex flex-col items-center text-center">
+             <button onClick={() => setShowPaymentModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+             <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center mb-6 relative">
+                 <CreditCard size={40} className="text-black" />
+             </div>
+             <h3 className="text-2xl font-black uppercase text-black mb-2 tracking-tighter">Abonnement</h3>
+             <p className="text-sm font-bold text-zinc-500 mb-8">Prolonge ton abonnement Premium pour continuer à profiter de toutes les fonctionnalités de l&apos;application !</p>
+             <div className="w-full space-y-3">
+                 <button onClick={handleProcessPayment} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-[0_0_30px_rgba(57,255,20,0.4)] animate-pulse flex justify-center items-center gap-2">
+                     Payer 30 jours
+                 </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+
       {showRedoDiagModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white p-6 sm:p-8 rounded-[2rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 max-h-[90vh] flex flex-col overflow-hidden">
@@ -4918,7 +4938,7 @@ const handleToggleComments = async (postId: string) => {
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 flex items-center gap-2">
                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675093/3_topvyj.png" className="w-8 h-8"/>
-                           Combien d'heures de sommeil avez-vous chaque nuit ?
+                           Combien d&apos;heures de sommeil avez-vous chaque nuit ?
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                           {['Moins de 5h', '6-7h', '8h ou plus'].map(hours => (
@@ -4994,7 +5014,7 @@ const handleToggleComments = async (postId: string) => {
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 flex items-center gap-2">
                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675042/2_maewiy.png" className="w-8 h-8"/>
-                           Quelle quantité d'eau consommez-vous ?
+                           Quelle quantité d&apos;eau consommez-vous ?
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                           {['Moins de 50cl', '1L', 'Plus de 1.5L'].map(vol => (
@@ -5051,7 +5071,7 @@ const handleToggleComments = async (postId: string) => {
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 flex items-center gap-2">
                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782675091/sauce_gmyero.png" className="w-8 h-8"/>
-                           Quel est l'élément principal de vos repas ?
+                           Quel est l&apos;élément principal de vos repas ?
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                           {['Féculents lourds (Foufou, Tô)', 'Riz/Céréales', 'Sauces riches', 'Protéines/Légumes'].map(element => (
@@ -5199,7 +5219,7 @@ const handleToggleComments = async (postId: string) => {
             return (
                 <div className="w-full">
                     <h2 className="text-2xl md:text-3xl font-black uppercase mb-2 text-black">Vos Objectifs Validés</h2>
-                    <p className="text-sm font-medium text-zinc-500 mb-8 max-w-lg mx-auto">Voici l'analyse complète de votre profil de départ.</p>
+                    <p className="text-sm font-medium text-zinc-500 mb-8 max-w-lg mx-auto">Voici l&apos;analyse complète de votre profil de départ.</p>
 
                     {/* Grille Principale à 4 Colonnes */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -5314,7 +5334,7 @@ const handleToggleComments = async (postId: string) => {
                           </div>
                       </div>
                       <h3 className="font-black text-2xl uppercase tracking-tighter text-black dark:text-white mb-2">Excellent choix !</h3>
-                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Pour atteindre vos objectifs plus vite, le coach vous recommande de l'associer avec :</p>
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Pour atteindre vos objectifs plus vite, le coach vous recommande de l&apos;associer avec :</p>
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6 space-y-4">
