@@ -13,6 +13,39 @@ export default function DashboardTab2({ ...tabProps }: any) {
   return (
     <>
 
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
+            <div>
+              {isOffline && (
+                 <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
+              )}
+              <h1 className={`${spaceGrotesk.className} text-[2.5rem] md:text-4xl font-black uppercase tracking-tighter text-black`}>
+                {greetingText}, <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+              </h1>
+              <p className="text-zinc-500 font-bold text-sm mt-1">{greetingSubtext}</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+               <div className={`flex items-center gap-3 bg-white p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-200 shadow-sm'} cursor-pointer hover:border-[#39FF14] transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
+                  <div className={`w-12 h-12 flex items-center justify-center ${xpAnimation ? 'animate-pulse' : ''}`}>
+                  <img src={lvlInfo.badgeUrl} alt={lvlInfo.name} className="w-full h-full object-contain drop-shadow-md" />
+               </div>
+                  <div>
+                     <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Niveau : <span className="text-zinc-800">{lvlInfo.name}</span></p>
+                     <p className="text-black text-xs font-black">{jongomaXP} XP</p>
+                  </div>
+               </div>
+               <div className="bg-white border border-zinc-200 p-2 pr-4 rounded-2xl flex items-center gap-3 shadow-sm cursor-pointer hover:border-[#39FF14] transition-colors" onClick={() => setShowPaymentModal(true)}>
+                 <div className="bg-black border border-zinc-800 p-2.5 rounded-xl flex items-center justify-center">
+                    <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={20} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Abonnement</p>
+                    <p className="text-xs font-black text-black"><strong className={daysLeft > 0 ? "text-green-600" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours restants` : 'Expiré'}</strong></p>
+                 </div>
+               </div>
+            </div>
+          </div>
+
           <BentoDashboardView
               user={user}
               waterGlasses={waterGlasses}

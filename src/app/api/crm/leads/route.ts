@@ -132,4 +132,4 @@ export async function POST(request: Request) {
     console.error("Erreur POST Lead:", error.message);
     return NextResponse.json({ error: "Erreur lors de la création du lead." }, { status: 500 });
   }
-}
+}export const dynamic = 'force-dynamic';

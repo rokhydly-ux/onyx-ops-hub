@@ -1086,14 +1086,16 @@ export default function NutritionDashboard() {
             }
           }
 
-          // Removed unused nutrition_profiles fetch to avoid 400 error as per user instructions
+          // Fetch nutrition profile using client_id
           let nutritionData = null;
           try {
-             const { data } = await supabase
+             const { data, error } = await supabase
                .from('nutrition_profiles')
                .select('*')
                .eq('client_id', activeProfile.id)
                .maybeSingle();
+
+             if (error) throw error;
              nutritionData = data;
           } catch(e) {
              console.error('Ignored nutrition_profiles fetch error', e);
@@ -1319,31 +1321,55 @@ export default function NutritionDashboard() {
   };
 
   const fetchLeaderboard = async () => {
-    const { data } = await supabase
-      .from('nutrition_profiles')
-      .select('jongoma_xp, client:profiles!user_id(id, full_name, avatar_url)')
-      .order('jongoma_xp', { ascending: false, nullsFirst: false })
-      .limit(10);
+    try {
+        const { data: topProfiles, error: profilesError } = await supabase
+            .from('nutrition_profiles')
+            .select('client_id, jongoma_xp')
+            .order('jongoma_xp', { ascending: false, nullsFirst: false })
+            .limit(10);
 
-    if (data && data.length > 0) {
-        const formattedData = data.map(d => ({
-            id: (d.client as any)?.id,
-            full_name: (d.client as any)?.full_name || 'Membre',
-            avatar_url: (d.client as any)?.avatar_url,
-            xp: d.jongoma_xp || 0
-        })).filter(d => d.id);
+        if (profilesError) throw profilesError;
 
-        if (clientProfile && !formattedData.some(d => d.id === clientProfile.id)) {
-           formattedData.push({
-               id: clientProfile.id,
-               full_name: user?.full_name || 'Moi',
-               avatar_url: user?.avatar_url,
-               xp: jongomaXP
-           });
-           formattedData.sort((a: any, b: any) => b.xp - a.xp);
+        if (topProfiles && topProfiles.length > 0) {
+            const clientIds = topProfiles.map(p => p.client_id).filter(Boolean);
+            let usersData: any[] = [];
+
+            if (clientIds.length > 0) {
+                const { data: users, error: usersError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, avatar_url')
+                    .in('id', clientIds);
+
+                if (!usersError && users) {
+                    usersData = users;
+                }
+            }
+
+            const formattedData = topProfiles.map(d => {
+                const userObj = usersData.find(u => u.id === d.client_id) || {};
+                return {
+                    id: d.client_id,
+                    full_name: userObj.full_name || 'Membre',
+                    avatar_url: userObj.avatar_url,
+                    xp: d.jongoma_xp || 0
+                };
+            }).filter(d => d.id);
+
+            if (clientProfile && clientProfile.id && !formattedData.some(d => d.id === clientProfile.id)) {
+                formattedData.push({
+                    id: clientProfile.id,
+                    full_name: user?.full_name || 'Moi',
+                    avatar_url: user?.avatar_url,
+                    xp: jongomaXP
+                });
+                formattedData.sort((a: any, b: any) => b.xp - a.xp);
+            }
+            setLeaderboardData(formattedData);
+        } else {
+            throw new Error("No data"); // Fallback to mock data below
         }
-        setLeaderboardData(formattedData);
-    } else {
+    } catch (error) {
+        console.error("Error fetching leaderboard:", error);
         const mockData = [
             { id: "1", full_name: "Fatou Diop", xp: 2450 },
             { id: "2", full_name: "Aïcha Sy", xp: 1800 },
@@ -1356,8 +1382,8 @@ export default function NutritionDashboard() {
   };
 
   const openLeaderboard = () => {
-    fetchLeaderboard();
     setShowLeaderboard(true);
+    fetchLeaderboard();
   };
 
   // Système de relance automatique (Notification à 20h00)
