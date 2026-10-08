@@ -604,6 +604,7 @@ export default function NutritionDashboard() {
   const [newPostText, setNewPostText] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<'weekly' | 'general'>('weekly');
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [newPostVideo, setNewPostVideo] = useState<string | null>(null);
   const [postMode, setPostMode] = useState<'normal' | 'text_only'>('normal');
@@ -1345,39 +1346,31 @@ export default function NutritionDashboard() {
                 }
             }
 
-            const formattedData = topProfiles.map(d => {
+            let formattedData = topProfiles.map(d => {
                 const userObj = usersData.find(u => u.id === d.client_id) || {};
+
+                // Fallback to client full name if profile is not synced or found
+                let finalFullName = userObj.full_name;
+                if (!finalFullName && d.client_id === clientProfile?.id) {
+                    finalFullName = clientProfile?.full_name || user?.full_name;
+                }
+
                 return {
                     id: d.client_id,
-                    full_name: userObj.full_name || 'Membre',
+                    full_name: finalFullName || 'Membre',
                     avatar_url: userObj.avatar_url,
                     xp: d.jongoma_xp || 0
                 };
             }).filter(d => d.id);
 
-            if (clientProfile && clientProfile.id && !formattedData.some(d => d.id === clientProfile.id)) {
-                formattedData.push({
-                    id: clientProfile.id,
-                    full_name: user?.full_name || 'Moi',
-                    avatar_url: user?.avatar_url,
-                    xp: jongomaXP
-                });
-                formattedData.sort((a: any, b: any) => b.xp - a.xp);
-            }
+            formattedData.sort((a: any, b: any) => b.xp - a.xp);
             setLeaderboardData(formattedData);
         } else {
-            throw new Error("No data"); // Fallback to mock data below
+            setLeaderboardData([]);
         }
     } catch (error) {
         console.error("Error fetching leaderboard:", error);
-        const mockData = [
-            { id: "1", full_name: "Fatou Diop", xp: 2450 },
-            { id: "2", full_name: "Aïcha Sy", xp: 1800 },
-            { id: "3", full_name: "Ndeye Ndiaye", xp: 1200 },
-        ];
-        if (user) mockData.push({ id: user.id || "4", full_name: user.full_name || "Moi", xp: jongomaXP });
-        mockData.sort((a, b) => b.xp - a.xp);
-        setLeaderboardData(mockData);
+        setLeaderboardData([]);
     }
   };
 
@@ -4459,7 +4452,6 @@ const handleToggleComments = async (postId: string) => {
       <div className="w-full max-w-7xl mx-auto px-6 mt-12 space-y-12">
 
                 {activeTab === 'minute-doc' && (<MinuteDocTab {...tabProps} />)}
-                {activeTab === 'dashboard' && (<DashboardTab1 {...tabProps} />)}
                 {activeTab === 'dashboard' && (<DashboardTab2 {...tabProps} />)}
                 {activeTab === 'today' && (<TodayTab {...tabProps} />)}
                 {activeTab === 'week' && (<WeekTab {...tabProps} />)}
@@ -4795,8 +4787,8 @@ const handleToggleComments = async (postId: string) => {
                 <h3 className="text-2xl font-black uppercase text-white tracking-tighter mb-4">Classement</h3>
 
                 <div className="flex items-center bg-black/30 rounded-full p-1 border border-[#39FF14]/20 mb-2">
-                   <button className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">Cette Semaine</button>
-                   <button className="text-zinc-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:text-white transition-colors">Général</button>
+                   <button onClick={() => setLeaderboardPeriod('weekly')} className={`${leaderboardPeriod === 'weekly' ? 'bg-[#39FF14] text-black font-black' : 'text-zinc-400 font-bold hover:text-white'} px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest transition-colors`}>Cette Semaine</button>
+                   <button onClick={() => setLeaderboardPeriod('general')} className={`${leaderboardPeriod === 'general' ? 'bg-[#39FF14] text-black font-black' : 'text-zinc-400 font-bold hover:text-white'} px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest transition-colors`}>Général</button>
                 </div>
 
                 {/* PODIUM 3D */}
