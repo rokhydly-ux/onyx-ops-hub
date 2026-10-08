@@ -4782,6 +4782,110 @@ const handleToggleComments = async (postId: string) => {
       )}
 
 
+      {/* MODALE LEADERBOARD (PODIUM) */}
+      {showLeaderboard && (
+          <div id="leaderboard-modal-overlay" onClick={(e: any) => { if (e.target.id === 'leaderboard-modal-overlay') setShowLeaderboard(false); }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="max-w-md w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col bg-[#052e16] animate-in zoom-in-95 mx-4 max-h-[90vh]">
+
+              {/* PARTIE HAUTE */}
+              <div className="relative p-6 pb-0 flex-shrink-0 flex flex-col items-center">
+                <button onClick={() => setShowLeaderboard(false)} className="absolute top-4 right-4 p-2 text-white hover:text-[#39FF14] transition-colors bg-white/10 rounded-full">
+                  <X size={20} />
+                </button>
+                <h3 className="text-2xl font-black uppercase text-white tracking-tighter mb-4">Classement</h3>
+
+                <div className="flex items-center bg-black/30 rounded-full p-1 border border-[#39FF14]/20 mb-2">
+                   <button className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">Cette Semaine</button>
+                   <button className="text-zinc-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:text-white transition-colors">Général</button>
+                </div>
+
+                {/* PODIUM 3D */}
+                <div className="flex items-end justify-center gap-3 pt-8 px-4 w-full">
+                   {/* 2E PLACE */}
+                   <div className="flex flex-col items-center flex-1">
+                      <div className="w-12 h-12 rounded-full border-2 border-[#39FF14] overflow-hidden mb-1 relative bg-zinc-800">
+                         {leaderboardData[1]?.avatar_url ? (
+                             <img src={leaderboardData[1].avatar_url} className="w-full h-full object-cover" />
+                         ) : (
+                             <div className="w-full h-full flex items-center justify-center text-white font-bold">{leaderboardData[1]?.full_name?.charAt(0) || '-'}</div>
+                         )}
+                         <div className="absolute -bottom-2 right-0 bg-gray-300 text-black text-[8px] font-black px-1.5 py-0.5 rounded-sm border border-black shadow-sm">🥈</div>
+                      </div>
+                      <p className="text-[10px] font-bold text-white truncate w-full text-center">{leaderboardData[1]?.full_name?.split(' ')[0] || '---'}</p>
+                      <p className="text-[9px] font-black text-[#39FF14] mb-2">{leaderboardData[1]?.xp || 0} XP</p>
+                      <div className="w-full h-24 bg-gradient-to-t from-emerald-900 to-emerald-600 rounded-t-xl border-t border-white/20 flex items-center justify-center relative shadow-[inset_0_4px_10px_rgba(0,0,0,0.2)]">
+                         <span className="text-4xl font-black text-white/50 absolute top-4">2</span>
+                      </div>
+                   </div>
+
+                   {/* 1ÈRE PLACE */}
+                   <div className="flex flex-col items-center flex-[1.2] -mt-8 z-10">
+                      <div className="w-16 h-16 rounded-full border-4 border-yellow-400 overflow-hidden mb-1 relative bg-zinc-800 shadow-[0_0_15px_rgba(250,204,21,0.5)]">
+                         {leaderboardData[0]?.avatar_url ? (
+                             <img src={leaderboardData[0].avatar_url} className="w-full h-full object-cover" />
+                         ) : (
+                             <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl">{leaderboardData[0]?.full_name?.charAt(0) || '-'}</div>
+                         )}
+                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl drop-shadow-md">👑</div>
+                      </div>
+                      <p className="text-xs font-black text-white truncate w-full text-center">{leaderboardData[0]?.full_name?.split(' ')[0] || '---'}</p>
+                      <p className="text-[10px] font-black text-yellow-400 mb-2">{leaderboardData[0]?.xp || 0} XP</p>
+                      <div className="w-full h-32 bg-gradient-to-t from-green-700 via-[#39FF14] to-[#39FF14] rounded-t-xl border-t-[3px] border-white flex items-center justify-center relative shadow-[0_-5px_20px_rgba(57,255,20,0.3),inset_0_4px_10px_rgba(255,255,255,0.5)]">
+                         <span className="text-5xl font-black text-black/20 absolute top-4">1</span>
+                      </div>
+                   </div>
+
+                   {/* 3E PLACE */}
+                   <div className="flex flex-col items-center flex-1">
+                      <div className="w-12 h-12 rounded-full border-2 border-emerald-500 overflow-hidden mb-1 relative bg-zinc-800">
+                         {leaderboardData[2]?.avatar_url ? (
+                             <img src={leaderboardData[2].avatar_url} className="w-full h-full object-cover" />
+                         ) : (
+                             <div className="w-full h-full flex items-center justify-center text-white font-bold">{leaderboardData[2]?.full_name?.charAt(0) || '-'}</div>
+                         )}
+                         <div className="absolute -bottom-2 right-0 bg-amber-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm border border-black shadow-sm">🥉</div>
+                      </div>
+                      <p className="text-[10px] font-bold text-white truncate w-full text-center">{leaderboardData[2]?.full_name?.split(' ')[0] || '---'}</p>
+                      <p className="text-[9px] font-black text-emerald-400 mb-2">{leaderboardData[2]?.xp || 0} XP</p>
+                      <div className="w-full h-20 bg-gradient-to-t from-emerald-950 to-emerald-800 rounded-t-xl border-t border-white/10 flex items-center justify-center relative shadow-[inset_0_4px_10px_rgba(0,0,0,0.3)]">
+                         <span className="text-3xl font-black text-white/30 absolute top-3">3</span>
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              {/* PARTIE BASSE */}
+              <div className="bg-white rounded-t-3xl p-4 pt-6 flex-1 overflow-y-auto space-y-3 relative z-20 min-h-[200px] shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
+                {leaderboardData.slice(3).map((user, index) => (
+                    <div key={user.id || index} className="flex items-center justify-between bg-gray-50 hover:bg-green-50/50 border border-gray-100 rounded-2xl px-4 py-3 shadow-sm transition-colors group">
+                       <div className="flex items-center gap-4">
+                          <span className="text-sm font-black text-zinc-400 w-4">{index + 4}</span>
+                          <div className="w-10 h-10 rounded-full bg-zinc-200 overflow-hidden relative">
+                              {user.avatar_url ? (
+                                  <img src={user.avatar_url} className="w-full h-full object-cover" />
+                              ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-zinc-500 font-bold text-xs">{user.full_name?.charAt(0) || 'U'}</div>
+                              )}
+                          </div>
+                          <div>
+                              <p className="text-xs font-black text-black">{user.full_name}</p>
+                              <p className="text-[10px] font-bold text-zinc-400">{getJongomaLevel(user.xp).name}</p>
+                          </div>
+                       </div>
+                       <div className="bg-zinc-100 group-hover:bg-[#39FF14]/10 px-3 py-1.5 rounded-lg border border-transparent group-hover:border-[#39FF14]/30 transition-colors">
+                          <p className="text-xs font-black text-black group-hover:text-[#39FF14]">{user.xp} <span className="text-[9px] text-zinc-500 group-hover:text-black">XP</span></p>
+                       </div>
+                    </div>
+                ))}
+                {leaderboardData.length <= 3 && (
+                    <p className="text-center text-xs text-zinc-500 font-bold py-8">Soyez les premiers à marquer des points !</p>
+                )}
+              </div>
+
+            </div>
+          </div>
+      )}
+
       {/* MODALE REFAIRE LE DIAGNOSTIC (ROKHY) */}
       {/* MODALE DE PAIEMENT */}
       {showPaymentModal && (
