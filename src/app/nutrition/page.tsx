@@ -1626,10 +1626,44 @@ export default function NutritionDashboard() {
           currentRecipes = DEFAULT_RECIPES;
       }
 
-      // RÈGLES DES CONDIMENTS (Exclusion stricte des produits non-complets)
+      // RÈGLES DE FILTRAGE STRICTS (is_african et ingrédients interdits)
       currentRecipes = currentRecipes.filter(r => {
+          // Filtre 1: is_african doit être vrai
+          if (r.is_african === false) return false;
+
+          const nom = r.nom?.toLowerCase()?.trim() || '';
+
+          // Fonction pour enlever les accents
+          const removeAccents = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const cleanNom = removeAccents(nom);
+
+          // Filtre 2: Banned ingredients exact match or starts with + separator
+          const bannedList = ['sel', 'sel fin', 'eau', 'seigle', 'poivre', 'ail', 'oignon', 'sucre', 'bouillon', 'preparation de persil', 'huile', 'vinaigre'];
+
+          for (const banned of bannedList) {
+             const cleanBanned = removeAccents(banned);
+             if (cleanNom === cleanBanned) return false;
+             if (cleanNom.startsWith(cleanBanned + ' ')) return false;
+             if (cleanNom.startsWith(cleanBanned + '-')) return false;
+             if (cleanNom.startsWith(cleanBanned + ',')) return false;
+          }
+
+          // Recalcul KCAL si manquant ou = 0
+          if (!r.kcal || r.kcal === 0) {
+              const p = r.proteines || 0;
+              const c = r.glucides || 0;
+              const f = r.lipides || 0;
+              const calcKcal = (p * 4) + (c * 4) + (f * 9);
+              if (calcKcal > 0) {
+                  r.kcal = calcKcal;
+              } else {
+                  // Fallback pourcentage sur le total journalier (si on a la cible)
+                  // On fera ce fallback plus tard dans la génération de repas car ici on n'a pas accès direct au type de repas.
+              }
+          }
+
+      // RÈGLES DES CONDIMENTS (Exclusion stricte des produits non-complets)
           const cat = r.categorie?.toLowerCase() || '';
-          const nom = r.nom?.toLowerCase() || '';
           if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
           if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
           if (nom.includes('pâte d\'arachide pure') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('épice')) return false;
@@ -2045,6 +2079,26 @@ export default function NutritionDashboard() {
               setProteinGoal(payload.protein_goal);
               setCarbsGoal(payload.carbs_goal);
               setFatsGoal(payload.fats_goal);
+
+              // UPDATE DAILY LOGS IMMEDIATELY
+              const todayStr = new Date().toISOString().split('T')[0];
+              const todayLog = dailyLogs.find(l => l.log_date === todayStr);
+
+              const logPayload = {
+                  ...(todayLog?.id ? { id: todayLog.id } : {}),
+                  client_id: clientProfile.id,
+                  tenant_id: clientProfile.tenant_id || null,
+                  log_date: todayStr,
+                  calories_consumed: calories || 0,
+                  proteins_consumed: proteins || 0,
+                  water_glasses: waterGlasses || 0,
+                  // NOT including any target_ columns because they don't exist in the schema
+              };
+
+              const { error: logsError } = await supabase.from('nutrition_daily_logs').upsert(logPayload, { onConflict: 'client_id, log_date' });
+              if (logsError) {
+                  console.error("Erreur lors de la synchro daily_logs:", logsError);
+              }
 
               alert("Succès");
               setShowRedoDiagModal(false);
