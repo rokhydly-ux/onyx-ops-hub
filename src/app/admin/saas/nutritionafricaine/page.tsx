@@ -2491,7 +2491,7 @@ export default function AdminNutritionAfricaine() {
               {paginatedShop.map(p => (
                   <div key={p.id} className="bg-white border border-zinc-200 rounded-2xl p-4 flex flex-col hover:border-[#39FF14] transition-colors relative shadow-sm">
                      <div className="h-40 bg-zinc-50 rounded-xl overflow-hidden mb-3 relative shrink-0">
-                         <img src={p.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={p.nom} className="w-full h-full object-cover" onError={(e:any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                         <img src={p.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={p.nom} className="w-full h-full object-cover" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'; }} />
                          <span className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-black shadow-sm ${
                              p.stock === 0 ? 'bg-red-500 text-white' : p.stock <= 5 ? 'bg-yellow-400 text-black' : 'bg-green-500 text-white'
                          }`}>
@@ -2691,7 +2691,7 @@ export default function AdminNutritionAfricaine() {
                        {salesStats.length > 0 ? salesStats.map((s, idx) => (
                            <div key={idx} className="flex items-center gap-3">
                                <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-zinc-50 border border-zinc-100">
-                                   <img src={s.image || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={s.name} className="w-full h-full object-cover" onError={(e:any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                                   <img src={s.image || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={s.name} className="w-full h-full object-cover" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'; }} />
                                </div>
                                <div className="flex-1 min-w-0">
                                    <p className="text-xs font-bold text-black truncate">{s.name}</p>

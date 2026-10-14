@@ -26,9 +26,13 @@ interface BentoDashboardViewProps {
     todayMenu?: any;
     isFastingMode?: boolean;
     deleteMealLog?: (item: any) => void;
+    calorieGoal?: number;
+    proteinGoal?: number;
+    carbsGoal?: number;
+    fatsGoal?: number;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog, calorieGoal, proteinGoal, carbsGoal, fatsGoal }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const [hiddenMeals, setHiddenMeals] = useState<string[]>([]);
     const generateCoachMessage = () => {
@@ -171,27 +175,27 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <div className="relative w-32 h-32 flex items-center justify-center">
                             <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 128 128">
                                 <circle cx="64" cy="64" r="56" fill="none" stroke="#f4f4f5" strokeWidth="12" />
-                                <circle cx="64" cy="64" r="56" fill="none" stroke="#39FF14" strokeWidth="12" strokeDasharray={2 * Math.PI * 56} strokeDashoffset={(2 * Math.PI * 56) - (Math.min(100, (calories / (clientProfile?.daily_calorie_goal || 1500)) * 100) / 100) * (2 * Math.PI * 56)} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                                <circle cx="64" cy="64" r="56" fill="none" stroke="#39FF14" strokeWidth="12" strokeDasharray={2 * Math.PI * 56} strokeDashoffset={(2 * Math.PI * 56) - (Math.min(100, (calories / (calorieGoal || clientProfile?.daily_calorie_goal || 1500)) * 100) / 100) * (2 * Math.PI * 56)} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
                             </svg>
                             <div className="text-center z-10">
                                 <p className="text-2xl font-black text-black leading-none">{calories}</p>
-                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">/ {clientProfile?.daily_calorie_goal || 1500} Kcal</p>
+                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">/ {calorieGoal || clientProfile?.daily_calorie_goal || 1500} Kcal</p>
                             </div>
                         </div>
 
                         {/* Macros */}
                         <div className="flex-1 w-full space-y-4">
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Protéines</span><span className="text-zinc-500">{proteins} / {clientProfile?.protein_goal || 80}g</span></div>
-                                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-blue-400 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (proteins / (clientProfile?.protein_goal || 80)) * 100)}%` }}></div></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Protéines</span><span className="text-zinc-500">{proteins} / {proteinGoal || clientProfile?.protein_goal || 80}g</span></div>
+                                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-blue-400 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (proteins / (proteinGoal || clientProfile?.protein_goal || 80)) * 100)}%` }}></div></div>
                             </div>
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Glucides</span><span className="text-zinc-500">{carbs} / {clientProfile?.carbs_goal || 150}g</span></div>
-                                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-yellow-400 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (carbs / (clientProfile?.carbs_goal || 150)) * 100)}%` }}></div></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Glucides</span><span className="text-zinc-500">{carbs} / {carbsGoal || clientProfile?.carbs_goal || 150}g</span></div>
+                                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-yellow-400 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (carbs / (carbsGoal || clientProfile?.carbs_goal || 150)) * 100)}%` }}></div></div>
                             </div>
                             <div>
-                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Lipides</span><span className="text-zinc-500">{fats} / {clientProfile?.fats_goal || 50}g</span></div>
-                                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-red-400 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (fats / (clientProfile?.fats_goal || 50)) * 100)}%` }}></div></div>
+                                <div className="flex justify-between text-xs font-bold mb-1"><span className="text-black">Lipides</span><span className="text-zinc-500">{fats} / {fatsGoal || clientProfile?.fats_goal || 50}g</span></div>
+                                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-red-400 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (fats / (fatsGoal || clientProfile?.fats_goal || 50)) * 100)}%` }}></div></div>
                             </div>
                         </div>
                     </div>
@@ -267,7 +271,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             return (
                                 <div key={mealType} className={`flex items-center gap-4 p-3 rounded-2xl border transition-colors group shadow-sm ${isConsumed ? 'bg-[#39FF14]/10 border-[#39FF14]' : 'bg-white border-zinc-100 hover:border-[#39FF14]/50 cursor-pointer'}`}>
                                     <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
-                                        <img src={recipe.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={recipe.nom} />
+                                        <img src={(recipe.image_url && !recipe.image_url.includes('placeholder_')) ? recipe.image_url : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={recipe.nom} />
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{mealType}</p>
@@ -335,7 +339,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             </div>
                             <p className="text-xs text-zinc-600 mb-2 leading-relaxed">Mon Ndambé allégé de ce matin, une tuerie !</p>
                             <div className="w-full h-24 bg-zinc-100 rounded-xl mb-3 overflow-hidden border border-zinc-100">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover" />
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex gap-4">
                                 <button className="flex items-center gap-1 text-[10px] font-bold text-pink-500"><Heart size={12} className="fill-pink-500"/> 112</button>

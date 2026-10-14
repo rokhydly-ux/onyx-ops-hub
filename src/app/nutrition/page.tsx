@@ -4432,8 +4432,8 @@ const handleToggleComments = async (postId: string) => {
                     <UserIcon size={14}/> Mon Espace <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Mon Jour</button>
-                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Historique</button>
+                    <button onClick={() => handleTabChange('today')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Mon Jour</button>
+                    <button onClick={() => handleTabChange('history')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.dashboard} className="w-5 h-5 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Historique</button>
                     <button onClick={() => handleTabChange('profile')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><UserIcon size={14} className="text-[#39FF14]"/> Profil</button>
                 </div>
             </div>
@@ -4443,7 +4443,7 @@ const handleToggleComments = async (postId: string) => {
                     <TrendingUp size={14}/> Nutrition <ChevronDown size={12}/>
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
-                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Sama Menu</button>
+                    <button onClick={() => handleTabChange('week')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Sama Menu</button>
                     <button onClick={() => handleTabChange('favorites')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><BookOpen size={14} className="text-[#39FF14]"/> Galerie Recettes</button>
                 </div>
             </div>
@@ -4454,16 +4454,16 @@ const handleToggleComments = async (postId: string) => {
                 </button>
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-zinc-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col overflow-hidden">
                     <button onClick={() => handleTabChange('community')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Heart size={14} className="text-red-500"/> Communauté</button>
-                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Coaching</button>
-                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Doc & Astuces</button>
-                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Fitness</button>
+                    <button onClick={() => handleTabChange('coaching')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.coaching} className="w-5 h-5 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Coaching</button>
+                    <button onClick={() => handleTabChange('blog')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.blog} className="w-5 h-5 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Doc & Astuces</button>
+                    <button onClick={() => handleTabChange('fitness')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><img src={MENU_ICONS.fitness} className="w-5 h-5 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Fitness</button>
                     <button onClick={() => handleTabChange('minute-doc')} className="px-4 py-3 text-xs font-bold text-zinc-700 text-left hover:bg-zinc-50 flex items-center gap-2"><Video size={14} className="text-[#39FF14]"/> La Minute Doc</button>
 
                 </div>
             </div>
 
 <button onClick={() => handleTabChange('shop')} className="bg-white border border-[#39FF14] text-zinc-700 hover:bg-[#39FF14] hover:text-black rounded-full px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm">
-                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt="" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} /> Boutique
+                    <img src={MENU_ICONS.shop} className="w-4 h-4 rounded" alt="" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} /> Boutique
                 </button>
         </div>
 
@@ -4661,7 +4661,7 @@ const handleToggleComments = async (postId: string) => {
                        {(selectedProduct.gallery?.length > 0 || selectedProduct.video_url) && (
                            <div className="flex gap-2 mt-4 overflow-x-auto custom-scrollbar w-full pb-2">
                                <button onClick={() => { setProductMediaView('image'); setProductActiveImage(selectedProduct.image_url); }} className={`w-16 h-16 rounded-xl border-2 shrink-0 ${productMediaView === 'image' && (productActiveImage === selectedProduct.image_url || !productActiveImage) ? 'border-[#39FF14]' : 'border-transparent'}`}>
-                                  <img src={selectedProduct.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} className="w-full h-full object-cover rounded-lg bg-zinc-200" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                                  <img src={(selectedProduct.image_url && !selectedProduct.image_url.includes('placeholder_')) ? selectedProduct.image_url : 'https://placehold.co/400x400/111/39FF14?text=Produit'} className="w-full h-full object-cover rounded-lg bg-zinc-200" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'; }} />
                                </button>
                                {selectedProduct.gallery?.map((img: string, idx: number) => (
                                    <button key={idx} onClick={() => { setProductMediaView('image'); setProductActiveImage(img); }} className={`w-16 h-16 rounded-xl border-2 shrink-0 ${productMediaView === 'image' && productActiveImage === img ? 'border-[#39FF14]' : 'border-transparent'}`}>
@@ -4732,7 +4732,7 @@ const handleToggleComments = async (postId: string) => {
                                          <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
                                              {similarShopProducts.map((simProd: any) => (
                                                  <div key={simProd.id} className="flex items-center gap-3 bg-zinc-50 p-2 rounded-xl border border-zinc-100 hover:border-[#39FF14] transition-colors shrink-0 w-[280px]">
-                                                     <img onClick={() => setSelectedProduct(simProd)} src={simProd.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-12 h-12 rounded-lg object-cover bg-zinc-200 cursor-pointer" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                                                     <img onClick={() => setSelectedProduct(simProd)} src={(simProd.image_url && !simProd.image_url.includes('placeholder_')) ? simProd.image_url : 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-12 h-12 rounded-lg object-cover bg-zinc-200 cursor-pointer" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'; }} />
                                                      <div className="flex-1 min-w-0" onClick={() => setSelectedProduct(simProd)}>
                                                          <p className="font-bold text-xs truncate text-black cursor-pointer">{simProd.nom}</p>
                                                          <p className="text-[#39FF14] font-black text-xs mt-0.5">{simProd.prix_premium.toLocaleString()} F</p>
@@ -5614,7 +5614,7 @@ const handleToggleComments = async (postId: string) => {
                           return suggestedProducts.map((simProd: any) => (
                               <div key={simProd.id} className="flex flex-col sm:flex-row items-center sm:items-stretch gap-4 bg-zinc-50 dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/10 hover:border-[#39FF14] transition-colors group">
                                   <div className="w-24 h-24 sm:w-20 sm:h-20 shrink-0 bg-white dark:bg-[#111] rounded-xl overflow-hidden shadow-sm relative">
-                                      <img src={simProd.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
+                                      <img src={(simProd.image_url && !simProd.image_url.includes('placeholder_')) ? simProd.image_url : 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={simProd.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'; }} />
                                   </div>
                                   <div className="flex-1 flex flex-col justify-between items-center sm:items-start text-center sm:text-left min-w-0">
                                       <div>

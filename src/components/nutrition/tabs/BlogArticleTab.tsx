@@ -67,7 +67,7 @@ export default function BlogArticleTab({ ...tabProps }: any) {
                     } else if (selectedArticle.image_url) {
                         return (
                     <div className="w-full h-[300px] md:h-[450px] rounded-[1.5rem] overflow-hidden my-6 shadow-sm">
-                      <img src={selectedArticle.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={selectedArticle.title} className="w-full h-full object-cover" />
+                      <img src={selectedArticle.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} alt={selectedArticle.title} className="w-full h-full object-cover" />
                     </div>
                         );
                     }
@@ -117,7 +117,7 @@ export default function BlogArticleTab({ ...tabProps }: any) {
                          <div key={article.id} onClick={() => handleArticleClick(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
                             {article.image_url && (
                                <div className="overflow-hidden rounded-[2rem] mb-4">
-                                  <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} alt={article.title} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500" />
+                                  <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} alt={article.title} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500" />
                                </div>
                             )}
                             <div className="flex gap-2 mb-3">

@@ -19,7 +19,7 @@ export default function WeekTab({ ...tabProps }: any) {
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                   <div className="flex items-center gap-4">
-                     <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                     <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} />
                      <div>
                         <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Sama Menu</h2>
                         <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
@@ -174,7 +174,7 @@ export default function WeekTab({ ...tabProps }: any) {
             {/* SECTION MENUS DE LA SEMAINE */}
             <section className="mt-12">
                <div className="flex items-center gap-3 mb-8">
-                  <img src={MENU_ICONS.samaMenu} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="Sama Menu" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                  <img src={MENU_ICONS.samaMenu} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="Sama Menu" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Vos Menus Sur-Mesure</h2>
                </div>
 

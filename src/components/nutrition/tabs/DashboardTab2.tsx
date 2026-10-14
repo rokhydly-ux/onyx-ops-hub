@@ -64,6 +64,10 @@ export default function DashboardTab2({ ...tabProps }: any) {
               todayMenu={todayPlan}
               isFastingMode={isFastingMode}
               deleteMealLog={deleteMealLog}
+              calorieGoal={calorieGoal}
+              proteinGoal={proteinGoal}
+              carbsGoal={carbsGoal}
+              fatsGoal={fatsGoal}
           />
 
     </>
