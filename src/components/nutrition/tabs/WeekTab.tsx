@@ -85,17 +85,25 @@ export default function WeekTab({ ...tabProps }: any) {
                                  const isBolCommun = clientProfile?.diagnostic_data?.lunch_context === 'maison_bol_commun' && mealType === 'Déjeuner';
 
                                  console.log("🔍 OBJET MEAL COMPLET :", JSON.stringify(recipe, null, 2));
+                                                                                                   const rKcal = parseInt(recipe.calories || recipe.cals || recipe.kcal || recipe.energy || 0, 10);
+                                 let calsNum = rKcal > 0 ? rKcal : ((recipe.proteins || recipe.prots || 0) * 4 + (recipe.carbs || recipe.glucides || 0) * 4 + (recipe.fats || recipe.lipides || 0) * 9);
+                                 if (calsNum === 0 && targetCalories > 0) {
+                                     if (mealType === 'Petit-déjeuner') calsNum = Math.round(targetCalories * 0.25);
+                                     else if (mealType === 'Déjeuner') calsNum = Math.round(targetCalories * 0.35);
+                                     else if (mealType === 'Collation') calsNum = Math.round(targetCalories * 0.10);
+                                     else if (mealType === 'Dîner') calsNum = Math.round(targetCalories * 0.30);
+                                 }
                                  return (
                                     <React.Fragment key={mealType}>
                                     <div className={`flex flex-col gap-2 p-3 h-auto min-h-min rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
-                                       <div className="flex flex-col cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories || recipe.cals || recipe.kcal || 0, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
+                                       <div className="flex flex-col cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: calsNum, proteins: recipe.proteins || recipe.prots || 0, carbs: recipe.carbs || recipe.glucides || 0, fats: recipe.fats || recipe.lipides || 0, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
 
                                        {isExpertMode ? (
                                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {recipe.calories || recipe.cals || recipe.kcal || recipe.energy || '—'} kcal</span>
+                                             <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CALS_ICON} className="w-3 h-3 rounded-full"/> {calsNum > 0 ? calsNum : '—'} kcal</span>
                                              <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full"/> {recipe.proteins || 0}g</span>
                                              <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={CARBS_ICON} className="w-3 h-3 rounded-full"/> {recipe.carbs || 0}g</span>
                                              <span className={`font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'} flex items-center gap-1`}><img src={FATS_ICON} className="w-3 h-3 rounded-full"/> {recipe.fats || 0}g</span>
