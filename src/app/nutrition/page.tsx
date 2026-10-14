@@ -4605,7 +4605,7 @@ const handleToggleComments = async (postId: string) => {
 
 
                  {showOrderSuccessModal && (
-                    <div id="order-success-overlay" className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+                    <div id="order-success-overlay" className="fixed inset-0 z-[80] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2rem] w-full max-w-md p-8 flex flex-col items-center text-center shadow-2xl">
                             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786461202/Succes_commandes_awovvw.png" alt="Success" className="w-32 h-32 object-contain mb-6 drop-shadow-xl" />
                             <h2 className="text-2xl font-black text-black mb-4 leading-tight">
@@ -4628,7 +4628,7 @@ const handleToggleComments = async (postId: string) => {
                  )}
 
                  {selectedProduct && (
-              <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in overflow-y-auto">
+              <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[80] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in overflow-y-auto">
                  <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col md:flex-row relative shadow-2xl my-auto">
                     <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
                     <div className="w-full md:w-1/2 bg-zinc-50 flex flex-col items-center justify-center p-6 relative shrink-0 min-h-[300px]">
@@ -4969,9 +4969,9 @@ const handleToggleComments = async (postId: string) => {
 
 
       {showSuccessModal && clientProfile && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300 relative">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300 relative">
 
-          <div className="fixed inset-0 pointer-events-none z-[1010] overflow-hidden">
+          <div className="fixed inset-0 pointer-events-none z-[80] overflow-hidden">
             {Array.from({ length: 30 }).map((_, i) => {
               const fruits = [
                 "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/1_ol9nva.png",
@@ -5008,7 +5008,7 @@ const handleToggleComments = async (postId: string) => {
             `}} />
           </div>
 
-          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[1020]">
+          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[80]">
             <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
             <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
 
@@ -5584,7 +5584,7 @@ const handleToggleComments = async (postId: string) => {
 
       {/* MODALE D'UPSELL COACH ROKHY */}
       {showUpsellModal && upsellProduct && (
-          <div id="upsell-overlay" onClick={(e: any) => e.target.id === 'upsell-overlay' && setShowUpsellModal(false)} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div id="upsell-overlay" onClick={(e: any) => e.target.id === 'upsell-overlay' && setShowUpsellModal(false)} className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
               <div className="bg-white dark:bg-[#151515] w-full max-w-lg rounded-[2.5rem] p-6 sm:p-8 relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95">
                   <button onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-zinc-100 dark:bg-white/10 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-50">
                       <X size={20} className="dark:text-white" />
