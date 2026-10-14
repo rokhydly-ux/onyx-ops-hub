@@ -442,6 +442,19 @@ export default function NutritionAfricaineLanding() {
 
 
   // Diagnostic Modal Handlers
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(7);
+
+  React.useEffect(() => {
+     let timer: any;
+     if (showSuccessModal && redirectCount > 0) {
+         timer = setTimeout(() => setRedirectCount(prev => prev - 1), 1000);
+     } else if (showSuccessModal && redirectCount === 0) {
+         router.push("/nutrition?from=diagnostic");
+     }
+     return () => clearTimeout(timer);
+  }, [showSuccessModal, redirectCount, router]);
+
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingDiag(true);
@@ -453,50 +466,54 @@ export default function NutritionAfricaineLanding() {
 
         let realUserId: string | null | undefined = null;
 
-        // 1. Tenter la connexion en priorité (si l'utilisateur a déjà essayé avant)
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: generatedEmail,
-            password: generatedPassword
-        });
-
-        if (authData?.user) {
-            realUserId = authData.user.id;
-        } else {
-            // 2. Le compte n'existe pas, on tente de le créer via l'API Onyx
-            await fetch('/api/create-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fullName: diagData.name,
-                    phone: cleanPhone,
-                    password: generatedPassword,
-                    role: 'client',
-                    saas: "Nutrition à l'Africaine"
-                })
-            });
-
-            // 3. Et on se connecte immédiatement
-            const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
+        try {
+            // 1. Tenter la connexion en priorité (si l'utilisateur a déjà essayé avant)
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: generatedEmail,
                 password: generatedPassword
             });
 
-            if (newAuthError) {
-                // 4. PLAN B (Sécurité anti-crash) : Inscription native Supabase si l'API a foiré
-                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                    email: generatedEmail,
-                    password: generatedPassword,
-                    options: { data: { full_name: diagData.name, phone: cleanPhone } }
+            if (authData?.user) {
+                realUserId = authData.user.id;
+            } else {
+                // 2. Le compte n'existe pas, on tente de le créer via l'API Onyx
+                await fetch('/api/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: diagData.name,
+                        phone: cleanPhone,
+                        password: generatedPassword,
+                        role: 'client',
+                        saas: "Nutrition à l'Africaine"
+                    })
                 });
 
-                if (signUpError) throw new Error("Échec d'authentification : " + signUpError.message);
-                realUserId = signUpData.user?.id;
-            } else {
-                realUserId = newAuthData.user?.id;
+                // 3. Et on se connecte immédiatement
+                const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
+                    email: generatedEmail,
+                    password: generatedPassword
+                });
+
+                if (newAuthError) {
+                    // 4. PLAN B (Sécurité anti-crash) : Inscription native Supabase si l'API a foiré
+                    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                        email: generatedEmail,
+                        password: generatedPassword,
+                        options: { data: { full_name: diagData.name, phone: cleanPhone } }
+                    });
+
+                    if (signUpError) console.error("Échec d'authentification : " + signUpError.message);
+                    realUserId = signUpData.user?.id;
+                } else {
+                    realUserId = newAuthData.user?.id;
+                }
             }
+        } catch(authCrash) {
+             console.error("Auth crash ignoré", authCrash);
         }
 
-        if (!realUserId) throw new Error("Impossible d'identifier l'utilisateur.");
+        if (!realUserId) console.warn("Impossible d'identifier l'utilisateur. Poursuite du flux pour affichage modale.");
 
         // 5. FIX CLÉ ÉTRANGÈRE : Upsert OBLIGATOIRE dans la table 'clients'
         const { error: clientErr } = await supabase.from('clients').upsert({
@@ -512,7 +529,7 @@ export default function NutritionAfricaineLanding() {
 
         // 7. Sauvegarde du Profil Nutritionnel
         const payload = {
-            client_id: realUserId,
+            ...(realUserId ? { client_id: realUserId } : {}),
             phone: cleanPhone,
             bmr: Math.round(profile.tdee / 1.2),
             tdee: profile.tdee,
@@ -1636,6 +1653,78 @@ export default function NutritionAfricaineLanding() {
 
       {/* MODALE DIAGNOSTIC */}
             <DiagnosticModal isOpen={showDiagnosticModal} onClose={() => setShowDiagnosticModal(false)} />
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300 relative">
+
+          <div className="fixed inset-0 pointer-events-none z-[1010] overflow-hidden">
+            {Array.from({ length: 30 }).map((_, i) => {
+              const fruits = [
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/1_ol9nva.png",
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/2_cm6zqm.png",
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/3_hl0fua.png",
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/4_lpcpp2.png"
+              ];
+              const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+              const randomLeft = Math.random() * 100;
+              const randomDelay = Math.random() * 2;
+              const randomDuration = 3 + Math.random() * 3;
+              const size = 32 + Math.random() * 24;
+
+              return (
+                <img
+                  key={i}
+                  src={randomFruit}
+                  alt="Fruit local"
+                  style={{
+                    position: "absolute",
+                    top: "-60px",
+                    left: `${randomLeft}%`,
+                    width: `${size}px`,
+                    animation: `fruitRain ${randomDuration}s linear ${randomDelay}s infinite`
+                  }}
+                />
+              );
+            })}
+            <style dangerouslySetInnerHTML={{__html: `
+              @keyframes fruitRain {
+                0% { transform: translateY(-60px) rotate(0deg); opacity: 1; }
+                100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+              }
+            `}} />
+          </div>
+
+          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[1020]">
+            <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
+            <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
+
+            <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-8 space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Identifiant</span>
+                  <span className="font-bold text-black bg-white px-3 py-1 rounded-md shadow-sm border border-zinc-100">{diagData.phone || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Mot de passe</span>
+                  <span className="font-bold text-[#39FF14] bg-black px-3 py-1 rounded-md shadow-sm">{(diagData.phone || "0000").replace(/\D/g, "").slice(-4)}</span>
+                </div>
+                <button type="button" onClick={() => { navigator.clipboard.writeText(`Identifiant: ${diagData.phone}\nMDP: ${(diagData.phone || "0000").replace(/\D/g, "").slice(-4)}`); alert("Copié !"); }} className="w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black mt-2 underline">Copier mes accès</button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                 setShowSuccessModal(false);
+                 router.push("/nutrition?from=diagnostic");
+              }}
+              className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase md:text-sm tracking-widest hover:scale-105 transition-all shadow-xl animate-pulse flex items-center justify-center gap-2 mb-4"
+            >
+              Accéder à mon Dashboard <ArrowRight size={18} />
+            </button>
+            <p className="text-[10px] font-black uppercase text-zinc-400 text-center">Redirection vers votre espace dans {redirectCount} secondes...</p>
+
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

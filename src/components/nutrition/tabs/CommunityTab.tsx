@@ -139,7 +139,7 @@ export default function CommunityTab({ ...tabProps }: any) {
                          <div className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm relative mb-6">
                              <div className="h-24 bg-zinc-800 w-full relative">
                                  {clientProfile?.cover_url ? (
-                                     <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} />
+                                     <img src={clientProfile.cover_url} className="w-full h-full object-cover" alt="Cover" onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} />
                                  ) : (
                                      <div className="absolute inset-0 bg-gradient-to-r from-black to-zinc-800"><div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div></div>
                                  )}
@@ -433,7 +433,7 @@ export default function CommunityTab({ ...tabProps }: any) {
 
                                          {post.image_url && post.media_type !== 'video' && (
                                              <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden mb-4 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 relative cursor-pointer" onClick={() => window.open(post.image_url, '_blank')}>
-                                                 <img src={post.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => e.target.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
+                                                 <img src={post.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" alt="Post" />
                                              </div>
                                          )}
                                      </>

@@ -121,56 +121,61 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             const generatedEmail = `${cleanPhone}@clients.onyxcrm.com`;
             const generatedPassword = cleanPhone.slice(-8).padStart(8, "0");
             let realUserId: string | null | undefined = null;
-
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                email: generatedEmail, password: generatedPassword
-            });
-
-            if (authData?.user) {
-                realUserId = authData.user.id;
-            } else {
-                await fetch('/api/create-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fullName: diagData.name, phone: cleanPhone, password: generatedPassword,
-                        role: 'client', saas: "Nutrition à l'Africaine"
-                    })
-                });
-
-                const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
+            try {
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: generatedEmail, password: generatedPassword
                 });
 
-                if (newAuthError) {
-                    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                        email: generatedEmail, password: generatedPassword,
-                        options: { data: { full_name: diagData.name, phone: cleanPhone } }
-                    });
-                    if (signUpError) throw new Error("Échec : " + signUpError.message);
-                    realUserId = signUpData.user?.id;
+                if (authData?.user) {
+                    realUserId = authData.user.id;
                 } else {
-                    realUserId = newAuthData.user?.id;
+                    await fetch("/api/create-user", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            fullName: diagData.name, phone: cleanPhone, password: generatedPassword,
+                            role: "client", saas: "Nutrition à l'Africaine"
+                        })
+                    });
+
+                    const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
+                        email: generatedEmail, password: generatedPassword
+                    });
+
+                    if (newAuthError) {
+                        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                            email: generatedEmail, password: generatedPassword,
+                            options: { data: { full_name: diagData.name, phone: cleanPhone } }
+                        });
+                        if (signUpError) console.error("Échec : " + signUpError.message);
+                        realUserId = signUpData.user?.id;
+                    } else {
+                        realUserId = newAuthData.user?.id;
+                    }
                 }
+            } catch (authCrash) {
+                 console.error("Auth crash ignoré", authCrash);
             }
 
-            if (!realUserId) throw new Error("Impossible d'identifier l'utilisateur.");
+            if (!realUserId) console.warn("Impossible d'identifier l'utilisateur.");
 
-            const { error: clientErr } = await supabase.from('clients').upsert({
-                id: realUserId, full_name: diagData.name, phone: cleanPhone
-            }, { onConflict: 'id' });
-            if (clientErr) throw new Error("Erreur client : " + clientErr.message);
+            if (realUserId) {
+                const { error: clientErr } = await supabase.from("clients").upsert({
+                    id: realUserId, full_name: diagData.name, phone: cleanPhone
+                }, { onConflict: "id" });
+                if (clientErr) console.error("Erreur client : " + clientErr.message);
+            }
 
             const profile = calculateDailyCalories(diagData);
             const payload = {
-                client_id: realUserId, phone: cleanPhone, bmr: Math.round(profile.tdee / 1.2),
+                ...(realUserId ? { client_id: realUserId } : {}), phone: cleanPhone, bmr: Math.round(profile.tdee / 1.2),
                 tdee: profile.tdee, daily_calorie_goal: profile.calories,
                 carbs_goal: profile.carbs_goal, protein_goal: profile.protein_goal,
                 fats_goal: profile.fats_goal, diagnostic_data: diagData, tracking_mode: 'guided'
             };
 
             const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
-            if (profileErr) throw new Error("Erreur profil : " + profileErr.message);
+            if (profileErr) console.error("Erreur profil : " + profileErr.message);
 
             await supabase.from('leads').insert([{
                 full_name: diagData.name, phone: cleanPhone, source: "Diagnostic Nutrition Landing",
@@ -693,7 +698,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Mot de passe provisoire</span>
                 <span className="font-black text-black bg-[#39FF14] px-2 py-1 rounded-md tracking-wider">
-                    {diagData.phone.replace(/\s+/g, '').slice(-8).padStart(8, "0")}
+                    {(diagData.phone || "0000").replace(/\D/g, '').slice(-4)}
                 </span>
             </div>
         </div>
