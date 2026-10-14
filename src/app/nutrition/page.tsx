@@ -433,6 +433,19 @@ export default function NutritionDashboard() {
 
   // Nouveaux états de l'application Nutrition
   const [activeTab, setActiveTab] = useState<any>('week');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(7);
+
+  useEffect(() => {
+     let timer: any;
+     if (showSuccessModal && redirectCount > 0) {
+         timer = setTimeout(() => setRedirectCount(prev => prev - 1), 1000);
+     } else if (showSuccessModal && redirectCount === 0) {
+         setShowSuccessModal(false);
+         setActiveTab('dashboard');
+     }
+     return () => clearTimeout(timer);
+  }, [showSuccessModal, redirectCount]);
   const [blogCategory, setBlogCategory] = useState('Tous');
   const [blogSearch, setBlogSearch] = useState('');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
@@ -2100,8 +2113,10 @@ export default function NutritionDashboard() {
                   console.error("Erreur lors de la synchro daily_logs:", logsError);
               }
 
-              alert("Succès");
+              setDiagStep(0);
               setShowRedoDiagModal(false);
+              setRedirectCount(7);
+              setShowSuccessModal(true);
           }
 
       } catch (err: any) {
@@ -4952,6 +4967,78 @@ const handleToggleComments = async (postId: string) => {
         </div>
       )}
 
+
+      {showSuccessModal && clientProfile && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300 relative">
+
+          <div className="fixed inset-0 pointer-events-none z-[1010] overflow-hidden">
+            {Array.from({ length: 30 }).map((_, i) => {
+              const fruits = [
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/1_ol9nva.png",
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/2_cm6zqm.png",
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/3_hl0fua.png",
+                "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/4_lpcpp2.png"
+              ];
+              const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+              const randomLeft = Math.random() * 100;
+              const randomDelay = Math.random() * 2;
+              const randomDuration = 3 + Math.random() * 3;
+              const size = 32 + Math.random() * 24;
+
+              return (
+                <img
+                  key={i}
+                  src={randomFruit}
+                  alt="Fruit local"
+                  style={{
+                    position: "absolute",
+                    top: "-60px",
+                    left: `${randomLeft}%`,
+                    width: `${size}px`,
+                    animation: `fruitRain ${randomDuration}s linear ${randomDelay}s infinite`
+                  }}
+                />
+              );
+            })}
+            <style dangerouslySetInnerHTML={{__html: `
+              @keyframes fruitRain {
+                0% { transform: translateY(-60px) rotate(0deg); opacity: 1; }
+                100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+              }
+            `}} />
+          </div>
+
+          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[1020]">
+            <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
+            <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
+
+            <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-8 space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Identifiant</span>
+                  <span className="font-bold text-black bg-white px-3 py-1 rounded-md shadow-sm border border-zinc-100">{clientProfile.phone || user?.phone || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Mot de passe</span>
+                  <span className="font-bold text-[#39FF14] bg-black px-3 py-1 rounded-md shadow-sm">{(clientProfile.phone || user?.phone || "0000").replace(/\D/g, '').slice(-4)}</span>
+                </div>
+                <button type="button" onClick={() => { navigator.clipboard.writeText(`Identifiant: ${clientProfile.phone || user?.phone}\nMDP: ${(clientProfile.phone || user?.phone || "0000").replace(/\D/g, '').slice(-4)}`); alert('Copié !'); }} className="w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black mt-2 underline">Copier mes accès</button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                 setShowSuccessModal(false);
+                 setActiveTab('dashboard');
+              }}
+              className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase md:text-sm tracking-widest hover:scale-105 transition-all shadow-xl animate-pulse flex items-center justify-center gap-2 mb-4"
+            >
+              Accéder à mon Dashboard <ArrowRight size={18} />
+            </button>
+            <p className="text-[10px] font-black uppercase text-zinc-400 text-center">Redirection vers votre espace dans {redirectCount} secondes...</p>
+
+          </div>
+        </div>
+      )}
 
       {showRedoDiagModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">

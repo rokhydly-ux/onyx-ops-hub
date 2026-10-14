@@ -14,6 +14,17 @@ export default function NutritionDiagnostic() {
   const waNumber = "221785338417";
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(7);
+
+  React.useEffect(() => {
+    let timer;
+    if (step === 10 && redirectCount > 0) {
+      timer = setTimeout(() => setRedirectCount(prev => prev - 1), 1000);
+    } else if (step === 10 && redirectCount === 0) {
+      router.push('/nutrition');
+    }
+    return () => clearTimeout(timer);
+  }, [step, redirectCount, router]);
   
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -469,33 +480,71 @@ export default function NutritionDiagnostic() {
 
                 {/* STEP 10: End Screen */}
                 {step === 10 && (
-                  <div className="flex flex-col items-center text-center justify-center flex-1 animate-in zoom-in duration-500">
-                    <CheckCircle className="text-[#39FF14] w-24 h-24 mb-8 drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]" />
+                  <div className="flex flex-col items-center text-center justify-center flex-1 animate-in zoom-in duration-500 relative z-50">
                     
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-zinc-100 max-w-xl w-full mb-10 text-left">
-                      <p className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-800 text-center">
-                        Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-3xl">{Math.round(dailyCalories)}</strong> kcal/jour.
-                      </p>
-                      <p className="text-lg md:text-xl font-medium leading-relaxed text-zinc-800 mt-6 text-center">
-                        La bonne nouvelle ? Vous n'aurez <span className="underline decoration-[#39FF14] decoration-4 font-bold">plus jamais</span> à les compter. Suivez simplement nos portions en bols et cuillères.
-                      </p>
+                    {/* Pluie de fruits et légumes africains */}
+                    <div className="fixed inset-0 pointer-events-none z-[70] overflow-hidden">
+                      {Array.from({ length: 30 }).map((_, i) => {
+                        const fruits = [
+                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/1_ol9nva.png",
+                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/2_cm6zqm.png",
+                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/3_hl0fua.png",
+                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/4_lpcpp2.png"
+                        ];
+                        const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+                        const randomLeft = Math.random() * 100;
+                        const randomDelay = Math.random() * 2;
+                        const randomDuration = 3 + Math.random() * 3;
+                        const size = 32 + Math.random() * 24;
+
+                        return (
+                          <img
+                            key={i}
+                            src={randomFruit}
+                            alt="Fruit local"
+                            style={{
+                              position: "absolute",
+                              top: "-60px",
+                              left: `${randomLeft}%`,
+                              width: `${size}px`,
+                              animation: `fruitRain ${randomDuration}s linear ${randomDelay}s infinite`
+                            }}
+                          />
+                        );
+                      })}
+                      <style dangerouslySetInnerHTML={{__html: `
+                        @keyframes fruitRain {
+                          0% { transform: translateY(-60px) rotate(0deg); opacity: 1; }
+                          100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+                        }
+                      `}} />
                     </div>
 
-                    <div className="w-full max-w-md space-y-4">
+                    <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[80]">
+                      <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
+                      <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
+
+                      <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-8 space-y-4">
+                         <div className="flex justify-between items-center">
+                            <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Identifiant</span>
+                            <span className="font-bold text-black bg-white px-3 py-1 rounded-md shadow-sm border border-zinc-100">{formData.phone}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Mot de passe</span>
+                            <span className="font-bold text-[#39FF14] bg-black px-3 py-1 rounded-md shadow-sm">{formData.phone.replace(/\D/g, '').slice(-4)}</span>
+                         </div>
+                         <button type="button" onClick={() => { navigator.clipboard.writeText(`Identifiant: ${formData.phone}\nMDP: ${formData.phone.replace(/\D/g, '').slice(-4)}`); alert('Copié !'); }} className="w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black mt-2 underline">Copier mes accès</button>
+                      </div>
+
                       <button 
                         type="button"
-                        onClick={handleWaRedirect}
-                        className="w-full bg-[#39FF14] text-black py-6 rounded-2xl font-black uppercase md:text-lg tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.4)] animate-pulse"
+                        onClick={() => router.push('/nutrition')}
+                        className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase md:text-sm tracking-widest hover:scale-105 transition-all shadow-xl animate-pulse flex items-center justify-center gap-2 mb-4"
                       >
-                        Découvrir mon Sama Menu
+                        Accéder à mon Dashboard <ArrowRight size={18} />
                       </button>
-                      <button 
-                        type="button"
-                        onClick={handleDownloadPDF}
-                        className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2"
-                      >
-                        <Download size={18}/> Télécharger mon bilan (PDF)
-                      </button>
+                      <p className="text-[10px] font-black uppercase text-zinc-400 text-center">Redirection vers votre espace dans {redirectCount} secondes...</p>
+
                     </div>
                   </div>
                 )}
