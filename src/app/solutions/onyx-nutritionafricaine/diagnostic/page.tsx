@@ -454,7 +454,7 @@ export default function NutritionDiagnostic() {
                       />
                       <input 
                         type="tel" required placeholder="Numéro WhatsApp"
-                        value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/[^\d+]/g, '')})}
                         className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" 
                       />
                       <input 
@@ -469,7 +469,7 @@ export default function NutritionDiagnostic() {
                       />
                       
                       <button 
-                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || !formData.pin || !formData.password}
+                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || formData.phone.length < 9 || formData.phone.length > 15 || !formData.pin || !formData.password}
                         className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2"
                       >
                         {isSubmitting ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/>
