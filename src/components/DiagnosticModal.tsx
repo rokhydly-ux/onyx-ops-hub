@@ -136,21 +136,47 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
 
             if (!realUserId) console.warn("Impossible d'identifier l'utilisateur.");
 
-            const { error: clientErr } = await supabase.from("clients").upsert({
-                ...(realUserId ? { id: realUserId } : {}), full_name: diagData.name, phone: cleanPhone
-            }, { onConflict: "phone" });
-            if (clientErr) console.error("Erreur client : " + clientErr.message);
+            const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            const clientPayload = {
+                ...(realUserId ? { id: realUserId } : {}),
+                full_name: diagData.name,
+                phone: cleanPhone,
+                saas: "Nutrition à l'Africaine",
+                status: "Essai",
+                expiration_date: trialEndDate
+            };
+
+            const { data: existingClient } = await supabase.from("clients").select("id").eq("phone", cleanPhone).maybeSingle();
+            let finalClientId = realUserId;
+
+            if (existingClient) {
+                finalClientId = finalClientId || existingClient.id;
+                const { error: clientErr } = await supabase.from("clients").update(clientPayload).eq("phone", cleanPhone);
+                if (clientErr) console.error("Erreur client (update) : " + clientErr.message);
+            } else {
+                const { data: newClient, error: clientErr } = await supabase.from("clients").insert([clientPayload]).select("id").single();
+                if (clientErr) console.error("Erreur client (insert) : " + clientErr.message);
+                if (newClient) finalClientId = finalClientId || newClient.id;
+            }
 
             const profile = calculateDailyCalories(diagData);
             const payload = {
-                ...(realUserId ? { client_id: realUserId } : {}), phone: cleanPhone, bmr: Math.round(profile.tdee / 1.2),
+                ...(finalClientId ? { client_id: finalClientId } : {}), phone: cleanPhone, bmr: Math.round(profile.tdee / 1.2),
                 tdee: profile.tdee, daily_calorie_goal: profile.calories,
                 carbs_goal: profile.carbs_goal, protein_goal: profile.protein_goal,
                 fats_goal: profile.fats_goal, diagnostic_data: diagData, tracking_mode: 'guided'
             };
 
-            const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'phone' });
-            if (profileErr) console.error("Erreur profil : " + profileErr.message);
+            const { data: existingProfile } = await supabase.from('nutrition_profiles').select("id").eq("phone", cleanPhone).maybeSingle();
+
+            if (existingProfile) {
+                const { error: profileErr } = await supabase.from('nutrition_profiles').update(payload).eq("phone", cleanPhone);
+                if (profileErr) console.error("Erreur profil (update) : " + profileErr.message);
+            } else {
+                const { error: profileErr } = await supabase.from('nutrition_profiles').insert([payload]);
+                if (profileErr) console.error("Erreur profil (insert) : " + profileErr.message);
+            }
 
             await supabase.from('leads').insert([{
                 full_name: diagData.name, phone: cleanPhone, source: "Diagnostic Nutrition Landing",
