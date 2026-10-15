@@ -119,7 +119,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
         try {
             const cleanPhone = diagData.phone.replace(/\s+/g, '');
             const generatedEmail = `${cleanPhone}@clients.onyxcrm.com`;
-            const generatedPassword = cleanPhone.slice(-8).padStart(8, "0");
+            const generatedPassword = cleanPhone.slice(-6).padStart(6, "0");
             let realUserId: string | null | undefined = null;
             try {
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -698,7 +698,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Mot de passe provisoire</span>
                 <span className="font-black text-black bg-[#39FF14] px-2 py-1 rounded-md tracking-wider">
-                    {(diagData.phone || "0000").replace(/\D/g, '').slice(-4)}
+                    {(diagData.phone || "0000").replace(/\D/g, '').slice(-6)}
                 </span>
             </div>
         </div>
