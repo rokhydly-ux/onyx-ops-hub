@@ -37,17 +37,23 @@ export async function POST(request: Request) {
           const phone = leadData.phone || '+221000000000';
           const fullName = leadData.full_name || 'Nouveau Lead FB';
 
-          // Upsert Intelligent : Insert "Nouveau", ou met à jour la source s'il existe (via onConflict)
-          const { error } = await supabase.from('leads').upsert(
-            {
-              phone: phone, // Clé d'upsert principale (si définie dans Supabase comme unique)
+          // Upsert Intelligent : Insert "Nouveau", ou met à jour la source s'il existe
+          const leadPayload = {
+              phone: phone,
               full_name: fullName,
               source: `Facebook Ads (Campagne ${campaignId})`,
               status: 'Nouveau', // kanban_status
-            },
-            { onConflict: 'phone' } // Assurez-vous que la colonne phone est UNIQUE sur DB Supabase
-          );
-          if (error) console.error("Erreur Webhook FB :", error.message);
+          };
+
+          const { data: existingLead } = await supabase.from('leads').select('id').eq('phone', phone).maybeSingle();
+
+          if (existingLead) {
+             const { error } = await supabase.from('leads').update(leadPayload).eq('phone', phone);
+             if (error) console.error("Erreur Webhook FB (update) :", error.message);
+          } else {
+             const { error } = await supabase.from('leads').insert([leadPayload]);
+             if (error) console.error("Erreur Webhook FB (insert) :", error.message);
+          }
         }
       }
     }

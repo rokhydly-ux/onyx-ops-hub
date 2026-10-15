@@ -485,20 +485,36 @@ export default function NutritionAfricaineLanding() {
         if (!realUserId) console.warn("Impossible d'identifier l'utilisateur. Poursuite du flux pour affichage modale.");
 
         // 5. FIX CLÉ ÉTRANGÈRE : Upsert OBLIGATOIRE dans la table 'clients'
-        const { error: clientErr } = await supabase.from('clients').upsert({
+        const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        const clientPayload = {
             ...(realUserId ? { id: realUserId } : {}),
             full_name: diagData.name,
-            phone: cleanPhone
-        }, { onConflict: 'phone' });
+            phone: cleanPhone,
+            saas: "Nutrition à l'Africaine",
+            status: "Essai",
+            expiration_date: trialEndDate
+        };
 
-        if (clientErr) throw new Error("Erreur synchronisation client : " + clientErr.message);
+        const { data: existingClient } = await supabase.from('clients').select('id').eq('phone', cleanPhone).maybeSingle();
+        let finalClientId = realUserId;
+
+        if (existingClient) {
+            finalClientId = finalClientId || existingClient.id;
+            const { error: clientErr } = await supabase.from('clients').update(clientPayload).eq('phone', cleanPhone);
+            if (clientErr) throw new Error("Erreur synchronisation client (update) : " + clientErr.message);
+        } else {
+            const { data: newClient, error: clientErr } = await supabase.from('clients').insert([clientPayload]).select('id').single();
+            if (clientErr) throw new Error("Erreur synchronisation client (insert) : " + clientErr.message);
+            if (newClient) finalClientId = finalClientId || newClient.id;
+        }
 
         // 6. Calcul de l'algorithme métabolique
         const profile = calculateDailyCalories(diagData);
 
         // 7. Sauvegarde du Profil Nutritionnel
         const payload = {
-            ...(realUserId ? { client_id: realUserId } : {}),
+            ...(finalClientId ? { client_id: finalClientId } : {}),
             phone: cleanPhone,
             bmr: Math.round(profile.tdee / 1.2),
             tdee: profile.tdee,
@@ -510,8 +526,15 @@ export default function NutritionAfricaineLanding() {
             tracking_mode: 'guided'
         };
 
-        const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'phone' });
-        if (profileErr) console.error("Erreur sauvegarde profil (ignorée pour UI) : " + profileErr.message);
+        const { data: existingProfile } = await supabase.from('nutrition_profiles').select('id').eq('phone', cleanPhone).maybeSingle();
+
+        if (existingProfile) {
+            const { error: profileErr } = await supabase.from('nutrition_profiles').update(payload).eq('phone', cleanPhone);
+            if (profileErr) console.error("Erreur sauvegarde profil (update ignorée pour UI) : " + profileErr.message);
+        } else {
+            const { error: profileErr } = await supabase.from('nutrition_profiles').insert([payload]);
+            if (profileErr) console.error("Erreur sauvegarde profil (insert ignorée pour UI) : " + profileErr.message);
+        }
 
         // Tracking d'événement
         await supabase.from('leads').insert([{

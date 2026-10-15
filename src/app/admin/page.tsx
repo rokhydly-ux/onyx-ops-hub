@@ -556,8 +556,15 @@ export default function AdminDashboard() {
        payload.expiration_date = trialEndDate.toISOString().split('T')[0];
      }
 
-     const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
-     if (error) throw error;
+     const { data: existingEntry } = await supabase.from(table).select('id').eq(phoneColumn, payload[phoneColumn]).maybeSingle();
+
+     if (existingEntry) {
+         const { error } = await supabase.from(table).update(payload).eq(phoneColumn, payload[phoneColumn]);
+         if (error) throw error;
+     } else {
+         const { error } = await supabase.from(table).insert([payload]);
+         if (error) throw error;
+     }
 
      // NOUVEAU : On supprime TOUS les leads (partiels ou complets) liés à ce numéro pour éviter les doublons
      await supabase.from('leads').delete().eq('phone', lead.phone);
@@ -1807,7 +1814,7 @@ export default function AdminDashboard() {
      const trialEndDate = new Date();
      trialEndDate.setMonth(trialEndDate.getMonth() + 1);
 
-     await supabase.from('clients').upsert({
+     const clientPayload = {
         full_name: targetName,
         phone: targetPhone,
         password_temp: saasCreateForm.password, // IMPORTANT: Sauvegarde du mot de passe pour la connexion
@@ -1815,7 +1822,15 @@ export default function AdminDashboard() {
         saas: showSaasLogin.name,
         status: 'Compte Créé',
         expiration_date: trialEndDate.toISOString().split('T')[0]
-     }, { onConflict: 'phone' });
+     };
+
+     const { data: existingClient } = await supabase.from('clients').select('id').eq('phone', targetPhone).maybeSingle();
+
+     if (existingClient) {
+         await supabase.from('clients').update(clientPayload).eq('phone', targetPhone);
+     } else {
+         await supabase.from('clients').insert([clientPayload]);
+     }
 
      alert(`Compte ${showSaasLogin.name} créé et enregistré !`);
      setShowSaasLogin(null);

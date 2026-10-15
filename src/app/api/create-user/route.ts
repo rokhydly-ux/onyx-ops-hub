@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 15);
 
-      const { error: clientError } = await supabaseAdmin.from('clients').upsert([{
+      const clientPayload = {
          id: userId, 
          full_name: fullName, 
          phone: cleanPhone, 
@@ -91,11 +91,22 @@ export async function POST(request: Request) {
          saas: saas || '',
          active_saas: saas ? [saas] : [],
          expiration_date: trialEndDate.toISOString().split('T')[0]
-      }], { onConflict: 'phone' });
+      };
 
-      if (clientError) {
-         console.error('Erreur insertion client:', clientError);
-         throw new Error(`Erreur insertion client: ${clientError.message}`);
+      const { data: existingClient } = await supabaseAdmin.from('clients').select('id').eq('phone', cleanPhone).maybeSingle();
+
+      if (existingClient) {
+         const { error: clientError } = await supabaseAdmin.from('clients').update(clientPayload).eq('phone', cleanPhone);
+         if (clientError) {
+            console.error('Erreur update client:', clientError);
+            throw new Error(`Erreur update client: ${clientError.message}`);
+         }
+      } else {
+         const { error: clientError } = await supabaseAdmin.from('clients').insert([clientPayload]);
+         if (clientError) {
+            console.error('Erreur insertion client:', clientError);
+            throw new Error(`Erreur insertion client: ${clientError.message}`);
+         }
       }
     }
 

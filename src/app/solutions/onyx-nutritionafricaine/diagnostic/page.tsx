@@ -116,7 +116,7 @@ export default function NutritionDiagnostic() {
       const trialEnds = new Date();
       trialEnds.setDate(trialEnds.getDate() + 14);
 
-      const { data: clientData } = await supabase.from('clients').upsert({
+      const clientPayload = {
         full_name: formData.name,
         phone: formData.phone,
         password_temp: formData.pin || "0000",
@@ -125,13 +125,24 @@ export default function NutritionDiagnostic() {
         saas: "Nutrition à l'Africaine",
         status: "Essai",
         expiration_date: trialEnds.toISOString().split('T')[0],
-      }, { onConflict: 'phone' }).select().single();
+      };
+
+      const { data: existingClient } = await supabase.from('clients').select('id').eq('phone', formData.phone).maybeSingle();
+      let clientData = null;
+
+      if (existingClient) {
+          const { data } = await supabase.from('clients').update(clientPayload).eq('phone', formData.phone).select().single();
+          clientData = data;
+      } else {
+          const { data } = await supabase.from('clients').insert([clientPayload]).select().single();
+          clientData = data;
+      }
 
       if (clientData) localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
 
       const calculatedBirthDate = `${new Date().getFullYear() - (parseInt(formData.age) || 30)}-01-01`;
 
-      await supabase.from('nutrition_profiles').upsert({
+      const profilePayload = {
          phone: formData.phone,
          client_id: clientData?.id || null,
          bmr: Math.round(bmr),
@@ -146,7 +157,15 @@ export default function NutritionDiagnostic() {
          cooking_mode: formData.cookingHabit === 'Je cuisine uniquement pour moi seule' ? 'pour_moi_seule' : 'pour_toute_la_famille',
          health_conditions: formData.healthConditions.filter(p => p !== 'Aucun problème'),
          weekly_menu: [] 
-      }, { onConflict: 'client_id' });
+      };
+
+      const { data: existingProfile } = await supabase.from('nutrition_profiles').select('id').eq('client_id', clientData?.id).maybeSingle();
+
+      if (existingProfile && clientData?.id) {
+          await supabase.from('nutrition_profiles').update(profilePayload).eq('client_id', clientData.id);
+      } else {
+          await supabase.from('nutrition_profiles').insert([profilePayload]);
+      }
 
       await supabase.from('leads').insert([{
         full_name: formData.name,
