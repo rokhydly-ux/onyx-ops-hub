@@ -467,48 +467,17 @@ export default function NutritionAfricaineLanding() {
         let realUserId: string | null | undefined = null;
 
         try {
-            // 1. Tenter la connexion en priorité (si l'utilisateur a déjà essayé avant)
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email: generatedEmail,
-                password: generatedPassword
+                password: generatedPassword,
+                options: { data: { full_name: diagData.name, phone: cleanPhone } }
             });
 
-            if (authData?.user) {
-                realUserId = authData.user.id;
-            } else {
-                // 2. Le compte n'existe pas, on tente de le créer via l'API Onyx
-                await fetch('/api/create-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fullName: diagData.name,
-                        phone: cleanPhone,
-                        password: generatedPassword,
-                        role: 'client',
-                        saas: "Nutrition à l'Africaine"
-                    })
-                });
-
-                // 3. Et on se connecte immédiatement
-                const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
-                    email: generatedEmail,
-                    password: generatedPassword
-                });
-
-                if (newAuthError) {
-                    // 4. PLAN B (Sécurité anti-crash) : Inscription native Supabase si l'API a foiré
-                    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                        email: generatedEmail,
-                        password: generatedPassword,
-                        options: { data: { full_name: diagData.name, phone: cleanPhone } }
-                    });
-
-                    if (signUpError) console.error("Échec d'authentification : " + signUpError.message);
-                    realUserId = signUpData.user?.id;
-                } else {
-                    realUserId = newAuthData.user?.id;
-                }
+            if (signUpError) {
+                console.error("Échec d'authentification initiale : " + signUpError.message);
+                // Si l'utilisateur existe déjà, on ne bloque pas
             }
+            realUserId = signUpData?.user?.id;
         } catch(authCrash) {
              console.error("Auth crash ignoré", authCrash);
         }
@@ -517,10 +486,10 @@ export default function NutritionAfricaineLanding() {
 
         // 5. FIX CLÉ ÉTRANGÈRE : Upsert OBLIGATOIRE dans la table 'clients'
         const { error: clientErr } = await supabase.from('clients').upsert({
-            id: realUserId,
+            ...(realUserId ? { id: realUserId } : {}),
             full_name: diagData.name,
             phone: cleanPhone
-        }, { onConflict: 'id' });
+        }, { onConflict: 'phone' });
 
         if (clientErr) throw new Error("Erreur synchronisation client : " + clientErr.message);
 
@@ -541,8 +510,8 @@ export default function NutritionAfricaineLanding() {
             tracking_mode: 'guided'
         };
 
-        const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
-        if (profileErr) throw new Error("Erreur sauvegarde profil : " + profileErr.message);
+        const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'phone' });
+        if (profileErr) console.error("Erreur sauvegarde profil (ignorée pour UI) : " + profileErr.message);
 
         // Tracking d'événement
         await supabase.from('leads').insert([{
@@ -568,6 +537,15 @@ export default function NutritionAfricaineLanding() {
         // 8. Succès ! -> Affichage du Pop-up final
         setDiagStep(11);
         setShowSuccessModal(true);
+
+        try {
+            await supabase.auth.signInWithPassword({
+                email: generatedEmail,
+                password: generatedPassword
+            });
+        } catch(e) {
+            console.warn('Login ignoré');
+        }
 
     } catch (err: any) {
         console.error("Erreur d'enregistrement :", err);

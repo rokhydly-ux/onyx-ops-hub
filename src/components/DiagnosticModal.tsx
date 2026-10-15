@@ -122,49 +122,22 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             const generatedPassword = cleanPhone.slice(-6).padStart(6, "0");
             let realUserId: string | null | undefined = null;
             try {
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                    email: generatedEmail, password: generatedPassword
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    email: generatedEmail, password: generatedPassword,
+                    options: { data: { full_name: diagData.name, phone: cleanPhone } }
                 });
-
-                if (authData?.user) {
-                    realUserId = authData.user.id;
-                } else {
-                    await fetch("/api/create-user", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            fullName: diagData.name, phone: cleanPhone, password: generatedPassword,
-                            role: "client", saas: "Nutrition à l'Africaine"
-                        })
-                    });
-
-                    const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
-                        email: generatedEmail, password: generatedPassword
-                    });
-
-                    if (newAuthError) {
-                        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                            email: generatedEmail, password: generatedPassword,
-                            options: { data: { full_name: diagData.name, phone: cleanPhone } }
-                        });
-                        if (signUpError) console.error("Échec : " + signUpError.message);
-                        realUserId = signUpData.user?.id;
-                    } else {
-                        realUserId = newAuthData.user?.id;
-                    }
-                }
+                if (signUpError) console.error("Échec initial Auth : " + signUpError.message);
+                realUserId = signUpData?.user?.id;
             } catch (authCrash) {
                  console.error("Auth crash ignoré", authCrash);
             }
 
             if (!realUserId) console.warn("Impossible d'identifier l'utilisateur.");
 
-            if (realUserId) {
-                const { error: clientErr } = await supabase.from("clients").upsert({
-                    id: realUserId, full_name: diagData.name, phone: cleanPhone
-                }, { onConflict: "id" });
-                if (clientErr) console.error("Erreur client : " + clientErr.message);
-            }
+            const { error: clientErr } = await supabase.from("clients").upsert({
+                ...(realUserId ? { id: realUserId } : {}), full_name: diagData.name, phone: cleanPhone
+            }, { onConflict: "phone" });
+            if (clientErr) console.error("Erreur client : " + clientErr.message);
 
             const profile = calculateDailyCalories(diagData);
             const payload = {
@@ -174,7 +147,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                 fats_goal: profile.fats_goal, diagnostic_data: diagData, tracking_mode: 'guided'
             };
 
-            const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+            const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'phone' });
             if (profileErr) console.error("Erreur profil : " + profileErr.message);
 
             await supabase.from('leads').insert([{
@@ -184,6 +157,14 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             }]);
 
             setDiagStep(10);
+
+            try {
+                await supabase.auth.signInWithPassword({
+                    email: generatedEmail, password: generatedPassword
+                });
+            } catch(e) {
+                console.warn('Login ignoré');
+            }
         } catch (err: any) {
             console.error(err);
             alert(err.message || "Erreur");
@@ -534,7 +515,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
 
                       <div className="w-full text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Numéro WhatsApp</label>
-                        <input type="tel" required placeholder="+221..." value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        <input type="tel" required placeholder="+221..." value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value.replace(/[^\d+]/g, '')})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                       </div>
                     </div>
                   )}
@@ -559,7 +540,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                                 (diagStep === 5 && (!diagData.waterIntake || !diagData.pastDiets || diagData.cookingFats.length === 0)) ||
                                 (diagStep === 6 && (!diagData.mainMealElement || !diagData.eveningMeal)) ||
                                 (diagStep === 7 && (!diagData.lunchHabit || !diagData.cookingHabit || !diagData.weeklyBudget)) ||
-                                (diagStep === 8 && (!diagData.name || !diagData.phone))
+                                (diagStep === 8 && (!diagData.name || !diagData.phone || diagData.phone.length < 9 || diagData.phone.length > 15))
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
