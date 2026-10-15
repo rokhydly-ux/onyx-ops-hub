@@ -5,6 +5,7 @@ import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { CheckCircle, ChevronRight, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
+import AfricanFruitsAnimation from './AfricanFruitsAnimation';
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] });
 
@@ -99,6 +100,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
         pastDiets: "", cookingFats: [] as string[], mainMealElement: "", eveningMeal: "", lunchHabit: "",
         cookingHabit: "", weeklyBudget: "", name: "", phone: ""
     });
+    const [countdown, setCountdown] = useState(7);
 
     useEffect(() => {
         if (isOpen) {
@@ -114,6 +116,23 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             }
         }
     }, [initialGoal, isOpen]);
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (diagStep === 11) {
+            timer = setInterval(() => {
+                setCountdown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        window.location.href = '/nutrition?from=diagnostic';
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [diagStep]);
 
     const handleDiagSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -692,6 +711,8 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
         {/* Lueur en arrière-plan */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#39FF14] opacity-20 blur-[50px] pointer-events-none"></div>
 
+        <AfricanFruitsAnimation />
+
         <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Nutrition à l'Africaine" className="h-16 w-auto mx-auto mb-6 object-contain relative z-10" />
 
         <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase text-black mb-3 leading-tight relative z-10`}>
@@ -708,11 +729,11 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                 <Lock size={14}/> Tes identifiants :
             </p>
             <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro WhatsApp</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ton ID (WhatsApp)</span>
                 <span className="font-black text-white">{diagData.phone}</span>
             </div>
             <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Mot de passe provisoire</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ton Mot de passe</span>
                 <span className="font-black text-black bg-[#39FF14] px-2 py-1 rounded-md tracking-wider">
                     {(diagData.phone || "0000").replace(/\D/g, '').slice(-6)}
                 </span>
@@ -724,8 +745,9 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" className="w-6 h-6 rounded-full shadow-sm" alt="Réglages" />
         </p>
 
-        <button onClick={() => window.location.href = '/nutrition?from=diagnostic'} className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform flex justify-center items-center gap-2 relative z-10">
-            Accéder à mon Sama Menu <ArrowRight size={18}/>
+        <button onClick={() => window.location.href = '/nutrition?from=diagnostic'} className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform flex flex-col justify-center items-center gap-1 relative z-10">
+            <span className="flex items-center gap-2">ACCÉDER À MON DASHBOARD <ArrowRight size={18}/></span>
+            <span className="text-[10px] font-bold text-zinc-800 normal-case tracking-normal">Redirection dans {countdown}s...</span>
         </button>
     </div>
 )}

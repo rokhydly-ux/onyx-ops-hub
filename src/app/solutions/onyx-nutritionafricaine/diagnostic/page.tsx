@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import AfricanFruitsAnimation from '@/components/AfricanFruitsAnimation';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -506,68 +507,37 @@ export default function NutritionDiagnostic() {
                 {step === 10 && (
                   <div className="flex flex-col items-center text-center justify-center flex-1 animate-in zoom-in duration-500 relative z-50">
                     
-                    {/* Pluie de fruits et légumes africains */}
-                    <div className="fixed inset-0 pointer-events-none z-[70] overflow-hidden">
-                      {Array.from({ length: 30 }).map((_, i) => {
-                        const fruits = [
-                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/1_ol9nva.png",
-                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/2_cm6zqm.png",
-                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/3_hl0fua.png",
-                          "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/4_lpcpp2.png"
-                        ];
-                        const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
-                        const randomLeft = Math.random() * 100;
-                        const randomDelay = Math.random() * 2;
-                        const randomDuration = 3 + Math.random() * 3;
-                        const size = 32 + Math.random() * 24;
-
-                        return (
-                          <img
-                            key={i}
-                            src={randomFruit}
-                            alt="Fruit local"
-                            style={{
-                              position: "absolute",
-                              top: "-60px",
-                              left: `${randomLeft}%`,
-                              width: `${size}px`,
-                              animation: `fruitRain ${randomDuration}s linear ${randomDelay}s infinite`
-                            }}
-                          />
-                        );
-                      })}
-                      <style dangerouslySetInnerHTML={{__html: `
-                        @keyframes fruitRain {
-                          0% { transform: translateY(-60px) rotate(0deg); opacity: 1; }
-                          100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
-                        }
-                      `}} />
-                    </div>
+                    <AfricanFruitsAnimation />
 
                     <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[80]">
                       <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
                       <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
 
-                      <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-8 space-y-4">
-                         <div className="flex justify-between items-center">
-                            <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Identifiant</span>
-                            <span className="font-bold text-black bg-white px-3 py-1 rounded-md shadow-sm border border-zinc-100">{formData.phone}</span>
-                         </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Mot de passe</span>
-                            <span className="font-bold text-[#39FF14] bg-black px-3 py-1 rounded-md shadow-sm">{formData.phone.replace(/\D/g, '').slice(-6)}</span>
-                         </div>
-                         <button type="button" onClick={() => { navigator.clipboard.writeText(`Identifiant: ${formData.phone}\nMDP: ${formData.phone.replace(/\D/g, '').slice(-6)}`); alert('Copié !'); }} className="w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black mt-2 underline">Copier mes accès</button>
+                      {/* Encadré Identifiants Design Premium */}
+                      <div className="bg-black border border-zinc-800 p-6 rounded-2xl w-full text-left space-y-4 mb-8 shadow-[0_10px_30px_rgba(0,0,0,0.15)] relative z-10">
+                          <p className="font-black text-[#39FF14] text-xs uppercase tracking-widest border-b border-zinc-800 pb-3 mb-3 flex items-center gap-2">
+                              Tes identifiants :
+                          </p>
+                          <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ton ID (WhatsApp)</span>
+                              <span className="font-black text-white">{formData.phone}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ton Mot de passe</span>
+                              <span className="font-black text-black bg-[#39FF14] px-2 py-1 rounded-md tracking-wider">
+                                  {(formData.phone || "0000").replace(/\D/g, '').slice(-6)}
+                              </span>
+                          </div>
                       </div>
 
                       <button 
                         type="button"
                         onClick={() => router.push('/nutrition')}
-                        className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase md:text-sm tracking-widest hover:scale-105 transition-all shadow-xl animate-pulse flex items-center justify-center gap-2 mb-4"
+                        className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase md:text-sm tracking-widest hover:scale-105 transition-transform flex flex-col items-center justify-center gap-1 mb-4 shadow-[0_0_20px_rgba(57,255,20,0.3)] animate-pulse"
                       >
-                        Accéder à mon Dashboard <ArrowRight size={18} />
+                        <span className="flex items-center gap-2">ACCÉDER À MON DASHBOARD <ArrowRight size={18} /></span>
+                        <span className="text-[10px] font-bold text-zinc-800 normal-case tracking-normal">Redirection dans {redirectCount}s...</span>
                       </button>
-                      <p className="text-[10px] font-black uppercase text-zinc-400 text-center">Redirection vers votre espace dans {redirectCount} secondes...</p>
 
                     </div>
                   </div>
