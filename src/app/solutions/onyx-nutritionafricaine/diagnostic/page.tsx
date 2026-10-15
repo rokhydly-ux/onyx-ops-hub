@@ -531,9 +531,9 @@ export default function NutritionDiagnostic() {
                          </div>
                          <div className="flex justify-between items-center">
                             <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Mot de passe</span>
-                            <span className="font-bold text-[#39FF14] bg-black px-3 py-1 rounded-md shadow-sm">{formData.phone.replace(/\D/g, '').slice(-4)}</span>
+                            <span className="font-bold text-[#39FF14] bg-black px-3 py-1 rounded-md shadow-sm">{formData.phone.replace(/\D/g, '').slice(-6)}</span>
                          </div>
-                         <button type="button" onClick={() => { navigator.clipboard.writeText(`Identifiant: ${formData.phone}\nMDP: ${formData.phone.replace(/\D/g, '').slice(-4)}`); alert('Copié !'); }} className="w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black mt-2 underline">Copier mes accès</button>
+                         <button type="button" onClick={() => { navigator.clipboard.writeText(`Identifiant: ${formData.phone}\nMDP: ${formData.phone.replace(/\D/g, '').slice(-6)}`); alert('Copié !'); }} className="w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-black mt-2 underline">Copier mes accès</button>
                       </div>
 
                       <button 
