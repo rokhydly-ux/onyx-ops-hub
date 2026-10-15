@@ -460,9 +460,13 @@ export default function NutritionAfricaineLanding() {
     setIsSubmittingDiag(true);
 
     try {
-        const cleanPhone = diagData.phone.replace(/\s+/g, '');
-        const generatedEmail = `${cleanPhone}@clients.onyxcrm.com`;
-        const generatedPassword = cleanPhone.slice(-6).padStart(6, "0");
+        // Strict E.164 parsing: Ensure + prefix, remove all other non-numeric chars
+        const cleanPhone = diagData.phone.replace(/[^\d+]/g, '');
+        // Remove '+' just for the email prefix to avoid invalid email format issues
+        const emailPhonePrefix = cleanPhone.replace('+', '');
+        const generatedEmail = `${emailPhonePrefix}@clients.onyxcrm.com`;
+        // Ensure strictly 6 chars (last 6 digits)
+        const generatedPassword = cleanPhone.replace(/\D/g, '').slice(-6).padStart(6, "0");
 
         let realUserId: string | null | undefined = null;
 

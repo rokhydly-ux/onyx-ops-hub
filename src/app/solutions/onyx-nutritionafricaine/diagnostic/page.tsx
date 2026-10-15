@@ -478,6 +478,7 @@ export default function NutritionDiagnostic() {
                            <PhoneInput
                                 international
                                 defaultCountry="SN"
+                                limitMaxLength={true}
                                 value={formData.phone}
                                 onChange={(value) => setFormData({...formData, phone: value || ''})}
                            />
