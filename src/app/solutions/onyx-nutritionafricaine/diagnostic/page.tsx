@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { Activity, ChevronLeft, CheckCircle, ArrowRight, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -452,11 +454,14 @@ export default function NutritionDiagnostic() {
                         value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
                         className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" 
                       />
-                      <input 
-                        type="tel" required placeholder="Numéro WhatsApp"
-                        value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/[^\d+]/g, '')})}
-                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" 
-                      />
+                      <div className="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl text-black overflow-hidden [&_.PhoneInput]:p-4 [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:border-none [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:font-bold [&_.PhoneInputInput]:text-xl focus-within:border-black transition-colors">
+                           <PhoneInput
+                                international
+                                defaultCountry="SN"
+                                value={formData.phone}
+                                onChange={(value) => setFormData({...formData, phone: value || ''})}
+                           />
+                      </div>
                       <input 
                         type="password" required placeholder="Mot de passe"
                         value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -469,7 +474,7 @@ export default function NutritionDiagnostic() {
                       />
                       
                       <button 
-                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || formData.phone.length < 9 || formData.phone.length > 15 || !formData.pin || !formData.password}
+                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || !isValidPhoneNumber(formData.phone) || !formData.pin || !formData.password}
                         className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2"
                       >
                         {isSubmitting ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/>

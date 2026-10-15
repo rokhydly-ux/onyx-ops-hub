@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { CheckCircle, ChevronRight, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
 
@@ -515,7 +517,14 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
 
                       <div className="w-full text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Numéro WhatsApp</label>
-                        <input type="tel" required placeholder="+221..." value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value.replace(/[^\d+]/g, '')})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        <div className="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl text-black overflow-hidden [&_.PhoneInput]:p-4 [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:border-none [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:font-bold [&_.PhoneInputInput]:text-xl [&_.PhoneInputInput]:text-center focus-within:border-[#39FF14] transition-colors">
+                           <PhoneInput
+                                international
+                                defaultCountry="SN"
+                                value={diagData.phone}
+                                onChange={(value) => setDiagData({...diagData, phone: value || ''})}
+                           />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -540,7 +549,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                                 (diagStep === 5 && (!diagData.waterIntake || !diagData.pastDiets || diagData.cookingFats.length === 0)) ||
                                 (diagStep === 6 && (!diagData.mainMealElement || !diagData.eveningMeal)) ||
                                 (diagStep === 7 && (!diagData.lunchHabit || !diagData.cookingHabit || !diagData.weeklyBudget)) ||
-                                (diagStep === 8 && (!diagData.name || !diagData.phone || diagData.phone.length < 9 || diagData.phone.length > 15))
+                                (diagStep === 8 && (!diagData.name || !diagData.phone || !isValidPhoneNumber(diagData.phone)))
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
