@@ -138,9 +138,15 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
         e.preventDefault();
         setIsSubmittingDiag(true);
         try {
-            const cleanPhone = diagData.phone.replace(/\s+/g, '');
-            const generatedEmail = `${cleanPhone}@clients.onyxcrm.com`;
-            const generatedPassword = cleanPhone.slice(-6).padStart(6, "0");
+            // Strict E.164 parsing: Ensure + prefix, remove all other non-numeric chars
+            const cleanPhone = diagData.phone.replace(/[^\d+]/g, '');
+            // For email, it's fine to strip the '+' to make it a valid local-part if we want, but keeping it is valid email syntax too.
+            // However, Supabase sometimes rejects emails starting with '+'. Let's remove the '+' just for the email.
+            const emailPhonePrefix = cleanPhone.replace('+', '');
+            const generatedEmail = `${emailPhonePrefix}@clients.onyxcrm.com`;
+            // Ensure strictly 6 chars (last 6 digits)
+            const generatedPassword = cleanPhone.replace(/\D/g, '').slice(-6).padStart(6, "0");
+
             let realUserId: string | null | undefined = null;
             try {
                 const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -203,7 +209,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                 message: `Objectif: ${profile.calories} kcal`
             }]);
 
-            setDiagStep(10);
+            setDiagStep(11);
 
             try {
                 await supabase.auth.signInWithPassword({
@@ -566,6 +572,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                            <PhoneInput
                                 international
                                 defaultCountry="SN"
+                                limitMaxLength={true}
                                 value={diagData.phone}
                                 onChange={(value) => setDiagData({...diagData, phone: value || ''})}
                            />
