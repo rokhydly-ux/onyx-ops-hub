@@ -567,6 +567,7 @@ export default function NutritionAfricaineLanding() {
 
         // 8. Succès ! -> Affichage du Pop-up final
         setDiagStep(11);
+        setShowSuccessModal(true);
 
     } catch (err: any) {
         console.error("Erreur d'enregistrement :", err);
@@ -1654,9 +1655,9 @@ export default function NutritionAfricaineLanding() {
       {/* MODALE DIAGNOSTIC */}
             <DiagnosticModal isOpen={showDiagnosticModal} onClose={() => setShowDiagnosticModal(false)} />
       {showSuccessModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300 relative">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300 relative">
 
-          <div className="fixed inset-0 pointer-events-none z-[1010] overflow-hidden">
+          <div className="fixed inset-0 pointer-events-none z-[80] overflow-hidden">
             {Array.from({ length: 30 }).map((_, i) => {
               const fruits = [
                 "https://res.cloudinary.com/dtr2wtoty/image/upload/f_webp,q_auto,w_120/v1791984599/1_ol9nva.png",
@@ -1693,7 +1694,7 @@ export default function NutritionAfricaineLanding() {
             `}} />
           </div>
 
-          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[1020]">
+          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[80]">
             <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
             <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
 
