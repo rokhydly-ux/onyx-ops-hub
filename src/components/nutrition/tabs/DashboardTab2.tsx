@@ -68,6 +68,9 @@ export default function DashboardTab2({ ...tabProps }: any) {
               proteinGoal={proteinGoal}
               carbsGoal={carbsGoal}
               fatsGoal={fatsGoal}
+              confirmMealLog={confirmMealLog}
+              handleSwapMeal={handleSwapMeal}
+              allRecipes={allRecipesDB}
           />
 
     </>

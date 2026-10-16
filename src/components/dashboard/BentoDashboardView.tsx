@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import {
-    Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight,
+    Activity, Droplet, Moon, Search, Bell, LogOut, ArrowUpRight, Dumbbell,
     Settings, User as UserIcon, Send, MoreHorizontal, MessageSquare, Heart
 } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
@@ -26,15 +26,32 @@ interface BentoDashboardViewProps {
     todayMenu?: any;
     isFastingMode?: boolean;
     deleteMealLog?: (item: any) => void;
+    confirmMealLog?: (item: any) => void;
+    handleSwapMeal?: (item: any) => void;
     calorieGoal?: number;
     proteinGoal?: number;
     carbsGoal?: number;
     fatsGoal?: number;
+    allRecipes?: any[];
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog, calorieGoal, proteinGoal, carbsGoal, fatsGoal }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog, confirmMealLog, handleSwapMeal, calorieGoal, proteinGoal, carbsGoal, fatsGoal, allRecipes = [] }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const [hiddenMeals, setHiddenMeals] = useState<string[]>([]);
+    const [randomRecipe, setRandomRecipe] = useState<any>(null);
+
+    React.useEffect(() => {
+        if (allRecipes && allRecipes.length > 0) {
+            let suggestable = allRecipes;
+            if (todayMenu && todayMenu.meals) {
+                const todayMealIds = Object.values(todayMenu.meals).map((m: any) => m.id);
+                suggestable = allRecipes.filter((r: any) => !todayMealIds.includes(r.id));
+            }
+            if (suggestable.length === 0) suggestable = allRecipes; // Fallback safely
+            setRandomRecipe(suggestable[Math.floor(Math.random() * suggestable.length)]);
+        }
+    }, [allRecipes, todayMenu]);
+
     const generateCoachMessage = () => {
         const hour = new Date().getHours();
         const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Salam' : 'Bonsoir';
@@ -100,23 +117,42 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             </div>
                         </div>
                     </div>
-                    {/* Pas */}
-                    <div className="rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Activité</p>
-                        <p className="text-3xl font-black text-black">5 240 <span className="text-sm text-zinc-500">pas</span></p>
-                        <div className="flex gap-1 items-end h-4 mt-2">
-                            {[40, 70, 30, 90, 50, 100, 60].map((h, i) => (
-                                <div key={i} className="w-full bg-[#39FF14]/50 rounded-t-sm" style={{ height: `${h}%` }}></div>
-                            ))}
+                    {/* Inspiration Recette */}
+                    <div
+                        className="rounded-[2rem] bg-zinc-100 border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 relative overflow-hidden group cursor-pointer"
+                        onClick={() => setActiveTab('week')}
+                    >
+                        {randomRecipe && randomRecipe.image_url ? (
+                            <>
+                                <img src={randomRecipe.image_url} alt="Recette" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" />
+                                <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
+                            </>
+                        ) : (
+                            <div className="absolute inset-0 bg-zinc-800 z-10 pointer-events-none"></div>
+                        )}
+                        <div className="relative z-20 flex justify-between items-start">
+                            <p className="text-[10px] font-black text-white/90 uppercase tracking-widest bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">Inspiration</p>
+                            <ArrowUpRight size={16} className="text-white opacity-80 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <div className="relative z-20">
+                            <p className="text-sm font-black text-white leading-tight drop-shadow-md line-clamp-2">
+                                {randomRecipe ? randomRecipe.nom : "Chargement..."}
+                            </p>
                         </div>
                     </div>
-                    {/* Sommeil */}
-                    <div className="rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32">
+                    {/* Fitness */}
+                    <div
+                        className="rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 cursor-pointer hover:border-[#39FF14] transition-colors"
+                        onClick={() => alert("Programme fitness bientôt disponible !")}
+                    >
                         <div className="flex justify-between items-start">
-                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sommeil</p>
-                            <Moon size={16} className="text-[#00E5FF]" />
+                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Fitness</p>
+                            <Dumbbell size={16} className="text-[#39FF14]" />
                         </div>
-                        <p className="text-3xl font-black text-black">{clientProfile?.diagnostic_data?.sleepHours || '7h'} <span className="text-sm text-zinc-500">moy</span></p>
+                        <div>
+                            <p className="text-lg font-black text-black leading-tight">Séance Express</p>
+                            <p className="text-xs text-zinc-500">Bouger à la maison</p>
+                        </div>
                     </div>
                     {/* Hydratation */}
                     <div className="rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 relative overflow-hidden group">
@@ -269,27 +305,27 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                             };
 
                             return (
-                                <div key={mealType} className={`flex items-center gap-4 p-3 rounded-2xl border transition-colors group shadow-sm ${isConsumed ? 'bg-[#39FF14]/10 border-[#39FF14]' : 'bg-white border-zinc-100 hover:border-[#39FF14]/50 cursor-pointer'}`}>
-                                    <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative">
+                                <div key={mealType} onClick={() => handleMealClick && handleMealClick({ ...recipe, type: mealType })} className={`flex items-center gap-4 p-3 rounded-2xl border transition-colors group shadow-sm relative z-10 ${isConsumed ? 'bg-[#39FF14]/10 border-[#39FF14]' : 'bg-white border-zinc-100 hover:border-[#39FF14]/50 cursor-pointer'}`}>
+                                    <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden relative pointer-events-none">
                                         <img src={(recipe.image_url && !recipe.image_url.includes('placeholder_')) ? recipe.image_url : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"} onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={recipe.nom} />
                                     </div>
-                                    <div className="flex-1">
+                                    <div className="flex-1 pointer-events-none">
                                         <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{mealType}</p>
                                         <p className="text-sm font-black text-black mt-0.5">{recipe.nom} {isConsumed && '✅'}</p>
                                     </div>
-                                    <div className="text-right pr-2 flex flex-col items-end gap-1">
-                                        <div>
+                                    <div className="text-right pr-2 flex flex-col items-end gap-1 relative z-20">
+                                        <div className="pointer-events-none">
                                             <span className="text-lg font-black text-[#39FF14]">{recipe.calories || recipe.kcal || recipe.energy || "—"}</span>
                                             <span className="text-[10px] text-zinc-500 uppercase ml-1">Kcal</span>
                                         </div>
                                         <div className="flex items-center gap-2 mt-1">
                                             {!isConsumed && (
-                                                <button onClick={(e) => { e.stopPropagation(); console.log("Swap à venir"); }} className="text-[9px] font-bold text-zinc-500 hover:text-black uppercase border border-zinc-200 px-2 py-0.5 rounded">Swap</button>
+                                                <button onClick={(e) => { e.stopPropagation(); if (handleSwapMeal) handleSwapMeal({ ...recipe, type: mealType }); }} className="text-[9px] font-bold text-zinc-500 hover:text-black uppercase border border-zinc-200 px-2 py-0.5 rounded cursor-pointer pointer-events-auto">Swap</button>
                                             )}
                                             {!isConsumed && (
-                                                <button onClick={(e) => { e.stopPropagation(); console.log("Valider à venir"); }} className="text-[9px] font-bold bg-[#39FF14] text-black hover:bg-black hover:text-[#39FF14] uppercase px-2 py-0.5 rounded shadow-sm">Valider</button>
+                                                <button onClick={(e) => { e.stopPropagation(); if (confirmMealLog) confirmMealLog({ ...recipe, type: mealType }); }} className="text-[9px] font-bold bg-[#39FF14] text-black hover:bg-black hover:text-[#39FF14] uppercase px-2 py-0.5 rounded shadow-sm cursor-pointer pointer-events-auto">Valider</button>
                                             )}
-                                            <button onClick={handleDelete} className="text-[9px] font-bold text-red-400 hover:text-white hover:bg-red-400 uppercase border border-red-200 px-2 py-0.5 rounded transition-colors">{isConsumed ? 'Suppr.' : 'Cacher'}</button>
+                                            <button onClick={handleDelete} className="text-[9px] font-bold text-red-400 hover:text-white hover:bg-red-400 uppercase border border-red-200 px-2 py-0.5 rounded transition-colors cursor-pointer pointer-events-auto">{isConsumed ? 'Suppr.' : 'Cacher'}</button>
                                         </div>
                                     </div>
                                 </div>
