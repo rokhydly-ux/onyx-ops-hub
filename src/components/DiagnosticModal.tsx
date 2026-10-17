@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ChevronRight, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
 import AfricanFruitsAnimation from './AfricanFruitsAnimation';
@@ -92,13 +93,19 @@ interface DiagnosticModalProps {
 }
 
 export default function DiagnosticModal({ isOpen, onClose, initialGoal }: DiagnosticModalProps) {
+    const searchParams = useSearchParams();
+    const planFromUrl = searchParams ? searchParams.get('plan') : null;
+    const isPremium = planFromUrl === 'premium';
+
     const [diagStep, setDiagStep] = useState(1);
     const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
     const [diagData, setDiagData] = useState({
         gender: "", age: "", goal: "", currentWeight: "", targetWeight: "", targetDate: "", height: "",
         sleepHours: "", dailyCommute: "", healthProfile: "", femaleSpecific: "", waterIntake: "",
         pastDiets: "", cookingFats: [] as string[], mainMealElement: "", eveningMeal: "", lunchHabit: "",
-        cookingHabit: "", weeklyBudget: "", name: "", phone: ""
+        cookingHabit: "", weeklyBudget: "", name: "", phone: "",
+        // Premium questions
+        cookingAdults: "", shoppingPlace: "", shoppingManagement: "", dietAbandonReason: ""
     });
     const [countdown, setCountdown] = useState(7);
 
@@ -168,8 +175,8 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                 full_name: diagData.name,
                 phone: cleanPhone,
                 saas: "Nutrition à l'Africaine",
-                status: "Essai",
-                expiration_date: trialEndDate
+                status: isPremium ? "Actif" : "Essai",
+                ...(isPremium ? {} : { expiration_date: trialEndDate })
             };
 
             const { data: existingClient } = await supabase.from("clients").select("id").eq("phone", cleanPhone).maybeSingle();
@@ -203,13 +210,13 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                 if (profileErr) console.error("Erreur profil (insert) : " + profileErr.message);
             }
 
-            await supabase.from('leads').insert([{
+            await supabase.from('crm_leads').insert([{
                 full_name: diagData.name, phone: cleanPhone, source: "Diagnostic Nutrition Landing",
                 intent: "A complété son diagnostic", status: "Nouveau", saas: "Nutrition à l'Africaine",
                 message: `Objectif: ${profile.calories} kcal`,
-                product_id: plan === 'premium' ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
-                mrr_value: plan === 'premium' ? 35000 : 2900,
-                lead_status: "Nouveau"
+                product_id: isPremium ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
+                mrr_value: isPremium ? 35000 : 2900,
+                trial_status: isPremium ? "None" : "Active"
             }]);
 
             setDiagStep(11);
@@ -233,7 +240,15 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
 
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && onClose()}>
-          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col relative animate-in zoom-in-95 max-h-[95vh] overflow-hidden">
+          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2.5rem] shadow-2xl flex flex-col relative animate-in zoom-in-95 max-h-[95vh] overflow-hidden" style={{ boxShadow: '0 0 20px rgba(0, 255, 0, 0.1)' }}>
+
+            {/* Back Arrow */}
+            <button
+                onClick={() => diagStep > 1 ? setDiagStep(prev => prev - 1) : onClose()}
+                className="absolute top-4 left-4 z-10 w-10 h-10 bg-black/50 hover:bg-black text-white rounded-full flex items-center justify-center transition-all"
+            >
+                <ChevronRight className="rotate-180" size={20} />
+            </button>
             <button onClick={() => onClose()} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/20 text-white rounded-full hover:bg-black hover:text-[#39FF14] transition z-50"><X size={20}/></button>
 
             <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem] shrink-0">
@@ -242,8 +257,11 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
               </div>
               <Activity className="text-[#39FF14] mx-auto mb-2" size={28} />
               <h2 className={`${spaceGrotesk.className} text-xl md:text-3xl font-black uppercase tracking-tighter`}>
-                {diagStep === 7 ? "Diagnostic Terminé !" : "Bilan Nutritionnel"}
+                {diagStep >= 7 ? "Configuration du Coach" : "Bilan Nutritionnel"}
               </h2>
+              <p className="text-zinc-400 text-xs mt-2 font-medium">
+                  {diagStep >= 7 ? "Derniers détails pour finaliser la configuration de votre Coach IA." : "L'Intelligence Artificielle de Coach Rokhy à ton service."}
+              </p>
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
@@ -559,10 +577,51 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                       </div>
                     </div>
                   )}
-                  {/* ETAPE 8: Identification (Landing Page Uniquement) */}
-                  {diagStep === 8 && (
+                  {/* ETAPE 8: Questions Premium (Si applicables) */}
+                  {diagStep === 8 && isPremium && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Configuration Avancée (Premium)</h2>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full text-left">
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Cuisinez-vous pour d'autres adultes ?</label>
+                              <input type="number" min="1" placeholder="Nb. adultes" value={diagData.cookingAdults} onChange={(e) => setDiagData({...diagData, cookingAdults: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-xl text-black outline-none focus:border-[#39FF14]" />
+                          </div>
+
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Où faites-vous vos achats ?</label>
+                              <div className="flex gap-2 flex-wrap">
+                                  {['Auchan', 'Marché', 'Mixte'].map(opt => (
+                                      <button key={opt} type="button" onClick={() => setDiagData({...diagData, shoppingPlace: opt})} className={`flex-1 min-w-[100px] p-3 text-sm font-bold rounded-xl border-2 transition ${diagData.shoppingPlace === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Gestion des achats ?</label>
+                              <div className="flex flex-col gap-2">
+                                  {['Je suis autonome', 'Je veux une liste détaillée', 'Délégation totale'].map(opt => (
+                                      <button key={opt} type="button" onClick={() => setDiagData({...diagData, shoppingManagement: opt})} className={`p-3 text-sm font-bold rounded-xl border-2 transition text-left ${diagData.shoppingManagement === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Raisons des abandons passés ?</label>
+                              <div className="flex flex-col gap-2">
+                                  {['Manque de temps', 'Frustration avec les repas de famille', 'Isolement'].map(opt => (
+                                      <button key={opt} type="button" onClick={() => setDiagData({...diagData, dietAbandonReason: opt})} className={`p-3 text-sm font-bold rounded-xl border-2 transition text-left ${diagData.dietAbandonReason === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ETAPE 9: Identification (Landing Page Uniquement) */}
+                  {diagStep === (isPremium ? 9 : 8) && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 8 : À qui avons-nous l'honneur ?</h2>
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape Finale : À qui avons-nous l'honneur ?</h2>
 
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Votre Prénom</label>
@@ -595,7 +654,7 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                         )}
                         <button
                             type="button"
-                            onClick={() => setDiagStep(s => s === 8 ? 10 : s + 1)}
+                            onClick={() => setDiagStep(s => (s === (isPremium ? 9 : 8)) ? 10 : s + 1)}
                             disabled={
                                 (diagStep === 1 && (!diagData.gender || !diagData.age)) ||
                                 (diagStep === 2 && (!diagData.goal || !diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
@@ -604,7 +663,8 @@ export default function DiagnosticModal({ isOpen, onClose, initialGoal }: Diagno
                                 (diagStep === 5 && (!diagData.waterIntake || !diagData.pastDiets || diagData.cookingFats.length === 0)) ||
                                 (diagStep === 6 && (!diagData.mainMealElement || !diagData.eveningMeal)) ||
                                 (diagStep === 7 && (!diagData.lunchHabit || !diagData.cookingHabit || !diagData.weeklyBudget)) ||
-                                (diagStep === 8 && (!diagData.name || !diagData.phone || !isValidPhoneNumber(diagData.phone)))
+                                (diagStep === 8 && isPremium && (!diagData.cookingAdults || !diagData.shoppingPlace || !diagData.shoppingManagement || !diagData.dietAbandonReason)) ||
+                                (diagStep === (isPremium ? 9 : 8) && (!diagData.name || !diagData.phone || !isValidPhoneNumber(diagData.phone)))
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
