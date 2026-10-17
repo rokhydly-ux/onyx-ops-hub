@@ -224,7 +224,7 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                 message: `Objectif: ${profile.calories} kcal`
             }]);
 
-            setDiagStep(11);
+            setDiagStep(13);
 
             try {
                 await supabase.auth.signInWithPassword({
