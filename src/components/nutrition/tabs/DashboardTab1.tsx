@@ -46,6 +46,34 @@ export default function DashboardTab1({ ...tabProps }: any) {
             </div>
           </div>
 
+          <BentoDashboardView
+              user={user}
+              waterGlasses={waterGlasses}
+              handleUpdateWater={handleUpdateWater}
+              jongomaXP={jongomaXP}
+              clientProfile={clientProfile}
+              calories={calories}
+              proteins={proteins}
+              carbs={carbs}
+              fats={fats}
+              consumedMeals={consumedMeals}
+              weightLogs={weightLogs}
+              setActiveTab={handleTabChange}
+              handleMealClick={handleMealClick}
+              setShowDailyReport={setShowDailyReport}
+              todayMenu={todayPlan}
+              isFastingMode={isFastingMode}
+              deleteMealLog={deleteMealLog}
+              confirmMealLog={confirmMealLog}
+              handleSwapMeal={handleSwapMeal}
+              calorieGoal={calorieGoal}
+              proteinGoal={proteinGoal}
+              carbsGoal={carbsGoal}
+              fatsGoal={fatsGoal}
+              allRecipes={allRecipesDB}
+              handleOpenRecipe={handleOpenRecipe}
+          />
+
     </>
   );
 }

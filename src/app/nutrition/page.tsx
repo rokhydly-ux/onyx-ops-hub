@@ -2386,9 +2386,14 @@ export default function NutritionDashboard() {
 
       const parsedCals = parseInt(cals || foodObj?.calories || foodObj?.cals || foodObj?.kcal || foodObj?.energy || "0", 10);
       const calsRounded = Math.round(parsedCals);
-      const protsRounded = Math.round(prots);
-      const carbsRounded = Math.round(mealCarbs);
-      const fatsRounded = Math.round(mealFats);
+
+      const safeProts = prots || foodObj?.proteines || 0;
+      const safeCarbs = mealCarbs || foodObj?.glucides || 0;
+      const safeFats = mealFats || foodObj?.lipides || 0;
+
+      const protsRounded = Math.round(safeProts);
+      const carbsRounded = Math.round(safeCarbs);
+      const fatsRounded = Math.round(safeFats);
 
       const newCals = calories + calsRounded;
       const newProts = proteins + protsRounded;

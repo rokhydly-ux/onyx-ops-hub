@@ -33,22 +33,31 @@ interface BentoDashboardViewProps {
     carbsGoal?: number;
     fatsGoal?: number;
     allRecipes?: any[];
+    handleOpenRecipe?: (recipe: any) => void;
 }
 
-export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog, confirmMealLog, handleSwapMeal, calorieGoal, proteinGoal, carbsGoal, fatsGoal, allRecipes = [] }: BentoDashboardViewProps) {
+export default function BentoDashboardView({ user, waterGlasses, handleUpdateWater, jongomaXP, clientProfile, weightLogs, setActiveTab, handleMealClick, setShowDailyReport, calories, proteins, carbs, fats, consumedMeals = [], todayMenu, isFastingMode = false, deleteMealLog, confirmMealLog, handleSwapMeal, calorieGoal, proteinGoal, carbsGoal, fatsGoal, allRecipes = [], handleOpenRecipe }: BentoDashboardViewProps) {
     const [coachInput, setCoachInput] = useState('');
     const [hiddenMeals, setHiddenMeals] = useState<string[]>([]);
     const [randomRecipe, setRandomRecipe] = useState<any>(null);
 
     React.useEffect(() => {
         if (allRecipes && allRecipes.length > 0) {
-            let suggestable = allRecipes;
+            // Uniquement les vraies recettes (au moins 2 ingrédients)
+            let suggestable = allRecipes.filter(r => r.ingredients && Array.isArray(r.ingredients) && r.ingredients.length >= 2);
+
             if (todayMenu && todayMenu.meals) {
                 const todayMealIds = Object.values(todayMenu.meals).map((m: any) => m.id);
-                suggestable = allRecipes.filter((r: any) => !todayMealIds.includes(r.id));
+                suggestable = suggestable.filter((r: any) => !todayMealIds.includes(r.id));
             }
-            if (suggestable.length === 0) suggestable = allRecipes; // Fallback safely
-            setRandomRecipe(suggestable[Math.floor(Math.random() * suggestable.length)]);
+
+            if (suggestable.length === 0) {
+                suggestable = allRecipes.filter(r => r.ingredients && Array.isArray(r.ingredients) && r.ingredients.length >= 2);
+            }
+
+            if (suggestable.length > 0) {
+                setRandomRecipe(suggestable[Math.floor(Math.random() * suggestable.length)]);
+            }
         }
     }, [allRecipes, todayMenu]);
 
@@ -120,7 +129,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                     {/* Inspiration Recette */}
                     <div
                         className="rounded-[2rem] bg-zinc-100 border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 relative overflow-hidden group cursor-pointer"
-                        onClick={() => setActiveTab('week')}
+                        onClick={() => randomRecipe && handleOpenRecipe ? handleOpenRecipe(randomRecipe) : setActiveTab('week')}
                     >
                         {randomRecipe && randomRecipe.image_url ? (
                             <>
