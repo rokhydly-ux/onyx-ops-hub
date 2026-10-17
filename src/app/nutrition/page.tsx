@@ -490,7 +490,7 @@ export default function NutritionDashboard() {
   const [foodDatabaseDB, setFoodDatabaseDB] = useState<any[]>([]);
   const [foodUnit, setFoodUnit] = useState("portion");
   const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
-  const [recipeFilter, setRecipeFilter] = useState("Tous");
+  const [recipeFilter, setRecipeFilter] = useState("Catalogue complet");
 
   // Immersive Recipe Modal
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<any>(null);
@@ -1839,6 +1839,11 @@ export default function NutritionDashboard() {
          const safeMenu = JSON.parse(JSON.stringify(newMenu));
          await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
       }
+  };
+
+  const handleOpenRecipe = (recipe: any) => {
+      setSelectedRecipeDetail(recipe);
+      setRecipeDetailTab('apercu');
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
@@ -4078,6 +4083,7 @@ const handleToggleComments = async (postId: string) => {
     formattedCurrentDay,
     confirmMealLog,
     handleSwapMeal,
+    handleOpenRecipe,
 
     crossSellProducts,
     downloadGroceryListPDF,
