@@ -25,6 +25,21 @@ export default function FavoritesTab({ ...tabProps }: any) {
              </div>
 
              <div className="w-full relative z-10 px-6">
+
+                {/* AI Coach Rokhy Dynamic Feedback */}
+                <div className="bg-zinc-50 border border-zinc-200 rounded-[2rem] p-5 relative overflow-hidden flex flex-col gap-4 shadow-sm animate-in zoom-in-95 mb-8">
+                   <div className="flex items-center gap-3">
+                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Lady_with_glasses_drinking_water_202607191038_rttr36.jpg" alt="Coach Rokhy" className="w-12 h-12 rounded-full object-cover shadow-md bg-white p-0.5 border border-zinc-200" />
+                      <div>
+                         <p className="text-sm font-black text-black leading-tight">Coach Rokhy</p>
+                         <p className="text-[10px] text-[#39FF14] font-black uppercase tracking-widest flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse"></span> IA Active</p>
+                      </div>
+                   </div>
+                   <p className="text-xs text-zinc-600 font-bold leading-relaxed italic bg-white p-4 rounded-2xl border border-zinc-100 shadow-inner">
+                      "{generateDynamicRokhyMessage ? generateDynamicRokhyMessage('gallery') : 'Besoin d\'inspiration ? Choisis une recette riche en fibres pour rester rassasiée plus longtemps !'}"
+                   </p>
+                </div>
+
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-12 h-12 object-contain drop-shadow-md" alt="Galerie" /> GALERIE DE RECETTES</h2>
 
                 <div className="relative mb-6">
@@ -155,32 +170,25 @@ export default function FavoritesTab({ ...tabProps }: any) {
                                {gridRecipes.map(r => renderCard(r, false))}
                             </div>
 
-                            {/* Right: Static Widgets (Cols 10-12) */}
+                            {/* Right: Dynamic Widgets (Cols 10-12) */}
                             <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
                                <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Trending Topics</h3>
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Flame size={16} className="text-orange-500"/> Top Tendances</h3>
                                    <div className="flex flex-col gap-2">
-                                       <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2"><Flame size={14}/> Weight Loss Smoothies</span>
-                                       <span className="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2"><Dumbbell size={14}/> Muscle Building Smoothies</span>
-                                       <span className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2"><Coffee size={14}/> Meal Replacement Recipes</span>
-                                       <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2"><Apple size={14}/> Low Carb Smoothies</span>
+                                       <button onClick={() => setRecipeFilter('Plats de résistance')} className="text-left text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-red-100 transition-colors"><Flame size={14}/> Plats de résistance</button>
+                                       <button onClick={() => setRecipeFilter('Faible en gras')} className="text-left text-xs font-bold text-blue-500 bg-blue-50 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-100 transition-colors"><Dumbbell size={14}/> Faible en gras</button>
+                                       <button onClick={() => setRecipeFilter('Petites douceurs saines')} className="text-left text-xs font-bold text-purple-500 bg-purple-50 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-purple-100 transition-colors"><Coffee size={14}/> Petites douceurs saines</button>
+                                       <button onClick={() => setRecipeFilter('Moins de 350 Kcal')} className="text-left text-xs font-bold text-green-500 bg-green-50 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-green-100 transition-colors"><Apple size={14}/> Moins de 350 Kcal</button>
                                    </div>
                                </div>
                                <div className="bg-white/60 backdrop-blur-lg border border-white/50 shadow-sm rounded-3xl p-5">
-                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Heart size={16} className="text-green-500"/> Expert Tips</h3>
+                                   <h3 className="font-black text-black uppercase flex items-center gap-2 mb-4"><Sparkles size={16} className="text-[#39FF14]"/> Astuce de Coach</h3>
                                    <div className="flex flex-col gap-3">
                                        <div className="flex items-start gap-3">
-                                           <div className="bg-green-100 p-2 rounded-full shrink-0 mt-0.5"><Leaf size={14} className="text-green-600"/></div>
+                                           <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Lady_with_glasses_drinking_water_202607191038_rttr36.jpg" className="w-10 h-10 rounded-full object-cover shadow-sm bg-white p-0.5" alt="Coach Rokhy" />
                                            <div>
-                                               <p className="text-xs font-black text-black">Protein + Fiber = Fullness</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Stay satisfied and avoid unhealthy snacking.</p>
-                                           </div>
-                                       </div>
-                                       <div className="flex items-start gap-3">
-                                           <div className="bg-orange-100 p-2 rounded-full shrink-0 mt-0.5"><Droplet size={14} className="text-orange-600"/></div>
-                                           <div>
-                                               <p className="text-xs font-black text-black">Healthy Fats</p>
-                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">Add avocado, nuts, seeds or nut butter.</p>
+                                               <p className="text-xs font-black text-black">Coach Rokhy</p>
+                                               <p className="text-[10px] text-zinc-500 leading-tight mt-0.5 italic">"{generateDynamicRokhyMessage ? generateDynamicRokhyMessage('gallery') : 'L\'hydratation est essentielle. N\'hésite pas à boire un grand verre d\'eau avant tes repas.'}"</p>
                                            </div>
                                        </div>
                                    </div>

@@ -2086,7 +2086,17 @@ export default function NutritionDashboard() {
                   }
               };
               console.log("Payload du diagnostic (Espace Client):", payload);
-              const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+
+              const { data: existingProfile } = await supabase.from('nutrition_profiles').select('id').eq('client_id', clientProfile.id).maybeSingle();
+              let error = null;
+              if (existingProfile) {
+                  const { error: updateErr } = await supabase.from('nutrition_profiles').update(payload).eq('client_id', clientProfile.id);
+                  error = updateErr;
+              } else {
+                  const { error: insertErr } = await supabase.from('nutrition_profiles').insert([payload]);
+                  error = insertErr;
+              }
+
               if (error) {
                  alert("Erreur SQL lors de l'enregistrement : " + error.message);
                  throw error;
@@ -3377,6 +3387,29 @@ const currentHour = new Date().getHours();
     }
   }
 
+  // --- Dynamic Coach Rokhy AI Context Builder ---
+  const generateDynamicRokhyMessage = (context: 'today' | 'week' | 'history' | 'gallery') => {
+      const progressPct = calorieGoal > 0 ? (calories / calorieGoal) * 100 : 0;
+      const firstName = user?.full_name?.split(' ')[0] || "la team";
+
+      if (context === 'today') {
+          if (progressPct === 0 && currentHour > 10) return `Salut ${firstName} ! Tu n'as pas encore tracké tes repas aujourd'hui. On s'y met ?`;
+          if (waterGlasses >= 4 && progressPct < 80) return `Tu viens de boire tes verres d'eau, top ! L'hydratation aide ton corps à assimiler les repas que tu as prévus.`;
+          if (progressPct >= 90) return `Attention ${firstName}, tu as presque atteint ton objectif calorique du jour ! Privilégie les légumes si tu as encore faim.`;
+          return `Garde le cap ${firstName} ! La régularité est le secret pour atteindre ton objectif.`;
+      }
+      if (context === 'week') {
+          return `Voici ton Sama Menu, ${firstName}. N'oublie pas : tu peux toujours modifier un plat s'il ne te convient pas aujourd'hui.`;
+      }
+      if (context === 'gallery') {
+          return `Besoin d'inspiration ${firstName} ? Choisis une recette riche en fibres pour rester rassasiée plus longtemps !`;
+      }
+      if (context === 'history') {
+          return `Faire le point c'est avancer, ${firstName}. Regarde ton historique avec bienveillance et célèbre chaque petite victoire !`;
+      }
+      return `Je suis là pour t'accompagner, ${firstName}.`;
+  };
+
 
   const subTotal = shopCart.reduce((acc, item) => acc + ((item.finalPrice || item.prix_premium || item.prix_standard || 0) * (item.quantity || 1)), 0);
   const freeShippingThreshold = 20000;
@@ -4029,6 +4062,7 @@ const handleToggleComments = async (postId: string) => {
 
     greetingText,
     greetingSubtext,
+    generateDynamicRokhyMessage,
 
     spaceGrotesk,
 
