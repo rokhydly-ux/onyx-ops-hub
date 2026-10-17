@@ -1,0 +1,553 @@
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+import { Activity, ChevronLeft, CheckCircle, ArrowRight, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import jsPDF from "jspdf";
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import AfricanFruitsAnimation from '@/components/AfricanFruitsAnimation';
+
+const spaceGrotesk = { className: "font-sans" };
+
+export default function NutritionDiagnostic() {
+  const router = useRouter();
+  const waNumber = "221785338417";
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(7);
+
+  React.useEffect(() => {
+    let timer;
+    if (step === 10 && redirectCount > 0) {
+      timer = setTimeout(() => setRedirectCount(prev => prev - 1), 1000);
+    } else if (step === 10 && redirectCount === 0) {
+      router.push('/nutrition');
+    }
+    return () => clearTimeout(timer);
+  }, [step, redirectCount, router]);
+
+  const [formData, setFormData] = useState<any>({
+    name: "",
+    phone: "",
+    pin: "",
+    password: "",
+    gender: "",
+    age: "",
+    height: "",
+    currentWeight: "",
+    goalType: "",
+    healthConditions: [] as string[],
+    lunchHabit: "",
+    cookingHabit: "",
+    weeklyBudget: ""
+  });
+
+  const totalSteps = 10;
+  const progress = (step / totalSteps) * 100;
+
+  // --- HELPER FUNCTIONS ---
+  const handleChoice = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setTimeout(() => setStep(prev => prev + 1), 300);
+  };
+
+  const handleMultiChoice = (value: string) => {
+    setFormData(prev => {
+      const current = prev.healthConditions;
+      if (current.includes(value)) {
+        return { ...prev, healthConditions: current.filter(item => item !== value) };
+      } else {
+        if (value === "Aucun problème") return { ...prev, healthConditions: ["Aucun problème"] };
+        const filtered = current.filter(item => item !== "Aucun problème");
+        return { ...prev, healthConditions: [...filtered, value] };
+      }
+    });
+  };
+
+  // --- NUTRITION ENGINE ---
+  const heightCm = parseFloat(formData.height) || 0;
+  const currentWeight = parseFloat(formData.currentWeight) || 0;
+  const age = parseInt(formData.age) || 0;
+  const isMale = formData.gender === "Homme";
+
+  const idealWeight = heightCm > 0
+    ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5)))
+    : 0;
+
+  const bmr = (heightCm > 0 && currentWeight > 0 && age > 0)
+    ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161)
+    : 0;
+
+  const nap = 1.375; // average active
+  const tdee = bmr * nap;
+
+  let rawCalories = tdee;
+  if (formData.goalType === 'Perte de poids') rawCalories = tdee - 500;
+  else if (formData.goalType === 'Prise de masse') rawCalories = tdee + 300;
+
+  if (formData.healthConditions.includes("Préménopause ou Ménopause")) {
+    // Slight adjustment for metabolism slowdown
+    rawCalories -= 100;
+  }
+
+  const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+
+  const proteinRatio = age >= 50 ? 0.35 : 0.30;
+  const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
+  const protein = (dailyCalories * proteinRatio) / 4;
+  const fats = (dailyCalories * 0.30) / 9;
+
+  // --- SUBMISSION & ACTIONS ---
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step < 9) {
+      setStep(step + 1);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
+         calories: dailyCalories, carbs, protein, fats
+      }));
+
+      const trialEnds = new Date();
+      trialEnds.setDate(trialEnds.getDate() + 14);
+
+      const clientPayload = {
+        full_name: formData.name,
+        phone: formData.phone,
+        password_temp: formData.pin || "0000",
+        password: formData.password,
+        type: "Client",
+        saas: "Nutrition à l'Africaine",
+        status: "Essai",
+        expiration_date: trialEnds.toISOString().split('T')[0],
+      };
+
+      const { data: existingClient } = await supabase.from('clients').select('id').eq('phone', formData.phone).maybeSingle();
+      let clientData = null;
+
+      if (existingClient) {
+          const { data } = await supabase.from('clients').update(clientPayload).eq('phone', formData.phone).select().single();
+          clientData = data;
+      } else {
+          const { data } = await supabase.from('clients').insert([clientPayload]).select().single();
+          clientData = data;
+      }
+
+      if (clientData) localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
+
+      const calculatedBirthDate = `${new Date().getFullYear() - (parseInt(formData.age) || 30)}-01-01`;
+
+      const profilePayload = {
+         phone: formData.phone,
+         client_id: clientData?.id || null,
+         bmr: Math.round(bmr),
+         tdee: Math.round(tdee),
+         daily_calorie_goal: Math.round(dailyCalories),
+         carbs_goal: Math.round(carbs),
+         protein_goal: Math.round(protein),
+         fats_goal: Math.round(fats),
+         diagnostic_data: { ...formData, birthDate: calculatedBirthDate },
+         weekly_budget_tier: formData.weeklyBudget === 'Budget Serré' ? 'serre_8k' : formData.weeklyBudget === 'Budget Famille' ? 'famille_15k' : 'confort_25k',
+         lunch_context: formData.lunchHabit === 'En solo au bureau' ? 'bureau_solo' : 'maison_bol_commun',
+         cooking_mode: formData.cookingHabit === 'Je cuisine uniquement pour moi seule' ? 'pour_moi_seule' : 'pour_toute_la_famille',
+         health_conditions: formData.healthConditions.filter(p => p !== 'Aucun problème'),
+         weekly_menu: []
+      };
+
+      const { data: existingProfile } = await supabase.from('nutrition_profiles').select('id').eq('client_id', clientData?.id).maybeSingle();
+
+      if (existingProfile && clientData?.id) {
+          await supabase.from('nutrition_profiles').update(profilePayload).eq('client_id', clientData.id);
+      } else {
+          await supabase.from('nutrition_profiles').insert([profilePayload]);
+      }
+
+      await supabase.from('leads').insert([{
+        full_name: formData.name,
+        phone: formData.phone,
+        source: "Diagnostic Nutrition",
+        intent: "A complété son diagnostic (Attente Plan)",
+        status: "Nouveau",
+        saas: "Nutrition à l'Africaine",
+        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Profil Santé: ${formData.healthConditions.join(', ') || '-'}`
+      }]);
+
+      const welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+      localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
+
+      setStep(10);
+    } catch (err) {
+      alert("Une erreur est survenue.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleWaRedirect = () => {
+    const msg = `🚀 *NOUVEAU PROFIL NUTRITION*\n\nBonjour l'équipe ! Je m'appelle ${formData.name} et je viens de terminer mon diagnostic nutritionnel.\n\nJe souhaite activer mes 14 jours d'essai gratuits et recevoir mon Sama Menu de la Semaine 1 !`;
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.text("Bilan Nutritionnel - Onyx", 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 150, 20);
+    doc.line(20, 30, 190, 30);
+    doc.setFontSize(16);
+    doc.text("Informations", 20, 45);
+    doc.setFontSize(12);
+    doc.text(`Nom : ${formData.name}`, 20, 55);
+    doc.text(`Âge : ${age} ans | Taille: ${heightCm}cm | Poids: ${currentWeight}kg`, 20, 63);
+    doc.text(`Objectif : ${formData.goalType}`, 20, 71);
+    doc.setFontSize(16);
+    doc.text(`Métabolisme & Objectif`, 20, 90);
+    doc.setFontSize(12);
+    doc.text(`BMR (Base) : ${Math.round(bmr)} kcal`, 20, 100);
+    doc.text(`TDEE (Dépense) : ${Math.round(tdee)} kcal`, 20, 108);
+    doc.setTextColor(40, 167, 69);
+    doc.text(`Cible Calorique Journalière : ${Math.round(dailyCalories)} kcal`, 20, 116);
+    doc.save(`Diagnostic_${formData.name.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  return (
+    <main className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4 text-black">
+      <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col min-h-[600px] relative">
+
+        {/* Progress Bar */}
+        {step < 10 && (
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-zinc-100 z-50">
+            <div className="h-full bg-[#39FF14] transition-all duration-500 ease-out shadow-[0_0_10px_rgba(57,255,20,0.8)]" style={{ width: `${progress}%` }} />
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="p-6 relative flex items-center justify-between z-40 border-b border-zinc-100">
+          {step > 1 && step < 10 ? (
+            <button type="button" onClick={() => setStep(step - 1)} className="p-2 bg-zinc-100 text-zinc-600 rounded-full hover:bg-zinc-200 transition">
+              <ChevronLeft size={20} />
+            </button>
+          ) : <div className="w-10"></div>}
+
+          <div className="flex items-center gap-2">
+            <Activity className="text-[#39FF14]" size={20} />
+            <span className="font-black uppercase tracking-widest text-sm text-black">Diagnostic Nutrition</span>
+          </div>
+          <div className="w-10"></div>
+        </div>
+
+        {/* Form Content */}
+        <div className="flex-1 p-6 md:p-10 flex flex-col justify-center relative overflow-hidden bg-zinc-50">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="w-full h-full flex flex-col justify-center"
+            >
+              <form onSubmit={step === 9 ? handleSubmit : (e) => { e.preventDefault(); setStep(step + 1); }} className="w-full">
+
+                {/* STEP 1: Sexe */}
+                {step === 1 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre sexe ?</h2>
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
+                      {[
+                        { id: 'Homme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg' },
+                        { id: 'Femme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg' }
+                      ].map(option => (
+                        <div
+                          key={option.id}
+                          onClick={() => handleChoice('gender', option.id)}
+                          className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 ${formData.gender === option.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}
+                        >
+                          <img src={option.img} alt={option.id} className="w-full aspect-square object-cover" />
+                          <div className="absolute bottom-0 w-full bg-black/80 text-white py-4 font-black uppercase tracking-widest text-sm text-center backdrop-blur-md">{option.id}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: Objectif */}
+                {step === 2 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre objectif principal ?</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                      {[
+                        { id: "Perte de poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg", desc: "Déficit calorique pour affiner le ventre" },
+                        { id: "Maintien du poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg", desc: "Stabiliser et manger sainement au quotidien" },
+                        { id: "Prise de masse", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg", desc: "Développer la masse musculaire" }
+                      ].map(goal => (
+                        <div
+                          key={goal.id}
+                          onClick={() => handleChoice('goalType', goal.id)}
+                          className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${formData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}
+                        >
+                          <img src={goal.img} alt={goal.id} className="w-full aspect-square object-cover" />
+                          <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
+                            <span className="font-black uppercase tracking-widest text-xs md:text-sm mb-1 text-center">{goal.id}</span>
+                            <span className="text-[10px] text-zinc-400 font-bold leading-tight text-center">{goal.desc}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: Date de naissance */}
+                {step === 3 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quelle est votre date de naissance ?</h2>
+                    <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+                      <input
+                        type="date"
+                        required
+                        value={formData.birthDate}
+                        onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                        className="w-full p-5 bg-zinc-50 border-2 border-zinc-200 rounded-2xl font-black text-xl text-center outline-none focus:border-[#39FF14] transition-colors text-black"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!formData.birthDate}
+                        className="w-full mt-6 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                      >
+                        Continuer
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 4: Mensurations (Taille & Poids) */}
+                {step === 4 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quelles sont vos mensurations ?</h2>
+                    <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille (cm)</label>
+                        <input
+                          type="number" required placeholder="Ex: 170"
+                          value={formData.height} onChange={(e) => setFormData({...formData, height: e.target.value})}
+                          className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
+                        <input
+                          type="number" required placeholder="Ex: 75"
+                          value={formData.currentWeight} onChange={(e) => setFormData({...formData, currentWeight: e.target.value})}
+                          className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black"
+                        />
+                      </div>
+                      <button
+                        type="submit" disabled={!formData.height || !formData.currentWeight}
+                        className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                      >
+                        Continuer
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 5: Conditions de Santé */}
+                {step === 5 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Avez-vous des conditions spécifiques ?</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-8">
+                      {["Diabète", "Hypertension", "Préménopause ou Ménopause", "Aucun problème"].map(condition => {
+                        const isSelected = formData.healthConditions.includes(condition);
+                        return (
+                          <div
+                            key={condition}
+                            onClick={() => handleMultiChoice(condition)}
+                            className={`cursor-pointer border-4 rounded-2xl p-6 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}
+                          >
+                            <span className="font-bold text-sm md:text-base text-black">{condition}</span>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-[#39FF14] bg-[#39FF14]' : 'border-zinc-300'}`}>
+                              {isSelected && <CheckCircle size={14} className="text-black" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="submit" disabled={formData.healthConditions.length === 0}
+                      className="w-full max-w-lg bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                    >
+                      Continuer
+                    </button>
+                  </div>
+                )}
+
+                {/* STEP 6: Contexte du midi */}
+                {step === 6 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Comment déjeunez-vous le midi ?</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
+                      {[
+                        { id: "En solo au bureau", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/La_Gamelle_ywfy3t.jpg", desc: "Avec ma gamelle / Tupperware" },
+                        { id: "À la maison", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Le_Bol_Commun_hb9fns.jpg", desc: "Autour du grand bol familial commun" }
+                      ].map(habit => (
+                        <div
+                          key={habit.id}
+                          onClick={() => handleChoice('lunchHabit', habit.id)}
+                          className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${formData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}
+                        >
+                          <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
+                          <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
+                            <span className="font-black uppercase tracking-widest text-sm mb-2 text-center">{habit.id}</span>
+                            <span className="text-xs text-zinc-400 font-bold leading-relaxed text-center">{habit.desc}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 7: Gestion de la cuisine */}
+                {step === 7 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Pour qui préparez-vous les repas ?</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
+                      {[
+                        { id: "Je cuisine uniquement pour moi seule", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_moi_seule_mfo6vw.jpg" },
+                        { id: "Je cuisine la marmite pour toute la famille", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_la_famille_qzlwke.jpg" }
+                      ].map(habit => (
+                        <div
+                          key={habit.id}
+                          onClick={() => handleChoice('cookingHabit', habit.id)}
+                          className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${formData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}
+                        >
+                          <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
+                          <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
+                            <span className="font-black uppercase tracking-tight text-sm text-center">{habit.id}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 8: Budget Hebdomadaire */}
+                {step === 8 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre budget courses par semaine ?</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                      {[
+                        { id: "Budget Serré", price: "8 000 F / semaine", desc: "La base survie et efficacité", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630660/A_cute__highly_detailed_3D_202606161723_fcl8jj.jpg" },
+                        { id: "Budget Famille", price: "15 000 F / semaine", desc: "Équilibre, goût et variété", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630665/A_cute__highly_detailed_3D_202606161723_1_rx6yry.jpg" },
+                        { id: "Budget Confort", price: "25 000 F / semaine", desc: "Santé premium 100% locale", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630664/A_cute__highly_detailed_3D_202606161723_2_xxku54.jpg" }
+                      ].map(budget => (
+                        <div
+                          key={budget.id}
+                          onClick={() => handleChoice('weeklyBudget', budget.id)}
+                          className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${formData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}
+                        >
+                          <img src={budget.img} alt={budget.id} className="w-full aspect-square object-cover" />
+                          <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
+                            <span className="font-black uppercase tracking-widest text-xs mb-1">{budget.id}</span>
+                            <span className="text-[#39FF14] font-bold text-[10px] mb-2">{budget.price}</span>
+                            <span className="text-zinc-400 text-[10px] text-center leading-tight">{budget.desc}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 9: Coordonnées (Finaliser) */}
+                {step === 9 && (
+                  <div className="flex flex-col items-center text-center">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Dernière étape pour finaliser</h2>
+                    <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-4">
+                      <input
+                        type="text" required placeholder="Votre Prénom et Nom"
+                        value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black"
+                      />
+                      <div className="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl text-black overflow-hidden [&_.PhoneInput]:p-4 [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:border-none [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:font-bold [&_.PhoneInputInput]:text-xl focus-within:border-black transition-colors">
+                           <PhoneInput
+                                international
+                                defaultCountry="SN"
+                                limitMaxLength={true}
+                                value={formData.phone}
+                                onChange={(value) => setFormData({...formData, phone: value || ''})}
+                           />
+                      </div>
+                      <input
+                        type="password" required placeholder="Mot de passe"
+                        value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black"
+                      />
+                      <input
+                        type="password" required maxLength={4} placeholder="Code PIN rapide (4 chiffres)"
+                        value={formData.pin} onChange={(e) => setFormData({...formData, pin: e.target.value})}
+                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black text-center"
+                      />
+
+                      <button
+                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || !isValidPhoneNumber(formData.phone) || !formData.pin || !formData.password}
+                        className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2"
+                      >
+                        {isSubmitting ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 10: End Screen */}
+                {step === 10 && (
+                  <div className="flex flex-col items-center text-center justify-center flex-1 animate-in zoom-in duration-500 relative z-50">
+
+                    <AfricanFruitsAnimation />
+
+                    <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] max-w-lg w-full relative z-[80]">
+                      <h3 className="text-3xl font-black uppercase text-black mb-2 tracking-tighter">Diagnostic Validé !</h3>
+                      <p className="text-zinc-500 font-bold mb-8">Votre espace personnel est prêt.</p>
+
+                      {/* Encadré Identifiants Design Premium */}
+                      <div className="bg-black border border-zinc-800 p-6 rounded-2xl w-full text-left space-y-4 mb-8 shadow-[0_10px_30px_rgba(0,0,0,0.15)] relative z-10">
+                          <p className="font-black text-[#39FF14] text-xs uppercase tracking-widest border-b border-zinc-800 pb-3 mb-3 flex items-center gap-2">
+                              Tes identifiants :
+                          </p>
+                          <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ton ID (WhatsApp)</span>
+                              <span className="font-black text-white">{formData.phone}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ton Mot de passe</span>
+                              <span className="font-black text-black bg-[#39FF14] px-2 py-1 rounded-md tracking-wider">
+                                  {(formData.phone || "0000").replace(/\D/g, '').slice(-6)}
+                              </span>
+                          </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => router.push('/nutrition')}
+                        className="w-full bg-[#39FF14] text-black py-5 rounded-[1.5rem] font-black uppercase md:text-sm tracking-widest hover:scale-105 transition-transform flex flex-col items-center justify-center gap-1 mb-4 shadow-[0_0_20px_rgba(57,255,20,0.3)] animate-pulse"
+                      >
+                        <span className="flex items-center gap-2">ACCÉDER À MON DASHBOARD <ArrowRight size={18} /></span>
+                        <span className="text-[10px] font-bold text-zinc-800 normal-case tracking-normal">Redirection dans {redirectCount}s...</span>
+                      </button>
+
+                    </div>
+                  </div>
+                )}
+              </form>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </main>
+  );
+}
