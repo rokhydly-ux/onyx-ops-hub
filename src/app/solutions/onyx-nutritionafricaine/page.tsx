@@ -212,6 +212,11 @@ export default function NutritionAfricaineLanding() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // PWA State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
   
   // Modale Diagnostic State
   const [showDiagnosticModal, setShowDiagnosticModal] = useState(false);
@@ -262,6 +267,7 @@ export default function NutritionAfricaineLanding() {
   const [isCalcLeadCaptured, setIsCalcLeadCaptured] = useState(false);
   const [pendingDish, setPendingDish] = useState<string>("");
   const [storeProducts, setStoreProducts] = useState<any[]>([]);
+  const [coachArticles, setCoachArticles] = useState<any[]>([]);
   
   const [emblaStoreRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
@@ -314,11 +320,60 @@ export default function NutritionAfricaineLanding() {
   }, [fomoTime]);
 
   useEffect(() => {
+    // Check if on mobile
+    const checkMobile = () => {
+      setIsMobileDevice(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    checkMobile();
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+      // Update UI notify the user they can install the PWA
+      setShowPwaPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setShowPwaPrompt(false);
+      }
+    }
+  };
+
+  useEffect(() => {
       const fetchStore = async () => {
           const { data } = await supabase.from('nutrition_products').select('*').limit(6);
           if (data && data.length > 0) setStoreProducts(data);
       };
       fetchStore();
+  }, []);
+
+  useEffect(() => {
+      const fetchArticles = async () => {
+          const { data, error } = await supabase
+              .from('marketing_articles')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(3);
+
+          if (data && !error) {
+              setCoachArticles(data);
+          }
+      };
+      fetchArticles();
   }, []);
 
   const triggerResult = async (dishName: string) => {
@@ -992,22 +1047,14 @@ export default function NutritionAfricaineLanding() {
            <div className="flex flex-col items-center justify-center gap-4 w-full mt-2">
              {HERO_SLIDES[heroSlide].ctaType === 'download' ? (
                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                 <button className="bg-black hover:bg-zinc-900 border border-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-3 w-full sm:w-auto shadow-xl transition-all">
-                   <img src="https://upload.wikimedia.org/wikipedia/fr/0/09/Logo_App_Store_d%27Apple.png" className="w-6 h-6 object-contain filter invert" alt="App Store" />
-                   <div className="text-left"><p className="text-[9px] uppercase font-bold text-zinc-400">Télécharger sur</p><p className="text-sm font-black uppercase">App Store</p></div>
-                 </button>
-                 <button className="bg-black hover:bg-zinc-900 border border-zinc-800 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-3 w-full sm:w-auto shadow-xl transition-all">
-                   <img src="https://m-cdn.phonearena.com/images/article/141194-wide-two_1200/Changes-to-Google-Play-Store-logo-are-spotted.jpg" className="w-6 h-6 object-contain rounded-full" alt="Google Play" />
-                   <div className="text-left"><p className="text-[9px] uppercase font-bold text-zinc-400">Disponible sur</p><p className="text-sm font-black uppercase">Google Play</p></div>
+                 <button onClick={handleInstallPWA} className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto">
+                   <Download size={20} /> INSTALLER L'APPLI
                  </button>
                </div>
              ) : (
                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                 <button onClick={handleWaClick} className={`bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
-                   <HeartPulse size={20} className="animate-pulse" /> DÉMARRER À 2.900 F
-                 </button>
-                 <button onClick={() => setShowDiagnosticModal(true)} className="bg-black text-[#39FF14] px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-3 w-full sm:w-auto">
-                   <Target size={20} /> FAIRE LE TEST GRATUIT
+                 <button onClick={() => console.log('Ouvrir Modale 0F')} className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto">
+                   <Target size={20} /> CRÉER MON COMPTE GRATUIT
                  </button>
                </div>
              )}
@@ -1113,30 +1160,53 @@ export default function NutritionAfricaineLanding() {
             <p className="text-zinc-500 font-bold text-lg">Lisez nos derniers articles pour comprendre votre métabolisme.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg", title: "Comment manger du Tiep et perdre du ventre ?", desc: "Le secret n'est pas d'arrêter le Tiep, mais de comprendre comment l'indice glycémique fonctionne..." },
-              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg", title: "Les 3 erreurs au petit-déjeuner", desc: "Vous prenez du pain au chocolat ou vous sautez le repas ? Voici pourquoi votre corps stocke la graisse..." },
-              { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg", title: "Ménopause : Relancer la machine", desc: "Passé 45 ans, le métabolisme ralentit. Découvrez les épices locales qui agissent comme brûleurs naturels..." }
-            ].map((article, i) => (
-              <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
-                <div className="h-48 relative overflow-hidden">
-                  <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
-                     <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
+            {coachArticles.length > 0 ? (
+              coachArticles.map((article, i) => (
+                <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
+                  <div className="h-48 relative overflow-hidden">
+                    <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                       <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
+                    </div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
+                    <p className="text-zinc-500 text-sm font-medium mb-6 relative">
+                      {article.content ? (article.content.replace(/<[^>]*>?/gm, '').substring(0, 100) + '...') : ''}
+                      <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
+                    </p>
+                    <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
+                      Débloquer l'article <ArrowRight size={14} />
+                    </button>
                   </div>
                 </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
-                  <p className="text-zinc-500 text-sm font-medium mb-6 relative">
-                    {article.desc}
-                    <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
-                  </p>
-                  <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
-                    Débloquer l'article <ArrowRight size={14} />
-                  </button>
+              ))
+            ) : (
+              [
+                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg", title: "Comment manger du Tiep et perdre du ventre ?", desc: "Le secret n'est pas d'arrêter le Tiep, mais de comprendre comment l'indice glycémique fonctionne..." },
+                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg", title: "Les 3 erreurs au petit-déjeuner", desc: "Vous prenez du pain au chocolat ou vous sautez le repas ? Voici pourquoi votre corps stocke la graisse..." },
+                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg", title: "Ménopause : Relancer la machine", desc: "Passé 45 ans, le métabolisme ralentit. Découvrez les épices locales qui agissent comme brûleurs naturels..." }
+              ].map((article, i) => (
+                <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
+                  <div className="h-48 relative overflow-hidden">
+                    <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                       <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
+                    </div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
+                    <p className="text-zinc-500 text-sm font-medium mb-6 relative">
+                      {article.desc}
+                      <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
+                    </p>
+                    <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
+                      Débloquer l'article <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -1392,68 +1462,65 @@ export default function NutritionAfricaineLanding() {
 
 {/* 6. TARIFICATION (Original section 3, now section 6) */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
-         <div className="max-w-5xl mx-auto">
+         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
                <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Choisissez votre <span className="text-[#39FF14]">engagement.</span></h2>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto items-stretch">
-               {/* CARTE 1 MOIS */}
+            <div className="grid md:grid-cols-3 gap-8 mx-auto items-stretch">
+               {/* CARTE OFFRE DÉCOUVERTE (0 F) */}
                <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] flex flex-col relative hover:border-zinc-700 transition-colors">
-                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white`}>Essai 1 Mois</h3>
-                  <p className="text-zinc-400 text-sm font-medium mb-6">Idéal pour tester la méthode et voir les premiers résultats.</p>
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white`}>Offre Découverte</h3>
+                  <p className="text-zinc-400 text-sm font-medium mb-6">Pour démarrer en douceur et rejoindre la communauté.</p>
                   <div className="text-4xl font-black mb-6 italic text-white flex items-center">
-                     2 900 F <span className="text-sm text-zinc-400 not-italic font-normal ml-2">/ mois</span>
+                     0 F
                   </div>
                   <ul className="space-y-3 mb-6 text-zinc-400 text-sm font-bold flex-1">
-                     <li className="flex gap-2">✔ Plan alimentaire personnalisé</li>
-                     <li className="flex gap-2">✔ Intégration des repas locaux</li>
-                     <li className="flex gap-2">✔ Suivi WhatsApp (Hebdo)</li>
+                     <li className="flex gap-2">✔ Accès Communauté</li>
+                     <li className="flex gap-2">✔ Accès Boutique</li>
+                     <li className="flex gap-2">✔ Accès aux Challenges</li>
+                     <li className="flex gap-2 text-zinc-600 line-through">❌ Planificateur de repas bloqué</li>
                   </ul>
-                  <div className="mb-8 p-4 bg-zinc-950 border border-zinc-800 rounded-2xl">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">Plus de 50+ recettes filtrées :</p>
-                     <div className="flex flex-wrap gap-2">
-                         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-zinc-700">📉 Low Carb</span>
-                         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-zinc-700">💪 Protéinés</span>
-                         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-zinc-700">🔥 Peu Calorique</span>
-                     </div>
-                  </div>
-                  <button onClick={handleWaClick} className={`w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-transform`}>
-                     Commencer l'essai
+                  <button onClick={() => console.log('Ouvrir Modale 0F')} className="w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-transform">
+                     Créer un compte gratuit
                   </button>
                </div>
 
-               {/* CARTE 3 MOIS (RECOMMANDÉ) */}
+               {/* CARTE OFFRE ESSENTIEL (2 900 F / MOIS) */}
                <div className="bg-gradient-to-b from-[#39FF14]/20 to-black border-2 border-[#39FF14] p-8 rounded-[3rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.3)] z-10 md:scale-105">
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-5 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-2">
-                     <Sparkles size={14} className="animate-pulse"/> Recommandé
+                     <Sparkles size={14} className="animate-pulse"/> Populaire
                   </div>
-                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white mt-6`}>Programme 3 Mois</h3>
-                  <p className="text-zinc-300 text-sm font-medium mb-6">Pour des résultats visibles, durables et une vraie transformation.</p>
-                  <div className="text-4xl font-black mb-1 italic text-[#39FF14] flex items-center gap-3">
-                     7 500 F <span className="text-sm text-zinc-400 not-italic font-normal">/ trimestre</span>
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white mt-6`}>Offre Essentiel</h3>
+                  <p className="text-zinc-300 text-sm font-medium mb-6">Votre assistant nutrition au quotidien.</p>
+                  <div className="text-4xl font-black mb-6 italic text-[#39FF14] flex items-center gap-3">
+                     2 900 F <span className="text-sm text-zinc-400 not-italic font-normal">/ mois</span>
                   </div>
-                  <p className="text-sm font-bold text-red-400 line-through mb-6">au lieu de 8 700 F</p>
                   <ul className="space-y-3 mb-6 text-zinc-300 text-sm font-bold flex-1">
-                     <li className="flex gap-2 text-white">✔ <strong className="text-white">Tout le programme de base</strong></li>
-                     <li className="flex gap-2 text-white">✔ <strong className="text-white">Accès au Guide PDF Complet (10 pages)</strong></li>
-                     <li className="flex gap-2 text-white">✔ <strong className="text-white">Suivi renforcé pour ancrer les habitudes</strong></li>
+                     <li className="flex gap-2 text-white">✔ Planificateur IA (Sama Menu)</li>
+                     <li className="flex gap-2 text-white">✔ Suivi de l'eau</li>
+                     <li className="flex gap-2 text-white">✔ Accès aux swaps locaux</li>
+                     <li className="flex gap-2 text-white">✔ 14j d'essai inclus</li>
                   </ul>
-                  <div className="mb-8 p-4 bg-black/50 border border-[#39FF14]/20 rounded-2xl">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-3 flex items-center gap-1"><Sparkles size={12}/> Galerie Recettes VIP :</p>
-                     <div className="flex flex-wrap gap-2">
-                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">📉 Low Carb</span>
-                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">💪 Protéinés</span>
-                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">🔥 Peu Calorique</span>
-                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">🌅 Ndekki</span>
-                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">⚡ Low Fat</span>
-                         {recentRecipe && (
-                             <span className="bg-red-500/20 text-red-500 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-red-500/50 shadow-sm animate-pulse">🔥 Nouveau: {recentRecipe}</span>
-                         )}
-                     </div>
+                  <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=essentiel')} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2">
+                     Commencer l'essai <ArrowRight size={18}/>
+                  </button>
+               </div>
+
+               {/* CARTE OFFRE PREMIUM (35 000 F / MOIS) */}
+               <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] flex flex-col relative hover:border-[#39FF14]/50 transition-colors">
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white`}>Offre Premium</h3>
+                  <p className="text-zinc-400 text-sm font-medium mb-6">L'accompagnement ultra-personnalisé de A à Z.</p>
+                  <div className="text-4xl font-black mb-6 italic text-white flex items-center">
+                     35 000 F <span className="text-sm text-zinc-400 not-italic font-normal ml-2">/ mois</span>
                   </div>
-                  <button onClick={handleWaClick} className={`w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
-                     COMMENCER MON PROGRAMME <ArrowRight size={18}/>
+                  <ul className="space-y-3 mb-6 text-zinc-400 text-sm font-bold flex-1">
+                     <li className="flex gap-2">✔ Coaching WhatsApp 7j/7</li>
+                     <li className="flex gap-2">✔ Bilan humain par appel</li>
+                     <li className="flex gap-2">✔ Assistance courses dédiée</li>
+                  </ul>
+                  <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=premium')} className="w-full bg-zinc-800 text-white hover:text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-[#39FF14] transition-colors flex justify-center items-center gap-2">
+                     Réserver mon bilan Premium
                   </button>
                </div>
             </div>
@@ -1561,6 +1628,43 @@ export default function NutritionAfricaineLanding() {
            <ArrowUp size={24} />
          </button>
       )}
+      {/* PWA INSTALL PROMPT POP-UP */}
+      <AnimatePresence>
+        {isMobileDevice && showPwaPrompt && deferredPrompt && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed bottom-0 left-0 right-0 z-[120] p-4 bg-white border-t-4 border-[#39FF14] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[2rem]"
+          >
+            <div className="relative">
+              <button
+                onClick={() => setShowPwaPrompt(false)}
+                className="absolute -top-2 -right-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 p-2 rounded-full transition-colors"
+              >
+                <X size={16} />
+              </button>
+              <div className="flex items-start gap-4 mb-4 mt-2">
+                <div className="w-14 h-14 rounded-full bg-zinc-100 border-2 border-[#39FF14] flex items-center justify-center text-3xl shrink-0 shadow-sm relative">
+                  👩🏾‍💻
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#39FF14] rounded-full border-2 border-white"></div>
+                </div>
+                <div>
+                  <h4 className="font-black text-black uppercase tracking-tight mb-1">Coach Rokhy</h4>
+                  <p className="text-sm font-medium text-zinc-600 leading-snug">Nanga def ! Prête à reprendre le contrôle sans abandonner nos plats locaux ? Installe l'application sécurisée sur ton téléphone en 1 clic pour commencer !</p>
+                </div>
+              </div>
+              <button
+                onClick={handleInstallPWA}
+                className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-sm tracking-widest hover:bg-zinc-900 transition-colors shadow-xl flex items-center justify-center gap-2"
+              >
+                <Download size={18}/> INSTALLER L'APPLICATION
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* BOT FANTA */}
       <div className="fixed bottom-24 right-4 md:right-6 z-[100] flex flex-col items-end">
         {isBotOpen && (
