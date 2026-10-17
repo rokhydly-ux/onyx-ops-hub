@@ -226,6 +226,19 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                 mrr_value: plan === 'premium' ? 35000 : 2900,
                 lead_status: "Nouveau"
             }]);
+            // Double insertion in 'crm_leads' as well
+            await supabase.from('crm_leads').insert([{
+                full_name: diagData.name,
+                phone: cleanPhone,
+                source: "Diagnostic Nutrition Landing",
+                type: "Lead",
+                status: "Nouveau",
+                lead_status: "Nouveau",
+                product_id: plan === 'premium' ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
+                mrr_value: plan === 'premium' ? 35000 : 2900,
+                saas: "Nutrition à l'Africaine"
+            }]);
+
 
             setDiagStep(13);
 
