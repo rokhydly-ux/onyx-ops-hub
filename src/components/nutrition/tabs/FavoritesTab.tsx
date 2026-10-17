@@ -40,25 +40,26 @@ export default function FavoritesTab({ ...tabProps }: any) {
 
                 <div className="flex overflow-x-auto custom-scrollbar pb-8 pt-4 gap-4 mb-6">
                    {[
-                       { id: 'Tous', desc: 'Le catalogue complet de nos recettes.' },
-                       { id: 'Favoris', desc: 'Vos coups de cœur sauvegardés.' },
-                       { id: 'Populaire', desc: 'Les plus appréciées par la communauté.' },
-                       { id: 'Main Course', desc: 'Plats de résistance copieux.' },
-                       { id: 'Healthy', desc: 'Faible en gras, idéal perte de poids.' },
-                       { id: 'Low Calories', desc: 'Moins de 350 Kcal par portion.' },
-                       { id: 'Desserts', desc: 'Petites douceurs saines.' }
+                       { id: 'Catalogue complet', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234041/Resize_1_1_20261017104618_xlgudu.jpg' },
+                       { id: 'Coups de cœur', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234040/Ceramic_plate_with_meal_20261017104618_tk9hbd.jpg' },
+                       { id: 'Communauté', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234042/People_sharing_bowls_of_food_20261017104618_f3ftim.jpg' },
+                       { id: 'Plats de résistance', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234040/Braised_fish_with_roasted_vegeta__20261017104618_dbwnpg.jpg' },
+                       { id: 'Faible en gras', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234041/Salad_with_grilled_chicken_20261017104618_toiwnc.jpg' },
+                       { id: 'Moins de 350 Kcal', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234040/Bowl_of_vegetable_broth_20261017104618_xtrhid.jpg' },
+                       { id: 'Petites douceurs saines', imgUrl: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1792234041/Healthy_desserts_and_mangoes_20261017104618_kswrag.jpg' }
                    ].map(cat => (
                       <div
                          key={cat.id}
                          onClick={() => setRecipeFilter(cat.id)}
-                         className={`group perspective cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] relative transition-all duration-500`}
+                         className={`relative overflow-hidden group cursor-pointer shrink-0 w-32 h-32 rounded-[2rem] shadow-sm flex flex-col justify-center items-center text-center p-4 border-2 transition-all duration-300 ${recipeFilter === cat.id ? 'border-[#39FF14] bg-black' : 'border-transparent bg-green-500 hover:border-[#39FF14]'}`}
                       >
-                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm group-hover:[transform:rotateY(180deg)] ${recipeFilter === cat.id ? 'bg-black border-[#39FF14]' : 'bg-white border-white/40 backdrop-blur-md'}`}>
-                             <span className={`font-black uppercase tracking-widest text-xs ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-black'}`}>{cat.id}</span>
-                         </div>
-                         <div className={`absolute inset-0 w-full h-full backface-hidden transition-all duration-500 transform preserve-3d border-2 flex flex-col justify-center items-center text-center p-4 rounded-[2rem] shadow-sm [transform:rotateY(180deg)] group-hover:[transform:rotateY(0deg)] bg-[#39FF14] border-[#39FF14]`}>
-                             <span className="font-bold text-black text-[10px] leading-tight">{cat.desc}</span>
-                         </div>
+                         <div
+                             className="absolute inset-0 bg-cover bg-center opacity-20 transition-transform duration-500 group-hover:scale-110 pointer-events-none"
+                             style={{ backgroundImage: `url('${cat.imgUrl}')` }}
+                         />
+                         <span className={`relative z-10 font-black uppercase tracking-widest text-[10px] leading-tight drop-shadow-md ${recipeFilter === cat.id ? 'text-[#39FF14]' : 'text-white'}`}>
+                             {cat.id}
+                         </span>
                       </div>
                    ))}
                 </div>
@@ -75,17 +76,17 @@ export default function FavoritesTab({ ...tabProps }: any) {
                                              (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) ||
                                              (numericQuery !== "" && r.proteins?.toString().includes(numericQuery));
                          if (!matchSearch) return false;
-                         if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
-                         if (recipeFilter === 'Populaire') return true;
-                         if (recipeFilter === 'Main Course') return r.type === 'Déjeuner' || r.type === 'Dîner';
-                         if (recipeFilter === 'Healthy') return r.carbs <= 40 && r.fats <= 15;
-                         if (recipeFilter === 'Low Calories') return r.calories <= 350;
-                         if (recipeFilter === 'Desserts') return r.type === 'Collation' || r.type === 'Petit-déjeuner';
+                         if (recipeFilter === 'Coups de cœur') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
+                         if (recipeFilter === 'Communauté') return true; // Could map to specific flags if community recipes exist
+                         if (recipeFilter === 'Plats de résistance') return r.type === 'Déjeuner' || r.type === 'Dîner';
+                         if (recipeFilter === 'Faible en gras') return r.carbs <= 40 && r.fats <= 15;
+                         if (recipeFilter === 'Moins de 350 Kcal') return r.calories <= 350;
+                         if (recipeFilter === 'Petites douceurs saines') return r.type === 'Collation' || r.type === 'Petit-déjeuner';
                          return true;
                       });
 
                       // Sort remaining by popularity if selected
-                      if (recipeFilter === 'Populaire') {
+                      if (recipeFilter === 'Communauté') {
                          filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
                       }
 

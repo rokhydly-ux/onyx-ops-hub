@@ -55,6 +55,28 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 suggestable = allRecipes.filter(r => r.ingredients && Array.isArray(r.ingredients) && r.ingredients.length >= 2);
             }
 
+            // Fallback (generateMockRecipes): if no real recipes exist, assemble randomly from single items
+            if (suggestable.length === 0) {
+                const singleFoods = allRecipes.filter(r => !r.ingredients || r.ingredients.length < 2);
+                if (singleFoods.length >= 2) {
+                    const food1 = singleFoods[Math.floor(Math.random() * singleFoods.length)];
+                    const food2 = singleFoods[Math.floor(Math.random() * singleFoods.length)];
+                    const mockRecipe = {
+                        id: `mock-${food1.id}-${food2.id}`,
+                        nom: `${food1.nom} & ${food2.nom}`,
+                        image_url: food1.image_url || food2.image_url,
+                        calories: (food1.calories || 0) + (food2.calories || 0),
+                        proteins: (food1.proteins || 0) + (food2.proteins || 0),
+                        carbs: (food1.carbs || 0) + (food2.carbs || 0),
+                        fats: (food1.fats || 0) + (food2.fats || 0),
+                        ingredients: [food1, food2]
+                    };
+                    suggestable = [mockRecipe];
+                } else {
+                    suggestable = allRecipes; // absolute fallback
+                }
+            }
+
             if (suggestable.length > 0) {
                 setRandomRecipe(suggestable[Math.floor(Math.random() * suggestable.length)]);
             }
@@ -332,7 +354,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                                                 <button onClick={(e) => { e.stopPropagation(); if (handleSwapMeal) handleSwapMeal({ ...recipe, type: mealType }); }} className="text-[9px] font-bold text-zinc-500 hover:text-black uppercase border border-zinc-200 px-2 py-0.5 rounded cursor-pointer pointer-events-auto">Swap</button>
                                             )}
                                             {!isConsumed && (
-                                                <button onClick={(e) => { e.stopPropagation(); if (confirmMealLog) confirmMealLog({ ...recipe, type: mealType }); }} className="text-[9px] font-bold bg-[#39FF14] text-black hover:bg-black hover:text-[#39FF14] uppercase px-2 py-0.5 rounded shadow-sm cursor-pointer pointer-events-auto">Valider</button>
+                                                <button onClick={(e) => { e.stopPropagation(); if (confirmMealLog) confirmMealLog(mealType, recipe.nom, recipe.calories || recipe.cals || recipe.kcal || 0, recipe.proteins || recipe.prots || 0, recipe.carbs || 0, recipe.fats || 0, recipe); }} className="text-[9px] font-bold bg-[#39FF14] text-black hover:bg-black hover:text-[#39FF14] uppercase px-2 py-0.5 rounded shadow-sm cursor-pointer pointer-events-auto">Valider</button>
                                             )}
                                             <button onClick={handleDelete} className="text-[9px] font-bold text-red-400 hover:text-white hover:bg-red-400 uppercase border border-red-200 px-2 py-0.5 rounded transition-colors cursor-pointer pointer-events-auto">{isConsumed ? 'Suppr.' : 'Cacher'}</button>
                                         </div>

@@ -106,7 +106,7 @@ export default function AdminNutritionAfricaine() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[], price_cfa: 0, budget_tier: 'Famille 15k' });
+  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', categorie_nom: 'Catalogue complet', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[], price_cfa: 0, budget_tier: 'Famille 15k' });
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [recipeFilterFast, setRecipeFilterFast] = useState(false);
   const [recipeSearch, setRecipeSearch] = useState("");
@@ -749,10 +749,10 @@ export default function AdminNutritionAfricaine() {
   function handleOpenRecipeModal(recipe?: any) {
      if (recipe) {
          setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, preparation_time: recipe.preparation_time || 15, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '', price_cfa: recipe.price_cfa || 0, budget_tier: recipe.budget_tier || 'Famille 15k' });
+         setRecipeForm({ ...recipe, preparation_time: recipe.preparation_time || 15, categorie_nom: recipe.categorie_nom || 'Catalogue complet', bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '', price_cfa: recipe.price_cfa || 0, budget_tier: recipe.budget_tier || 'Famille 15k' });
      } else {
          setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [], price_cfa: 0, budget_tier: 'Famille 15k' });
+         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', categorie_nom: 'Catalogue complet', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [], price_cfa: 0, budget_tier: 'Famille 15k' });
      }
      setShowRecipeModal(true);
   };
@@ -762,6 +762,7 @@ export default function AdminNutritionAfricaine() {
          ...recipe, 
          id: '', 
          nom: `${recipe.nom} (Copie)`,
+         categorie_nom: recipe.categorie_nom || 'Catalogue complet',
          preparation_time: recipe.preparation_time || 15,
          bienfaits: recipe.bienfaits || '',
          ingredients: recipe.ingredients || [],
@@ -3102,7 +3103,7 @@ export default function AdminNutritionAfricaine() {
                </h2>
                
                <form onSubmit={handleSaveRecipe} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                      <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Type de Repas</label>
                         <select value={recipeForm.type} onChange={e => setRecipeForm({...recipeForm, type: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black cursor-pointer">
@@ -3115,6 +3116,18 @@ export default function AdminNutritionAfricaine() {
                      <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Nom du Plat</label>
                         <input type="text" required value={recipeForm.nom} onChange={e => setRecipeForm({...recipeForm, nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black" placeholder="Ex: Thieboudienne Diététique" />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Catégorie Galerie</label>
+                        <select value={recipeForm.categorie_nom} onChange={e => setRecipeForm({...recipeForm, categorie_nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                           <option value="Catalogue complet">Catalogue complet</option>
+                           <option value="Coups de cœur">Coups de cœur</option>
+                           <option value="Communauté">Communauté</option>
+                           <option value="Plats de résistance">Plats de résistance</option>
+                           <option value="Faible en gras">Faible en gras</option>
+                           <option value="Moins de 350 Kcal">Moins de 350 Kcal</option>
+                           <option value="Petites douceurs saines">Petites douceurs saines</option>
+                        </select>
                      </div>
                   </div>
 
