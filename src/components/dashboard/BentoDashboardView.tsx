@@ -151,16 +151,16 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                     {/* Inspiration Recette */}
                     <div
                         className="rounded-[2rem] bg-zinc-100 border border-zinc-200 shadow-sm p-6 flex flex-col justify-between h-32 relative overflow-hidden group cursor-pointer"
-                        onClick={() => randomRecipe && handleOpenRecipe ? handleOpenRecipe(randomRecipe) : setActiveTab('week')}
+                        onClick={() => randomRecipe && handleOpenRecipe ? handleOpenRecipe(randomRecipe) : setActiveTab('recettes')}
                     >
-                        {randomRecipe && randomRecipe.image_url ? (
-                            <>
-                                <img src={randomRecipe.image_url} alt="Recette" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" />
-                                <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
-                            </>
-                        ) : (
-                            <div className="absolute inset-0 bg-zinc-800 z-10 pointer-events-none"></div>
-                        )}
+                        <img
+                           src={randomRecipe?.image_url && !randomRecipe.image_url.includes('placeholder_') ? randomRecipe.image_url : "https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"}
+                           onError={(e: any) => { e.currentTarget.onerror = null; e.currentTarget.src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1786107893/Ceramic_plate_with_herbs_on_202608071304_bl72q1.jpg"; }}
+                           alt="Recette"
+                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0"
+                        />
+                        <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
+
                         <div className="relative z-20 flex justify-between items-start">
                             <p className="text-[10px] font-black text-white/90 uppercase tracking-widest bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">Inspiration</p>
                             <ArrowUpRight size={16} className="text-white opacity-80 group-hover:opacity-100 transition-opacity" />
@@ -282,7 +282,7 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                 {/* Widget Coach Personnel */}
                 <div className="col-span-1 lg:col-span-5 rounded-[2rem] bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between min-h-[300px]">
                     <div className="flex items-center gap-3 mb-4">
-                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1782914179/JEUNE_FILLE_g6qdwc.png" className="w-12 h-12 rounded-full object-cover bg-zinc-100" alt="Coach Rokhy" />
+                        <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1784458140/Lady_with_glasses_drinking_water_202607191038_rttr36.jpg" className="w-12 h-12 rounded-full object-cover bg-zinc-100" alt="Coach Rokhy" />
                         <div>
                             <p className="text-sm font-bold text-black">Coach Rokhy</p>
                             <p className="text-[10px] text-[#39FF14] font-bold uppercase tracking-widest flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse"></span> En ligne</p>
