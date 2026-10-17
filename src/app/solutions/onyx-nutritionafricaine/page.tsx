@@ -1113,7 +1113,7 @@ export default function NutritionAfricaineLanding() {
                </div>
              ) : (
                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                 <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=essentiel')} className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto">
+                 <button onClick={() => setShowDiagnosticModal(true)} className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto">
                    <Target size={20} /> FAIRE MON BILAN
                  </button>
                  <button onClick={() => setShowFreeSignupModal(true)} className="bg-transparent border-2 border-[#39FF14] text-[#39FF14] px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#39FF14]/10 transition-all flex items-center justify-center gap-3 w-full sm:w-auto">
@@ -1518,7 +1518,7 @@ export default function NutritionAfricaineLanding() {
                      <li className="flex gap-2 text-white">✔ Accès aux swaps locaux</li>
                      <li className="flex gap-2 text-white">✔ 14j d'essai inclus</li>
                   </ul>
-                  <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=essentiel')} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2">
+                  <button onClick={() => setShowDiagnosticModal(true)} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2">
                      Commencer l'essai <ArrowRight size={18}/>
                   </button>
                </div>
@@ -1535,7 +1535,7 @@ export default function NutritionAfricaineLanding() {
                      <li className="flex gap-2">✔ Bilan humain par appel</li>
                      <li className="flex gap-2">✔ Assistance courses dédiée</li>
                   </ul>
-                  <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=premium')} className="w-full bg-zinc-800 text-white hover:text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-[#39FF14] transition-colors flex justify-center items-center gap-2">
+                  <button onClick={() => setShowDiagnosticModal(true)} className="w-full bg-zinc-800 text-white hover:text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-[#39FF14] transition-colors flex justify-center items-center gap-2">
                      Réserver mon bilan Premium
                   </button>
                </div>
@@ -1815,7 +1815,7 @@ export default function NutritionAfricaineLanding() {
             </p>
             <div className="flex flex-col gap-4">
               <button
-                onClick={() => { setShowExitIntent(false); router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=essentiel'); }}
+                onClick={() => { setShowExitIntent(false); setShowDiagnosticModal(true); }}
                 className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2"
               >
                 <Target size={18} /> FAIRE MON BILAN
