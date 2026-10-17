@@ -221,7 +221,10 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
             await supabase.from('leads').insert([{
                 full_name: diagData.name, phone: cleanPhone, source: "Diagnostic Nutrition Landing",
                 intent: "A complété son diagnostic", status: "Nouveau", saas: "Nutrition à l'Africaine",
-                message: `Objectif: ${profile.calories} kcal`
+                message: `Objectif: ${profile.calories} kcal`,
+                product_id: plan === 'premium' ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
+                mrr_value: plan === 'premium' ? 35000 : 2900,
+                lead_status: "Nouveau"
             }]);
 
             setDiagStep(13);
