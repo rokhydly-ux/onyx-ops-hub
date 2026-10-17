@@ -1,5 +1,6 @@
 "use client";
 import DiagnosticModal from '@/components/DiagnosticModal';
+import FreeSignupModal from '@/components/FreeSignupModal';
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";

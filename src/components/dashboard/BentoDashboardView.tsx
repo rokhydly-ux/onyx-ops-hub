@@ -242,11 +242,11 @@ export default function BentoDashboardView({ user, waterGlasses, handleUpdateWat
                         <div className="relative w-32 h-32 flex items-center justify-center">
                             <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 128 128">
                                 <circle cx="64" cy="64" r="56" fill="none" stroke="#f4f4f5" strokeWidth="12" />
-                                <circle cx="64" cy="64" r="56" fill="none" stroke="#39FF14" strokeWidth="12" strokeDasharray={2 * Math.PI * 56} strokeDashoffset={(2 * Math.PI * 56) - (Math.min(100, (calories / (calorieGoal || clientProfile?.daily_calorie_goal || 1500)) * 100) / 100) * (2 * Math.PI * 56)} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                                <circle cx="64" cy="64" r="56" fill="none" stroke="#39FF14" strokeWidth="12" strokeDasharray={2 * Math.PI * 56} strokeDashoffset={(2 * Math.PI * 56) - (Math.min(100, (calories / (calorieGoal || clientProfile?.daily_calorie_goal || 0)) * 100) / 100) * (2 * Math.PI * 56)} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
                             </svg>
                             <div className="text-center z-10">
                                 <p className="text-2xl font-black text-black leading-none">{calories}</p>
-                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">/ {calorieGoal || clientProfile?.daily_calorie_goal || 1500} Kcal</p>
+                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">/ {calorieGoal || clientProfile?.daily_calorie_goal || 0} Kcal</p>
                             </div>
                         </div>
 

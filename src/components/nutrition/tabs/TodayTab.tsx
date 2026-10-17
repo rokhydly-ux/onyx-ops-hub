@@ -169,7 +169,7 @@ export default function TodayTab({ ...tabProps }: any) {
                                              <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                              <p className={`text-xs font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-black'} flex flex-wrap items-center gap-2`}>
                                                 {recipe.nom} {isConsumed && '✅'}
-                                                {clientProfile?.diagnostic_data?.cookingHabit === 'Je cuisine la marmite pour toute la famille' && (
+                                                {recipe.is_bol_commun && (
                                                    <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full text-[8px] tracking-widest uppercase font-black shadow-sm flex items-center gap-2 border border-orange-200">
                                                       👩‍🍳 Marmite
                                                       <span className="flex items-center gap-1 bg-white/50 px-1 rounded">
