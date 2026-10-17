@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Activity, ChevronLeft, CheckCircle, ArrowRight, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,10 @@ const spaceGrotesk = { className: "font-sans" };
 
 export default function NutritionDiagnostic() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planParam = searchParams ? searchParams.get('plan') : null;
+  const isPremium = planParam === 'premium';
+
   const waNumber = "221785338417";
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,13 +25,14 @@ export default function NutritionDiagnostic() {
 
   React.useEffect(() => {
     let timer;
-    if (step === 10 && redirectCount > 0) {
+    const finalStep = isPremium ? 11 : 10;
+    if (step === finalStep && redirectCount > 0) {
       timer = setTimeout(() => setRedirectCount(prev => prev - 1), 1000);
-    } else if (step === 10 && redirectCount === 0) {
+    } else if (step === finalStep && redirectCount === 0) {
       router.push('/nutrition');
     }
     return () => clearTimeout(timer);
-  }, [step, redirectCount, router]);
+  }, [step, redirectCount, router, isPremium]);
 
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -42,7 +47,11 @@ export default function NutritionDiagnostic() {
     healthConditions: [] as string[],
     lunchHabit: "",
     cookingHabit: "",
-    weeklyBudget: ""
+    weeklyBudget: "",
+    cookingAdults: "",
+    shoppingPlace: "",
+    shoppingManagement: "",
+    dietAbandonReason: ""
   });
 
   const totalSteps = 10;
@@ -124,8 +133,8 @@ export default function NutritionDiagnostic() {
         password: formData.password,
         type: "Client",
         saas: "Nutrition à l'Africaine",
-        status: "Essai",
-        expiration_date: trialEnds.toISOString().split('T')[0],
+        status: isPremium ? "Actif" : "Essai",
+        ...(isPremium ? {} : { expiration_date: trialEnds.toISOString().split('T')[0] })
       };
 
       const { data: existingClient } = await supabase.from('clients').select('id').eq('phone', formData.phone).maybeSingle();
@@ -168,20 +177,23 @@ export default function NutritionDiagnostic() {
           await supabase.from('nutrition_profiles').insert([profilePayload]);
       }
 
-      await supabase.from('leads').insert([{
+      await supabase.from('crm_leads').insert([{
         full_name: formData.name,
         phone: formData.phone,
         source: "Diagnostic Nutrition",
         intent: "A complété son diagnostic (Attente Plan)",
         status: "Nouveau",
         saas: "Nutrition à l'Africaine",
-        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Profil Santé: ${formData.healthConditions.join(', ') || '-'}`
+        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Profil Santé: ${formData.healthConditions.join(', ') || '-'}`,
+        product_id: isPremium ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
+        mrr_value: isPremium ? 35000 : 2900,
+        trial_status: isPremium ? "None" : "Active"
       }]);
 
       const welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-      setStep(10);
+      setStep(isPremium ? 11 : 10);
     } catch (err) {
       alert("Une erreur est survenue.");
     } finally {
@@ -464,8 +476,49 @@ export default function NutritionDiagnostic() {
                   </div>
                 )}
 
-                {/* STEP 9: Coordonnées (Finaliser) */}
-                {step === 9 && (
+                {/* STEP 9: Questions Premium (Si applicables) */}
+                {step === 9 && isPremium && (
+                  <div className="flex flex-col items-center text-center w-full max-w-2xl mx-auto">
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Configuration Avancée (Premium)</h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full text-left">
+                        <div>
+                            <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Cuisinez-vous pour d'autres adultes ?</label>
+                            <input type="number" min="1" placeholder="Nb. adultes" value={formData.cookingAdults} onChange={(e) => handleChoice('cookingAdults', e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-xl text-black outline-none focus:border-[#39FF14]" />
+                        </div>
+
+                        <div>
+                            <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Où faites-vous vos achats ?</label>
+                            <div className="flex gap-2 flex-wrap">
+                                {['Auchan', 'Marché', 'Mixte'].map(opt => (
+                                    <button key={opt} type="button" onClick={() => handleChoice('shoppingPlace', opt)} className={`flex-1 min-w-[100px] p-3 text-sm font-bold rounded-xl border-2 transition ${formData.shoppingPlace === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Gestion des achats ?</label>
+                            <div className="flex flex-col gap-2">
+                                {['Je suis autonome', 'Je veux une liste détaillée', 'Délégation totale'].map(opt => (
+                                    <button key={opt} type="button" onClick={() => handleChoice('shoppingManagement', opt)} className={`p-3 text-sm font-bold rounded-xl border-2 transition text-left ${formData.shoppingManagement === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Raisons des abandons passés ?</label>
+                            <div className="flex flex-col gap-2">
+                                {['Manque de temps', 'Frustration avec les repas de famille', 'Isolement'].map(opt => (
+                                    <button key={opt} type="button" onClick={() => handleChoice('dietAbandonReason', opt)} className={`p-3 text-sm font-bold rounded-xl border-2 transition text-left ${formData.dietAbandonReason === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP Final: Coordonnées (Finaliser) */}
+                {step === (isPremium ? 10 : 9) && (
                   <div className="flex flex-col items-center text-center">
                     <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Dernière étape pour finaliser</h2>
                     <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-4">
@@ -504,8 +557,8 @@ export default function NutritionDiagnostic() {
                   </div>
                 )}
 
-                {/* STEP 10: End Screen */}
-                {step === 10 && (
+                {/* STEP END: End Screen */}
+                {step === (isPremium ? 11 : 10) && (
                   <div className="flex flex-col items-center text-center justify-center flex-1 animate-in zoom-in duration-500 relative z-50">
 
                     <AfricanFruitsAnimation />
