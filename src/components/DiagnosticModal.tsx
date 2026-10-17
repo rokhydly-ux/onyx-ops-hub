@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { CheckCircle, ChevronRight, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
+import { CheckCircle, ChevronRight, ChevronLeft, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
 import { useSearchParams } from 'next/navigation';
 import AfricanFruitsAnimation from './AfricanFruitsAnimation';
