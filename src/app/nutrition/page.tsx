@@ -869,7 +869,8 @@ export default function NutritionDashboard() {
                 const { data: dbPromos } = await promoQuery;
                 if (dbPromos) setShopPromoCodesDB(dbPromos);
 
-                // Fetch Community Posts
+                // Fetch Community Posts - Disabled temporarily to prevent 400 errors (missing FKs)
+                /*
                 const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, profiles!user_id(id, full_name, avatar_url), nutrition_reactions(reaction_type, user_id)').order('created_at', { ascending: false });
                 if (cPosts && cPosts.length > 0) {
                     setCommunityPosts(cPosts.map((p: any) => {
@@ -902,6 +903,7 @@ export default function NutritionDashboard() {
                 } else {
                     setStories(DEFAULT_SEED_STORIES);
                 }
+                */
 
                 // Fetch Active Challenge
                 const { data: challenges, error: challengesError } = await supabase
