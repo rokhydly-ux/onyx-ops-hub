@@ -3733,7 +3733,6 @@ const handleToggleComments = async (postId: string) => {
 
 // @ts-expect-error
   const tabProps = {
-    setShowFoodSearch,
     today,
     todayStr,
     router,
