@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { CheckCircle, ChevronRight, ChevronLeft, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
-import { Space_Grotesk } from 'next/font/google';
 import { useSearchParams } from 'next/navigation';
+import { CheckCircle, ChevronRight, ArrowRight, X, Phone, Lock, Eye, EyeOff, Activity, Droplets, Target, User, HeartPulse, Scale, Utensils, Baby, Coffee } from 'lucide-react';
+import { Space_Grotesk } from 'next/font/google';
 import AfricanFruitsAnimation from './AfricanFruitsAnimation';
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] });
@@ -92,9 +92,10 @@ interface DiagnosticModalProps {
     initialGoal?: string;
 }
 
-function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalProps) {
+export default function DiagnosticModal({ isOpen, onClose, initialGoal }: DiagnosticModalProps) {
     const searchParams = useSearchParams();
-    const plan = searchParams.get('plan') || 'essentiel'; // 'premium' or 'essentiel'
+    const planFromUrl = searchParams ? searchParams.get('plan') : null;
+    const isPremium = planFromUrl === 'premium';
 
     const [diagStep, setDiagStep] = useState(1);
     const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
@@ -104,7 +105,7 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
         pastDiets: "", cookingFats: [] as string[], mainMealElement: "", eveningMeal: "", lunchHabit: "",
         cookingHabit: "", weeklyBudget: "", name: "", phone: "",
         // Premium questions
-        premiumAdultsCount: "", premiumShoppingLocation: "", premiumShoppingManagement: "", premiumDietAbandonReason: ""
+        cookingAdults: "", shoppingPlace: "", shoppingManagement: "", dietAbandonReason: ""
     });
     const [countdown, setCountdown] = useState(7);
 
@@ -125,7 +126,7 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (diagStep === 13) {
+        if (diagStep === 11) {
             timer = setInterval(() => {
                 setCountdown((prev) => {
                     if (prev <= 1) {
@@ -169,23 +170,14 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
 
             const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-            const clientPayload: any = {
+            const clientPayload = {
                 ...(realUserId ? { id: realUserId } : {}),
                 full_name: diagData.name,
                 phone: cleanPhone,
                 saas: "Nutrition à l'Africaine",
-                status: "Essai",
-                expiration_date: trialEndDate
+                status: isPremium ? "Actif" : "Essai",
+                ...(isPremium ? {} : { expiration_date: trialEndDate })
             };
-
-            if (plan === 'premium') {
-                clientPayload.product_id = "NUTRITION_PREMIUM";
-                clientPayload.mrr_value = 35000;
-            } else {
-                clientPayload.product_id = "NUTRITION_ESSENTIEL";
-                clientPayload.mrr_value = 2900;
-                clientPayload.trial_status = "Active";
-            }
 
             const { data: existingClient } = await supabase.from("clients").select("id").eq("phone", cleanPhone).maybeSingle();
             let finalClientId = realUserId;
@@ -218,13 +210,13 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                 if (profileErr) console.error("Erreur profil (insert) : " + profileErr.message);
             }
 
-            await supabase.from('leads').insert([{
+            await supabase.from('crm_leads').insert([{
                 full_name: diagData.name, phone: cleanPhone, source: "Diagnostic Nutrition Landing",
                 intent: "A complété son diagnostic", status: "Nouveau", saas: "Nutrition à l'Africaine",
                 message: `Objectif: ${profile.calories} kcal`,
-                product_id: plan === 'premium' ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
-                mrr_value: plan === 'premium' ? 35000 : 2900,
-                lead_status: "Nouveau"
+                product_id: isPremium ? "NUTRITION_PREMIUM" : "NUTRITION_ESSENTIEL",
+                mrr_value: isPremium ? 35000 : 2900,
+                trial_status: isPremium ? "None" : "Active"
             }]);
             // Double insertion in 'crm_leads' as well
             await supabase.from('crm_leads').insert([{
@@ -240,7 +232,7 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
             }]);
 
 
-            setDiagStep(13);
+            setDiagStep(11);
 
             try {
                 await supabase.auth.signInWithPassword({
@@ -259,44 +251,34 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
 
     if (!isOpen) return null;
 
-    const getSubtitleForStep = () => {
-        if (diagStep === 1) return "Ce court test nous permet de comprendre votre métabolisme pour vous générer un plan sur-mesure.";
-        if (diagStep === 2) return "Excellente décision ! Voyons comment adapter nos plats locaux (Thieb, Yassa...) à votre objectif.";
-        if (diagStep === 3 || diagStep === 4 || diagStep === 5) return "Nous y sommes presque ! L'algorithme commence à calculer vos portions...";
-        if (diagStep === 6) return "Derniers détails pour finaliser la configuration de votre Coach IA.";
-        if (plan === 'premium' && diagStep >= 7 && diagStep <= 10) return "Questions supplémentaires pour préparer votre accompagnement Premium.";
-        return "";
-    };
-
-    const maxSteps = plan === 'premium' ? 10 : 6;
-
     return (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && onClose()}>
-          <div className="w-full max-w-2xl bg-white rounded-[2rem] shadow-[0_0_20px_rgba(57,255,20,0.15)] flex flex-col relative animate-in zoom-in-95 max-h-[95vh] overflow-hidden border-2 border-transparent">
-            {/* Bouton Retour en haut à gauche */}
+          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2.5rem] shadow-2xl flex flex-col relative animate-in zoom-in-95 max-h-[95vh] overflow-hidden" style={{ boxShadow: '0 0 20px rgba(0, 255, 0, 0.1)' }}>
+
+            {/* Back Arrow */}
             <button
                 onClick={() => diagStep > 1 ? setDiagStep(prev => prev - 1) : onClose()}
-                className="absolute top-4 left-4 sm:top-6 sm:left-6 p-2 bg-white/10 text-white rounded-full hover:bg-black hover:text-[#39FF14] transition z-50 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"
+                className="absolute top-4 left-4 z-10 w-10 h-10 bg-black/50 hover:bg-black text-white rounded-full flex items-center justify-center transition-all"
             >
-                <ChevronLeft size={16} /> {diagStep > 1 ? "Retour" : "Quitter"}
+                <ChevronRight className="rotate-180" size={20} />
             </button>
-            <button onClick={() => onClose()} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/10 text-white rounded-full hover:bg-black hover:text-white transition z-50"><X size={20}/></button>
+            <button onClick={() => onClose()} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/20 text-white rounded-full hover:bg-black hover:text-[#39FF14] transition z-50"><X size={20}/></button>
 
             <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem] shrink-0">
               <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
-                <div className="h-full bg-[#39FF14] transition-all duration-500 shadow-[0_0_10px_rgba(57,255,20,0.5)]" style={{ width: `${(Math.min(diagStep, maxSteps) / maxSteps) * 100}%` }}></div>
+                <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(diagStep / 6) * 100}%` }}></div>
               </div>
-              <Activity className="text-[#39FF14] mx-auto mb-2 drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]" size={28} />
+              <Activity className="text-[#39FF14] mx-auto mb-2" size={28} />
               <h2 className={`${spaceGrotesk.className} text-xl md:text-3xl font-black uppercase tracking-tighter`}>
-                {diagStep > maxSteps ? "Diagnostic Terminé !" : "Découvrez votre Profil Métabolique"}
+                {diagStep >= 7 ? "Configuration du Coach" : "Bilan Nutritionnel"}
               </h2>
-              {diagStep <= maxSteps && (
-                <p className="text-zinc-400 text-sm mt-2 max-w-md mx-auto">{getSubtitleForStep()}</p>
-              )}
+              <p className="text-zinc-400 text-xs mt-2 font-medium">
+                  {diagStep >= 7 ? "Derniers détails pour finaliser la configuration de votre Coach IA." : "L'Intelligence Artificielle de Coach Rokhy à ton service."}
+              </p>
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
-              {diagStep !== 13 ? (
+              {diagStep !== 11 ? (
                 <form onSubmit={handleDiagSubmit} className="w-full">
 
                   {/* ETAPE 1: Sexe & Âge */}
@@ -608,10 +590,51 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                       </div>
                     </div>
                   )}
-                  {/* ETAPE 8: Identification (Landing Page Uniquement) */}
-                  {diagStep === 8 && (
+                  {/* ETAPE 8: Questions Premium (Si applicables) */}
+                  {diagStep === 8 && isPremium && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Configuration Avancée (Premium)</h2>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full text-left">
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Cuisinez-vous pour d'autres adultes ?</label>
+                              <input type="number" min="1" placeholder="Nb. adultes" value={diagData.cookingAdults} onChange={(e) => setDiagData({...diagData, cookingAdults: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-xl text-black outline-none focus:border-[#39FF14]" />
+                          </div>
+
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Où faites-vous vos achats ?</label>
+                              <div className="flex gap-2 flex-wrap">
+                                  {['Auchan', 'Marché', 'Mixte'].map(opt => (
+                                      <button key={opt} type="button" onClick={() => setDiagData({...diagData, shoppingPlace: opt})} className={`flex-1 min-w-[100px] p-3 text-sm font-bold rounded-xl border-2 transition ${diagData.shoppingPlace === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Gestion des achats ?</label>
+                              <div className="flex flex-col gap-2">
+                                  {['Je suis autonome', 'Je veux une liste détaillée', 'Délégation totale'].map(opt => (
+                                      <button key={opt} type="button" onClick={() => setDiagData({...diagData, shoppingManagement: opt})} className={`p-3 text-sm font-bold rounded-xl border-2 transition text-left ${diagData.shoppingManagement === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div>
+                              <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Raisons des abandons passés ?</label>
+                              <div className="flex flex-col gap-2">
+                                  {['Manque de temps', 'Frustration avec les repas de famille', 'Isolement'].map(opt => (
+                                      <button key={opt} type="button" onClick={() => setDiagData({...diagData, dietAbandonReason: opt})} className={`p-3 text-sm font-bold rounded-xl border-2 transition text-left ${diagData.dietAbandonReason === opt ? 'border-[#39FF14] bg-[#39FF14]/10 text-black' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>{opt}</button>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ETAPE 9: Identification (Landing Page Uniquement) */}
+                  {diagStep === (isPremium ? 9 : 8) && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 8 : À qui avons-nous l'honneur ?</h2>
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape Finale : À qui avons-nous l'honneur ?</h2>
 
                       <div className="w-full mb-6 text-left">
                         <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Votre Prénom</label>
@@ -638,13 +661,13 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                   {diagStep < 10 && (
                     <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
                         {diagStep > 1 && (
-                            <button type="button" onClick={() => setDiagStep(s => s === 12 && plan !== 'premium' ? 8 : s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
+                            <button type="button" onClick={() => setDiagStep(s => s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
                                 Retour
                             </button>
                         )}
                         <button
                             type="button"
-                            onClick={() => setDiagStep(s => s === 8 ? (plan === 'premium' ? 9 : 12) : (s === 10 ? 12 : s + 1))}
+                            onClick={() => setDiagStep(s => (s === (isPremium ? 9 : 8)) ? 10 : s + 1)}
                             disabled={
                                 (diagStep === 1 && (!diagData.gender || !diagData.age)) ||
                                 (diagStep === 2 && (!diagData.goal || !diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
@@ -653,9 +676,8 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                                 (diagStep === 5 && (!diagData.waterIntake || !diagData.pastDiets || diagData.cookingFats.length === 0)) ||
                                 (diagStep === 6 && (!diagData.mainMealElement || !diagData.eveningMeal)) ||
                                 (diagStep === 7 && (!diagData.lunchHabit || !diagData.cookingHabit || !diagData.weeklyBudget)) ||
-                                                                (diagStep === 8 && (!diagData.name || !diagData.phone || !isValidPhoneNumber(diagData.phone))) ||
-                                (diagStep === 9 && (!diagData.premiumAdultsCount || !diagData.premiumShoppingLocation)) ||
-                                (diagStep === 10 && (!diagData.premiumShoppingManagement || !diagData.premiumDietAbandonReason))
+                                (diagStep === 8 && isPremium && (!diagData.cookingAdults || !diagData.shoppingPlace || !diagData.shoppingManagement || !diagData.dietAbandonReason)) ||
+                                (diagStep === (isPremium ? 9 : 8) && (!diagData.name || !diagData.phone || !isValidPhoneNumber(diagData.phone)))
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -664,64 +686,8 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                     </div>
                   )}
 
-
-                  {/* ETAPE 9: Questions Premium 1 */}
-                  {diagStep === 9 && plan === 'premium' && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full max-w-lg mx-auto">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 9 : Vos Habitudes (1/2)</h2>
-
-                      <div className="w-full mb-6 text-left">
-                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Pour combien d'adultes cuisinez-vous en tout ?</label>
-                        <input type="number" required placeholder="Ex: 4" value={diagData.premiumAdultsCount} onChange={(e) => setDiagData({...diagData, premiumAdultsCount: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
-                      </div>
-
-                      <div className="w-full text-left">
-                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Où faites-vous vos achats principaux ?</label>
-                        <div className="grid grid-cols-1 gap-3 w-full">
-                          {['Auchan', 'Marché', 'Mixte'].map(element => (
-                             <div key={element} onClick={() => setDiagData({...diagData, premiumShoppingLocation: element})} className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center relative transition-all duration-300 ${diagData.premiumShoppingLocation === element ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black text-center text-sm">{element}</span>
-                                {diagData.premiumShoppingLocation === element && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
-                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ETAPE 10: Questions Premium 2 */}
-                  {diagStep === 10 && plan === 'premium' && (
-                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full max-w-lg mx-auto">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Étape 10 : Vos Habitudes (2/2)</h2>
-
-                      <div className="w-full mb-6 text-left">
-                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Comment préférez-vous gérer vos achats ?</label>
-                        <div className="grid grid-cols-1 gap-3 w-full">
-                          {['Je suis autonome', 'Je veux une liste détaillée', 'Délégation totale'].map(element => (
-                             <div key={element} onClick={() => setDiagData({...diagData, premiumShoppingManagement: element})} className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center relative transition-all duration-300 ${diagData.premiumShoppingManagement === element ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black text-center text-sm">{element}</span>
-                                {diagData.premiumShoppingManagement === element && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
-                             </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="w-full text-left">
-                        <label className="font-bold text-sm uppercase text-zinc-500 mb-2 block">Qu'est-ce qui vous a fait abandonner vos régimes par le passé ?</label>
-                        <div className="grid grid-cols-1 gap-3 w-full">
-                          {['Manque de temps', 'Frustration avec les repas de famille', 'Isolement'].map(element => (
-                             <div key={element} onClick={() => setDiagData({...diagData, premiumDietAbandonReason: element})} className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center relative transition-all duration-300 ${diagData.premiumDietAbandonReason === element ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
-                                <span className="font-bold text-black text-center text-sm">{element}</span>
-                                {diagData.premiumDietAbandonReason === element && <CheckCircle size={20} className="text-[#39FF14] absolute top-2 right-2"/>}
-                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
 {/* ETAPE 10: BILAN VISUEL */}
-                  {diagStep === 12 && (
+                  {diagStep === 10 && (
     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8 w-full bg-white p-6 md:p-8 rounded-[2rem] shadow-xl">
         {(() => {
             const profile = calculateDailyCalories(diagData);
@@ -823,7 +789,7 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
                 </form>
               ) : null}
 
-              {diagStep === 13 && (
+              {diagStep === 11 && (
     <div className="flex flex-col items-center text-center animate-in zoom-in w-full bg-white border-t-[8px] border-[#39FF14] p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
         {/* Lueur en arrière-plan */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#39FF14] opacity-20 blur-[50px] pointer-events-none"></div>
@@ -872,11 +838,4 @@ function DiagnosticModalInner({ isOpen, onClose, initialGoal }: DiagnosticModalP
           </div>
         </div>
     );
-}
-export default function DiagnosticModal(props: DiagnosticModalProps) {
-  return (
-    <React.Suspense fallback={null}>
-      <DiagnosticModalInner {...props} />
-    </React.Suspense>
-  );
 }

@@ -3731,9 +3731,6 @@ const handleToggleComments = async (postId: string) => {
        }));
   };
 
-  // Dummy functions to prevent ReferenceErrors
-  const setShowFoodSearch = (val: any) => console.log('setShowFoodSearch', val);
-
 // @ts-expect-error
   const tabProps = {
     today,
