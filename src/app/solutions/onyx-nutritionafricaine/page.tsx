@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Activity, HeartPulse, Smartphone, Flame, CheckCircle, Wind, Droplet,
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
@@ -207,6 +208,7 @@ const HERO_SLIDES = [
 
 export default function NutritionAfricaineLanding() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const waNumber = "221785338417";
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -218,6 +220,11 @@ export default function NutritionAfricaineLanding() {
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   
+  // Free Signup Modal State
+  const [showFreeSignupModal, setShowFreeSignupModal] = useState(false);
+  const [showExitIntent, setShowExitIntent] = useState(false);
+  const hasTriggeredExitIntent = useRef(false);
+
   // Modale Diagnostic State
   const [showDiagnosticModal, setShowDiagnosticModal] = useState(false);
   const hasAutoOpened = useRef(false);
@@ -834,6 +841,59 @@ export default function NutritionAfricaineLanding() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Exit Intent Hook (Desktop & Mobile)
+  useEffect(() => {
+    if (isAuthenticated || hasTriggeredExitIntent.current) return;
+
+    // Desktop: Mouse leaves top of the window
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) {
+        hasTriggeredExitIntent.current = true;
+        setShowExitIntent(true);
+      }
+    };
+
+    // Mobile: 45s of total inactivity (reset on touch/scroll)
+    let inactivityTimer: any;
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      if (!hasTriggeredExitIntent.current) {
+        inactivityTimer = setTimeout(() => {
+          hasTriggeredExitIntent.current = true;
+          setShowExitIntent(true);
+        }, 45000);
+      }
+    };
+
+    // Mobile: Listen to popstate (back button)
+    const handlePopState = () => {
+      if (!hasTriggeredExitIntent.current) {
+        hasTriggeredExitIntent.current = true;
+        setShowExitIntent(true);
+      }
+    };
+
+    if (isMobileDevice) {
+      window.addEventListener('touchstart', resetTimer);
+      window.addEventListener('scroll', resetTimer);
+      window.addEventListener('popstate', handlePopState);
+      resetTimer(); // Start the initial timer
+    } else {
+      document.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    return () => {
+      if (isMobileDevice) {
+        window.removeEventListener('touchstart', resetTimer);
+        window.removeEventListener('scroll', resetTimer);
+        window.removeEventListener('popstate', handlePopState);
+        clearTimeout(inactivityTimer);
+      } else {
+        document.removeEventListener('mouseleave', handleMouseLeave);
+      }
+    };
+  }, [isAuthenticated, isMobileDevice]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [botMessages]);
@@ -1053,8 +1113,11 @@ export default function NutritionAfricaineLanding() {
                </div>
              ) : (
                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                 <button onClick={() => console.log('Ouvrir Modale 0F')} className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto">
-                   <Target size={20} /> CRÉER MON COMPTE GRATUIT
+                 <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=essentiel')} className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto">
+                   <Target size={20} /> FAIRE MON BILAN
+                 </button>
+                 <button onClick={() => setShowFreeSignupModal(true)} className="bg-transparent border-2 border-[#39FF14] text-[#39FF14] px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#39FF14]/10 transition-all flex items-center justify-center gap-3 w-full sm:w-auto">
+                   CRÉER UN COMPTE GRATUIT
                  </button>
                </div>
              )}
@@ -1062,198 +1125,6 @@ export default function NutritionAfricaineLanding() {
            <button onClick={() => setShowFreeMenuModal(true)} className="mt-8 text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-widest underline decoration-zinc-400 underline-offset-4 transition-colors">
               Ou téléchargez un menu type gratuit (PDF)
            </button>
-        </div>
-      </section>
-
-      {/* 2. LA RÉASSURANCE "BOL FAMILIAL" (Nouvelle Position Haute) */}
-      <section className="py-24 px-6 bg-zinc-100 border-y border-zinc-200">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              "Et si la famille partage le même bol ?" <span className="text-black border-b-4 border-[#39FF14]">On a pensé à tout.</span>
-            </h2>
-            <p className="text-zinc-500 font-bold text-lg">Au Sénégal, manger c'est partager. Pas question de cuisiner un plat à part dans votre coin.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {FAMILY_APPROACH_POINTS_NEW.map((point, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.5 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white border border-zinc-200 p-8 rounded-[2rem] flex items-start gap-6 shadow-sm"
-              >
-                <img src={point.iconUrl} className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4" alt={point.title} />
-                <div>
-                  <h3 className="font-black text-lg uppercase text-black mb-2">{point.title}</h3>
-                  <p className="text-zinc-600 font-medium leading-relaxed">{point.text}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          <div className="relative mx-auto w-full max-w-lg mt-16">
-             <img 
-               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_high-angle_studio_commercial_shot_202606111513_yehlsx.jpg"
-               alt="Famille partageant un bol de riz"
-               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-200"
-             />
-          </div>
-        </div>
-      </section>
-
-      {/* 3. BÉNÉFICES DIRECTS (Original section 2, now section 3) */}
-      <section className="py-24 px-6 bg-white">
-         <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>Pourquoi ça <span className="text-black border-b-4 border-[#39FF14]">fonctionne enfin ?</span></h2>
-               <p className="text-zinc-500 font-bold text-lg">Parce qu'on ne vous demande pas de manger des choses que vous ne trouvez pas au marché.</p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8">
-               <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="100% Adapté aux Plats Locaux" />
-                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>100% Adapté aux Plats Locaux</h3>
-                  <p className="text-zinc-600 font-medium leading-relaxed">Fini la frustration. On adapte les portions de vos plats quotidiens pour que vous puissiez maigrir sans vous priver des repas en famille.</p>
-               </div>
-
-               <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/18_djx2ct.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="Suivi Personnel WhatsApp" />
-                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Suivi Personnel WhatsApp</h3>
-                  <p className="text-zinc-600 font-medium leading-relaxed">Un doute sur un aliment ? Une baisse de motivation ? Nos experts nutritionnistes vous accompagnent chaque semaine directement dans votre poche.</p>
-               </div>
-
-               <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
-                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="Résultats Durables" />
-                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Résultats Durables</h3>
-                  <p className="text-zinc-600 font-medium leading-relaxed">Pas de régime miracle qui ruine votre métabolisme. Nous visons un rééquilibrage de fond pour une perte de poids et un maintien garanti.</p>
-               </div>
-            </div>
-                    
-                    {diagData.gender === 'Femme' && (
-                      <div className="space-y-4 mt-6">
-                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Ta situation actuelle *</label>
-                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {[
-                              { id: "Allaitement", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181320/An_authentic_minimalistic_flat-lay_illustration_202606111234_dg6lni.jpg", title: "Allaitement" },
-                              { id: "Changements hormonaux", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181281/cle_ezqyki.jpg", title: "Changements hormonaux (Ménopause / Périménopause)" },
-                              { id: "Forme standard", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181319/A_minimal_sleek_white_modern_202606111234_bpcoy2.jpg", title: "Forme standard" }
-                            ].map(profile => (
-                               <div key={profile.id} onClick={() => setDiagData({...diagData, healthProfile: profile.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.healthProfile === profile.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                                  <img src={profile.img} className="w-full aspect-square object-cover" alt={profile.title} />
-                                  <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] backdrop-blur-sm h-12 flex items-center justify-center leading-tight">{profile.title}</div>
-                               </div>
-                            ))}
-                         </div>
-                      </div>
-                    )}
-         </div>
-      </section>
-
-      {/* 4. CONSEILS DU COACH (BLOG) */}
-      <section className="py-24 px-6 bg-white border-t border-zinc-200">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              Conseils du <span className="text-black border-b-4 border-[#39FF14]">Coach</span>
-            </h2>
-            <p className="text-zinc-500 font-bold text-lg">Lisez nos derniers articles pour comprendre votre métabolisme.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {coachArticles.length > 0 ? (
-              coachArticles.map((article, i) => (
-                <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
-                  <div className="h-48 relative overflow-hidden">
-                    <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
-                       <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
-                    </div>
-                  </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
-                    <p className="text-zinc-500 text-sm font-medium mb-6 relative">
-                      {article.content ? (article.content.replace(/<[^>]*>?/gm, '').substring(0, 100) + '...') : ''}
-                      <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
-                    </p>
-                    <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
-                      Débloquer l'article <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              [
-                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg", title: "Comment manger du Tiep et perdre du ventre ?", desc: "Le secret n'est pas d'arrêter le Tiep, mais de comprendre comment l'indice glycémique fonctionne..." },
-                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg", title: "Les 3 erreurs au petit-déjeuner", desc: "Vous prenez du pain au chocolat ou vous sautez le repas ? Voici pourquoi votre corps stocke la graisse..." },
-                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg", title: "Ménopause : Relancer la machine", desc: "Passé 45 ans, le métabolisme ralentit. Découvrez les épices locales qui agissent comme brûleurs naturels..." }
-              ].map((article, i) => (
-                <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => setShowDiagnosticModal(true)}>
-                  <div className="h-48 relative overflow-hidden">
-                    <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
-                       <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>
-                    </div>
-                  </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
-                    <p className="text-zinc-500 text-sm font-medium mb-6 relative">
-                      {article.desc}
-                      <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
-                    </p>
-                    <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
-                      Débloquer l'article <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. LE MATCH : RÉGIMES OCCIDENTAUX VS NUTRITION À L'AFRICAINE */}
-      <section className="py-24 px-6 bg-zinc-950 text-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
-              Arrêtez de vous battre contre votre <span className="text-red-500">propre culture.</span>
-            </h2>
-            <p className="text-zinc-400 font-bold text-lg">Le Match : Régimes de l'Étranger VS Nutrition à l'Africaine</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-            {/* AVANT : Régimes Classiques */}
-            <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] flex flex-col relative opacity-90">
-              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Carte_Match_1_R%C3%A9gime_de_l_%C3%A9tranger_jyuqlr.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="Régimes de l'étranger" />
-              <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max border border-red-800">
-                <AlertTriangle size={14} /> Les Régimes de l'Étranger (❌)
-              </span>
-              <ul className="space-y-4 text-zinc-400 font-medium text-lg">
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Adieu le bon riz, bonjour les salades fades.</strong> Devoir chercher du quinoa ou du saumon hors de prix à Dakar.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">S'isoler lors des repas de famille :</strong> "Désolé, je ne mange pas avec vous, je suis au régime."</span></li>
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Résultat ? Vous craquez et reprenez tout.</strong> Effet Yoyo garanti.</span></li>
-              </ul>
-            </div>
-
-            {/* APRÈS : Nutrition à l'Africaine */}
-            <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
-              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285417/Senegalese_Thieboudienne_with_ve__2K_202607052103_dit2wp.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="La Méthode Locale" />
-              <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
-                <CheckCircle size={14} /> La Méthode Locale (✅)
-              </span>
-              <ul className="space-y-4 text-zinc-200 font-medium text-lg">
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Conservez le plaisir de nos sauces</strong> en apprenant à doser l'huile.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Utilisez les super-aliments de nos marchés</strong> (Soumbala, Bouye, Kinkeliba) pour booster votre métabolisme et bloquer le stockage des graisses.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Une méthode économique, durable et 100% validée médicalement.</strong></span></li>
-              </ul>
-            </div>
-          </div>
-          <div className="relative mx-auto w-full max-w-lg mt-16">
-             <img
-               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_split-screen_composition_styled_for_202606111513_ompcjz.jpg"
-               alt="Comparaison Régimes"
-               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-800"
-             />
-          </div>
         </div>
       </section>
 
@@ -1332,6 +1203,137 @@ export default function NutritionAfricaineLanding() {
       </section>
 
 
+      {/* 4. LE MATCH : RÉGIMES OCCIDENTAUX VS NUTRITION À L'AFRICAINE */}
+      <section className="py-24 px-6 bg-zinc-950 text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
+              Arrêtez de vous battre contre votre <span className="text-red-500">propre culture.</span>
+            </h2>
+            <p className="text-zinc-400 font-bold text-lg">Le Match : Régimes de l'Étranger VS Nutrition à l'Africaine</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
+            {/* AVANT : Régimes Classiques */}
+            <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] flex flex-col relative opacity-90">
+              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285386/Carte_Match_1_R%C3%A9gime_de_l_%C3%A9tranger_jyuqlr.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="Régimes de l'étranger" />
+              <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max border border-red-800">
+                <AlertTriangle size={14} /> Les Régimes de l'Étranger (❌)
+              </span>
+              <ul className="space-y-4 text-zinc-400 font-medium text-lg">
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Adieu le bon riz, bonjour les salades fades.</strong> Devoir chercher du quinoa ou du saumon hors de prix à Dakar.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">S'isoler lors des repas de famille :</strong> "Désolé, je ne mange pas avec vous, je suis au régime."</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Résultat ? Vous craquez et reprenez tout.</strong> Effet Yoyo garanti.</span></li>
+              </ul>
+            </div>
+
+            {/* APRÈS : Nutrition à l'Africaine */}
+            <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
+              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783285417/Senegalese_Thieboudienne_with_ve__2K_202607052103_dit2wp.jpg" className="w-full h-56 object-cover rounded-[1.5rem] mb-6 shadow-inner" alt="La Méthode Locale" />
+              <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
+                <CheckCircle size={14} /> La Méthode Locale (✅)
+              </span>
+              <ul className="space-y-4 text-zinc-200 font-medium text-lg">
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Conservez le plaisir de nos sauces</strong> en apprenant à doser l'huile.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Utilisez les super-aliments de nos marchés</strong> (Soumbala, Bouye, Kinkeliba) pour booster votre métabolisme et bloquer le stockage des graisses.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Une méthode économique, durable et 100% validée médicalement.</strong></span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="relative mx-auto w-full max-w-lg mt-16">
+             <img
+               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_split-screen_composition_styled_for_202606111513_ompcjz.jpg"
+               alt="Comparaison Régimes"
+               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-800"
+             />
+          </div>
+        </div>
+      </section>
+
+      {/* 3. BÉNÉFICES DIRECTS (Original section 2, now section 3) */}
+      <section className="py-24 px-6 bg-white">
+         <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>Pourquoi ça <span className="text-black border-b-4 border-[#39FF14]">fonctionne enfin ?</span></h2>
+               <p className="text-zinc-500 font-bold text-lg">Parce qu'on ne vous demande pas de manger des choses que vous ne trouvez pas au marché.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+               <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/17_rf3mmu.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="100% Adapté aux Plats Locaux" />
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>100% Adapté aux Plats Locaux</h3>
+                  <p className="text-zinc-600 font-medium leading-relaxed">Fini la frustration. On adapte les portions de vos plats quotidiens pour que vous puissiez maigrir sans vous priver des repas en famille.</p>
+               </div>
+
+               <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288219/18_djx2ct.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="Suivi Personnel WhatsApp" />
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Suivi Personnel WhatsApp</h3>
+                  <p className="text-zinc-600 font-medium leading-relaxed">Un doute sur un aliment ? Une baisse de motivation ? Nos experts nutritionnistes vous accompagnent chaque semaine directement dans votre poche.</p>
+               </div>
+
+               <div className="bg-zinc-50 border border-zinc-100 p-10 rounded-[2rem] hover:border-[#39FF14] hover:shadow-xl transition-all group">
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1783288220/19_ujjlcj.png" className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt="Résultats Durables" />
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>Résultats Durables</h3>
+                  <p className="text-zinc-600 font-medium leading-relaxed">Pas de régime miracle qui ruine votre métabolisme. Nous visons un rééquilibrage de fond pour une perte de poids et un maintien garanti.</p>
+               </div>
+            </div>
+
+                    {diagData.gender === 'Femme' && (
+                      <div className="space-y-4 mt-6">
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Ta situation actuelle *</label>
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[
+                              { id: "Allaitement", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181320/An_authentic_minimalistic_flat-lay_illustration_202606111234_dg6lni.jpg", title: "Allaitement" },
+                              { id: "Changements hormonaux", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181281/cle_ezqyki.jpg", title: "Changements hormonaux (Ménopause / Périménopause)" },
+                              { id: "Forme standard", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181319/A_minimal_sleek_white_modern_202606111234_bpcoy2.jpg", title: "Forme standard" }
+                            ].map(profile => (
+                               <div key={profile.id} onClick={() => setDiagData({...diagData, healthProfile: profile.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.healthProfile === profile.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                  <img src={profile.img} className="w-full aspect-square object-cover" alt={profile.title} />
+                                  <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] backdrop-blur-sm h-12 flex items-center justify-center leading-tight">{profile.title}</div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                    )}
+         </div>
+      </section>
+
+      {/* 2. LA RÉASSURANCE "BOL FAMILIAL" (Nouvelle Position Haute) */}
+      <section className="py-24 px-6 bg-zinc-100 border-y border-zinc-200">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              "Et si la famille partage le même bol ?" <span className="text-black border-b-4 border-[#39FF14]">On a pensé à tout.</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Au Sénégal, manger c'est partager. Pas question de cuisiner un plat à part dans votre coin.</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {FAMILY_APPROACH_POINTS_NEW.map((point, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white border border-zinc-200 p-8 rounded-[2rem] flex items-start gap-6 shadow-sm"
+              >
+                <img src={point.iconUrl} className="w-12 h-12 md:w-16 md:h-16 object-contain mb-4" alt={point.title} />
+                <div>
+                  <h3 className="font-black text-lg uppercase text-black mb-2">{point.title}</h3>
+                  <p className="text-zinc-600 font-medium leading-relaxed">{point.text}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          <div className="relative mx-auto w-full max-w-lg mt-16">
+             <img
+               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_high-angle_studio_commercial_shot_202606111513_yehlsx.jpg"
+               alt="Famille partageant un bol de riz"
+               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-200"
+             />
+          </div>
+        </div>
+      </section>
+
       {/* 5. LA VITRINE DES TERROIRS (Section interactive & Auchan) - FUSION AVEC CALCULATEUR */}
       <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
@@ -1368,14 +1370,14 @@ export default function NutritionAfricaineLanding() {
                animate={{ y: [0, -20, 0] }}
                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                className="w-[85%] h-auto z-10 drop-shadow-2xl"
-             > 
-               <img 
+             >
+               <img
                  src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781201195/Design_sans_titre_avgfad.png"
                  alt="Aperçu du Guide Nutrition à l'Africaine"
                  className="max-w-full max-h-full object-contain"
                />
              </motion.div>
-          </div> 
+          </div>
         </div>
       </section>
 
@@ -1411,62 +1413,76 @@ export default function NutritionAfricaineLanding() {
         </div>
       </section>
 
-      {/* SECTION : VITRINE BOUTIQUE */}
-      <section className="py-24 px-6 bg-[#fafafa]">
-         <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-               <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
-                  <ShoppingBag size={14}/> Boutique Nutrition
-               </div>
-               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-                  Équipez-vous pour <span className="text-black border-b-4 border-[#39FF14]">votre réussite.</span>
-               </h2>
-               <p className="text-zinc-500 font-bold text-lg max-w-2xl mx-auto">Nos super-aliments et accessoires exclusifs pour faciliter votre rééquilibrage.</p>
-            </div>
+      {/* 8. CALCULATEUR DE CALORIES SIMPLIFIÉ (Original section "CALCULATEUR", now section 8) */}
+      {/* This section is now combined with the "Trésors de nos Terroirs" concept */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+            Calculez pour <span className="text-black border-b-4 border-[#39FF14]">Comprendre</span>
+          </h2>
+          <p className="text-zinc-500 font-bold text-lg mb-8">Estimez les calories de plats courants et voyez comment notre méthode les optimise.</p>
 
-            <div className="overflow-hidden mb-8" ref={emblaStoreRef}>
-               <div className="flex">
-                   {storeProducts.length > 0 ? storeProducts.map((p, idx) => (
-                      <div key={idx} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] min-w-0 px-4">
-                          <div className="bg-white border border-zinc-200 rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col h-full">
-                              <div className="aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 relative">
-                                 <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                 <span className="absolute top-4 right-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge || 'Nouveau'}</span>
-                                 {p.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
-                              </div>
-                              <div className="flex-1">
-                                 <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">{p.nom}</h3>
-                                 <div className="flex flex-col gap-1 mb-8">
-                                    <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard} F (Standard)</p>
-                                    <p className="text-2xl font-black text-black">
-                                       {p.prix_premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
-                                    </p>
-                                 </div>
-                              </div>
-                              <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique Onyx Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
-                                 Commander via WhatsApp <ArrowRight size={16}/>
-                              </button>
-                          </div>
-                      </div>
-                   )) : <p className="text-zinc-500 text-center py-10 w-full">Boutique en cours de mise à jour...</p>}
-               </div>
-            </div>
+          <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-zinc-200">
+            <select
+              value={selectedDish}
+              onChange={handleDishChange}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl font-bold text-lg outline-none focus:border-black transition appearance-none text-center cursor-pointer"
+            >
+              <option value="">-- Choisissez un plat --</option>
+              {Object.keys(DISH_CALORIES).map(dish => (
+                <option key={dish} value={dish}>{dish}</option>
+              ))}
+            </select>
 
-            <div className="mt-16 text-center">
-               <button onClick={() => router.push('/nutrition')} className="inline-flex items-center gap-3 bg-white text-black border-2 border-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:bg-black hover:text-white transition-all shadow-lg">
-                  Accéder à la boutique complète <ArrowRight size={20}/>
-               </button>
-            </div>
-         </div>
+            {pendingDish && !dishInfo && !isCalcLeadCaptured && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-8 bg-zinc-50 border border-zinc-200 p-6 sm:p-8 rounded-[2rem] text-left max-w-lg mx-auto"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Sparkles size={20}/></div>
+                    <h4 className="font-black text-xl uppercase text-black">Presque là !</h4>
+                </div>
+                <p className="text-zinc-500 mb-6 font-bold text-sm">Entrez vos informations pour découvrir l'impact de notre méthode sur ce plat et recevoir vos résultats.</p>
+                <form onSubmit={handleCalcSubmit} className="space-y-4">
+                    <input type="text" placeholder="Votre Prénom *" value={calcLeadData.name} onChange={e => setCalcLeadData({...calcLeadData, name: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" required />
+                    <input type="tel" placeholder="Numéro WhatsApp * (Ex: 77 123 45 67)" value={calcLeadData.phone} onChange={e => setCalcLeadData({...calcLeadData, phone: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" required />
+                    <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">Découvrir le résultat <ArrowRight size={18}/></button>
+                </form>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-4 text-center">* Vous pourrez tester d'autres plats ensuite sans remplir ce formulaire.</p>
+              </motion.div>
+            )}
+
+            {dishInfo && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-8"
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-8">
+                  <CalorieGauge value={dishInfo.calories} colorClass="text-red-500" label="Standard" />
+                  <div className="text-4xl font-black text-zinc-300 hidden sm:block">→</div>
+                  <CalorieGauge value={dishInfo.optimizedCalories} colorClass="text-green-500" label="Version Optimisée" />
+                </div>
+                <div className="bg-green-50 border border-green-200 p-6 rounded-2xl text-left">
+                  <p className="text-sm font-bold text-green-700 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> L'astuce Nutrition à l'Africaine</p>
+                  <p className="text-zinc-700 font-medium mt-2">{dishInfo.tip}</p>
+                </div>
+                <p className="text-xs text-zinc-400 mt-4 text-center italic">Ces valeurs sont des estimations. Le programme vous donne des calculs personnalisés.</p>
+              </motion.div>
+            )}
+          </div>
+        </div>
       </section>
 
-{/* 6. TARIFICATION (Original section 3, now section 6) */}
+      {/* 6. TARIFICATION (Original section 3, now section 6) */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
          <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
                <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Choisissez votre <span className="text-[#39FF14]">engagement.</span></h2>
             </div>
-            
+
             <div className="grid md:grid-cols-3 gap-8 mx-auto items-stretch">
                {/* CARTE OFFRE DÉCOUVERTE (0 F) */}
                <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] flex flex-col relative hover:border-zinc-700 transition-colors">
@@ -1528,70 +1544,117 @@ export default function NutritionAfricaineLanding() {
       </section>
 
 
-      {/* 8. CALCULATEUR DE CALORIES SIMPLIFIÉ (Original section "CALCULATEUR", now section 8) */}
-      {/* This section is now combined with the "Trésors de nos Terroirs" concept */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-            Calculez pour <span className="text-black border-b-4 border-[#39FF14]">Comprendre</span>
-          </h2>
-          <p className="text-zinc-500 font-bold text-lg mb-8">Estimez les calories de plats courants et voyez comment notre méthode les optimise.</p>
-          
-          <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-zinc-200">
-            <select 
-              value={selectedDish}
-              onChange={handleDishChange}
-              className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl font-bold text-lg outline-none focus:border-black transition appearance-none text-center cursor-pointer"
-            >
-              <option value="">-- Choisissez un plat --</option>
-              {Object.keys(DISH_CALORIES).map(dish => (
-                <option key={dish} value={dish}>{dish}</option>
-              ))}
-            </select>
-
-            {pendingDish && !dishInfo && !isCalcLeadCaptured && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-8 bg-zinc-50 border border-zinc-200 p-6 sm:p-8 rounded-[2rem] text-left max-w-lg mx-auto"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Sparkles size={20}/></div>
-                    <h4 className="font-black text-xl uppercase text-black">Presque là !</h4>
+      {/* 4. CONSEILS DU COACH (BLOG) */}
+      <section className="py-24 px-6 bg-white border-t border-zinc-200">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Conseils du <span className="text-black border-b-4 border-[#39FF14]">Coach</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Lisez nos derniers articles pour comprendre votre métabolisme.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {coachArticles.length > 0 ? (
+              coachArticles.map((article, i) => (
+                <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => { if (!isAuthenticated) { setShowFreeSignupModal(true); } else { console.log('Lire l\'article') } }}>
+                  <div className="h-48 relative overflow-hidden">
+                    <img src={article.image_url || "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                       {!isAuthenticated && <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>}
+                    </div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
+                    <p className="text-zinc-500 text-sm font-medium mb-6 relative">
+                      {article.content ? (article.content.replace(/<[^>]*>?/gm, '').substring(0, 100) + '...') : ''}
+                      <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
+                    </p>
+                    <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
+                      {isAuthenticated ? "Lire l'article" : "Débloquer l'article"} <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-zinc-500 mb-6 font-bold text-sm">Entrez vos informations pour découvrir l'impact de notre méthode sur ce plat et recevoir vos résultats.</p>
-                <form onSubmit={handleCalcSubmit} className="space-y-4">
-                    <input type="text" placeholder="Votre Prénom *" value={calcLeadData.name} onChange={e => setCalcLeadData({...calcLeadData, name: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" required />
-                    <input type="tel" placeholder="Numéro WhatsApp * (Ex: 77 123 45 67)" value={calcLeadData.phone} onChange={e => setCalcLeadData({...calcLeadData, phone: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" required />
-                    <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">Découvrir le résultat <ArrowRight size={18}/></button>
-                </form>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-4 text-center">* Vous pourrez tester d'autres plats ensuite sans remplir ce formulaire.</p>
-              </motion.div>
-            )}
-
-            {dishInfo && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-8"
-              >
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-8">
-                  <CalorieGauge value={dishInfo.calories} colorClass="text-red-500" label="Standard" />
-                  <div className="text-4xl font-black text-zinc-300 hidden sm:block">→</div>
-                  <CalorieGauge value={dishInfo.optimizedCalories} colorClass="text-green-500" label="Version Optimisée" />
+              ))
+            ) : (
+              [
+                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg", title: "Comment manger du Tiep et perdre du ventre ?", desc: "Le secret n'est pas d'arrêter le Tiep, mais de comprendre comment l'indice glycémique fonctionne..." },
+                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg", title: "Les 3 erreurs au petit-déjeuner", desc: "Vous prenez du pain au chocolat ou vous sautez le repas ? Voici pourquoi votre corps stocke la graisse..." },
+                { img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg", title: "Ménopause : Relancer la machine", desc: "Passé 45 ans, le métabolisme ralentit. Découvrez les épices locales qui agissent comme brûleurs naturels..." }
+              ].map((article, i) => (
+                <div key={i} className="bg-zinc-50 rounded-[2rem] border border-zinc-200 overflow-hidden group hover:border-[#39FF14] transition-all cursor-pointer flex flex-col shadow-sm hover:shadow-xl" onClick={() => { if (!isAuthenticated) { setShowFreeSignupModal(true); } else { console.log('Lire l\'article') } }}>
+                  <div className="h-48 relative overflow-hidden">
+                    <img src={article.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Blog" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                       {!isAuthenticated && <span className="text-[#39FF14] font-black uppercase text-[10px] tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10"><Lock size={12} className="inline mr-1 mb-0.5"/> Contenu Premium</span>}
+                    </div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="font-black text-lg uppercase text-black mb-3 leading-tight">{article.title}</h3>
+                    <p className="text-zinc-500 text-sm font-medium mb-6 relative">
+                      {article.desc}
+                      <span className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-zinc-50 to-transparent"></span>
+                    </p>
+                    <button className="mt-auto w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest group-hover:bg-[#39FF14] group-hover:text-black transition-colors flex items-center justify-center gap-2">
+                      {isAuthenticated ? "Lire l'article" : "Débloquer l'article"} <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
-                <div className="bg-green-50 border border-green-200 p-6 rounded-2xl text-left">
-                  <p className="text-sm font-bold text-green-700 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> L'astuce Nutrition à l'Africaine</p>
-                  <p className="text-zinc-700 font-medium mt-2">{dishInfo.tip}</p>
-                </div>
-                <p className="text-xs text-zinc-400 mt-4 text-center italic">Ces valeurs sont des estimations. Le programme vous donne des calculs personnalisés.</p>
-              </motion.div>
+              ))
             )}
           </div>
         </div>
       </section>
 
-      {/* 9. FAQ (Original section 6, now section 9) */}
+      {/* SECTION : VITRINE BOUTIQUE */}
+      <section className="py-24 px-6 bg-[#fafafa]">
+         <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+               <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+                  <ShoppingBag size={14}/> Boutique Nutrition
+               </div>
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+                  Équipez-vous pour <span className="text-black border-b-4 border-[#39FF14]">votre réussite.</span>
+               </h2>
+               <p className="text-zinc-500 font-bold text-lg max-w-2xl mx-auto">Nos super-aliments et accessoires exclusifs pour faciliter votre rééquilibrage.</p>
+            </div>
+
+            <div className="overflow-hidden mb-8" ref={emblaStoreRef}>
+               <div className="flex">
+                   {storeProducts.length > 0 ? storeProducts.map((p, idx) => (
+                      <div key={idx} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] min-w-0 px-4">
+                          <div className="bg-white border border-zinc-200 rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col h-full">
+                              <div className="aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 relative">
+                                 <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                 <span className="absolute top-4 right-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge || 'Nouveau'}</span>
+                                 {p.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
+                              </div>
+                              <div className="flex-1">
+                                 <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">{p.nom}</h3>
+                                 <div className="flex flex-col gap-1 mb-8">
+                                    <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard} F (Standard)</p>
+                                    <p className="text-2xl font-black text-black">
+                                       {p.prix_premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
+                                    </p>
+                                 </div>
+                              </div>
+                              <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique Onyx Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
+                                 Commander via WhatsApp <ArrowRight size={16}/>
+                              </button>
+                          </div>
+                      </div>
+                   )) : <p className="text-zinc-500 text-center py-10 w-full">Boutique en cours de mise à jour...</p>}
+               </div>
+            </div>
+
+            <div className="mt-16 text-center">
+               <button onClick={() => router.push('/nutrition')} className="inline-flex items-center gap-3 bg-white text-black border-2 border-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:bg-black hover:text-white transition-all shadow-lg">
+                  Accéder à la boutique complète <ArrowRight size={20}/>
+               </button>
+            </div>
+         </div>
+      </section>
+
+{/* 9. FAQ (Original section 6, now section 9) */}
       <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
@@ -1720,6 +1783,53 @@ export default function NutritionAfricaineLanding() {
            </div>
         )}
       </div>
+
+      {/* MODALE CRÉATION COMPTE GRATUIT */}
+      {showFreeSignupModal && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && setShowFreeSignupModal(false)}>
+          <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-2xl p-8 max-w-md w-full relative animate-in zoom-in-95 text-center">
+            <button onClick={() => setShowFreeSignupModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            <div className="w-16 h-16 bg-[#39FF14]/10 text-[#39FF14] border-2 border-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Lock size={32} />
+            </div>
+            <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2`}>Rejoignez la <span className="text-[#39FF14]">Communauté</span></h3>
+            <p className="text-sm font-medium text-zinc-500 mb-6">Formulaire de création de compte à venir.</p>
+            <button onClick={() => setShowFreeSignupModal(false)} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE EXIT INTENT */}
+      {showExitIntent && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && setShowExitIntent(false)}>
+          <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-2xl p-8 max-w-lg w-full relative animate-in zoom-in-95 text-center">
+            <button onClick={() => setShowExitIntent(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            <div className="w-16 h-16 bg-red-100 text-red-500 border-2 border-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={32} />
+            </div>
+            <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-4 text-black`}>Ne partez pas les <span className="text-red-500">mains vides !</span></h3>
+            <p className="text-sm font-bold text-zinc-500 mb-8 leading-relaxed">
+              Prenez au moins 2 minutes pour découvrir votre profil métabolique, ou rejoignez simplement notre communauté gratuitement.
+            </p>
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => { setShowExitIntent(false); router.push('/solutions/onyx-nutritionafricaine/diagnostic?plan=essentiel'); }}
+                className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2"
+              >
+                <Target size={18} /> FAIRE MON BILAN
+              </button>
+              <button
+                onClick={() => { setShowExitIntent(false); setShowFreeSignupModal(true); }}
+                className="w-full bg-transparent border-2 border-black text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+              >
+                CRÉER UN COMPTE GRATUIT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODALE MENU GRATUIT */}
       {showFreeMenuModal && (
